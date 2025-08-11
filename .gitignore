@@ -70,3 +70,6 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# NextJS files
+**/.next/*

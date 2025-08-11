@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { resultsApi } from '../services/api';
-import { AnalysisResults as AnalysisResultsType, QuestionResult } from '../types';
+import { AnalysisResults as AnalysisResultsType } from '../types';
 
 const AnalysisResults: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
@@ -139,7 +139,7 @@ const AnalysisResults: React.FC = () => {
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
                   {Math.round(results.overall.success_rate * 100)}%
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>Success Rate (>0.7)</div>
+                <div style={{ fontSize: '1rem', opacity: 0.9 }}>Success Rate (&gt;0.7)</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
@@ -184,7 +184,7 @@ const AnalysisResults: React.FC = () => {
                   <span className="stat-value" style={{ color: '#007bff' }}>
                     {results.per_group.llm.distribution.filter(s => s > 0.7).length}
                   </span>
-                  <div className="stat-label">Good Scores (>0.7)</div>
+                  <div className="stat-label">Good Scores (&gt;0.7)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>
@@ -237,7 +237,7 @@ const AnalysisResults: React.FC = () => {
                   <span className="stat-value" style={{ color: '#28a745' }}>
                     {results.per_group.ragas.distribution.filter(s => s > 0.7).length}
                   </span>
-                  <div className="stat-label">Good Scores (>0.7)</div>
+                  <div className="stat-label">Good Scores (&gt;0.7)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { CorpusStatus, QuestionGroup, ExperimentConfig, AnalysisResults } from '../types';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🎨 Setting up Corpus Quality Assessment Next.js Frontend..."
+echo "🎨 Setting up Corpus Quality Assessment Frontend..."
 
 # Check if Node.js version is compatible
 NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
@@ -16,11 +16,10 @@ echo "✅ Node.js version check passed: $(node --version)"
 echo "📦 Installing dependencies..."
 npm install
 
-echo "✅ Next.js frontend setup complete!"
+echo "✅ Frontend setup complete!"
 echo ""
 echo "To start the frontend development server:"
 echo "  cd frontend"
-echo "  npm run dev"
+echo "  npm start"
 echo ""
 echo "The application will be available at: http://localhost:3000"
-echo "API calls will be proxied to: http://localhost:8000"

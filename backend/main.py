@@ -1,11 +1,39 @@
+# -*- coding: utf-8 -*-
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import asyncio
 import random
+import logging
+import os
+from simple_document_processor import SimpleDocumentProcessor
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="Corpus Quality Assessment API", version="1.0.0")
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize simple document processor
+doc_processor = SimpleDocumentProcessor()
+documents_loaded = False
+
+# Try to load documents on startup
+try:
+    logger.info("🚀 Initializing simple document processing...")
+    stats = doc_processor.get_corpus_stats()
+    if stats["corpus_loaded"]:
+        documents_loaded = True
+        logger.info("✅ Document processing initialized successfully")
+    else:
+        logger.warning("⚠️ No documents found - using mock data")
+except Exception as e:
+    logger.error(f"❌ Document processing initialization failed: {str(e)}")
+    logger.info("📝 Falling back to mock data mode")
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,12 +43,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mock data
-CORPUS_STATUS = {
+# Fallback mock data
+MOCK_CORPUS_STATUS = {
     "corpus_loaded": True,
     "document_count": 152,
     "chunk_count": 1247,
-    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_model": "text-embedding-3-small (OpenAI)",
     "corpus_metadata": {
         "total_size_mb": 45.2,
         "document_types": {"pdf": 120, "txt": 32},
@@ -64,7 +92,14 @@ class QuestionResult(BaseModel):
 # API Endpoints
 @app.get("/api/corpus/status")
 async def get_corpus_status():
-    return CORPUS_STATUS
+    """Get corpus status - real data if available, otherwise mock data."""
+    if documents_loaded:
+        # Return real corpus statistics
+        return doc_processor.get_corpus_stats()
+    else:
+        # Return mock data
+        logger.info("📝 Returning mock corpus status (no real documents loaded)")
+        return MOCK_CORPUS_STATUS
 
 @app.get("/api/questions/llm")
 async def get_llm_questions():
@@ -207,7 +242,88 @@ async def websocket_experiment_stream(websocket: WebSocket):
 
 @app.get("/")
 async def root():
-    return {"message": "Corpus Quality Assessment API", "status": "running"}
+    return {
+        "message": "Corpus Quality Assessment API", 
+        "status": "running",
+        "document_processor": {
+            "initialized": documents_loaded,
+            "documents_loaded": doc_processor.get_corpus_stats()["document_count"] if documents_loaded else 0,
+            "mode": "real_data" if documents_loaded else "mock_data"
+        }
+    }
+
+@app.get("/api/corpus/search")
+async def search_corpus(query: str, top_k: int = 5):
+    """Search the corpus using simple keyword matching."""
+    if not documents_loaded:
+        return {
+            "error": "Documents not loaded",
+            "message": "Document processing failed during startup",
+            "results": []
+        }
+    
+    try:
+        logger.info(f"🔍 Searching corpus for: {query[:100]}...")
+        
+        # Perform simple search
+        results = doc_processor.search_documents(query, top_k)
+        
+        logger.info(f"📚 Found {len(results)} relevant documents")
+        
+        return {
+            "query": query,
+            "results": results,
+            "total_found": len(results),
+            "search_method": "keyword_matching"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Search failed: {str(e)}")
+        return {
+            "error": "Search failed",
+            "message": str(e),
+            "results": []
+        }
+
+@app.post("/api/corpus/reload")
+async def reload_corpus():
+    """Reload the corpus data (for development/testing)."""
+    global documents_loaded
+    
+    try:
+        logger.info("🔄 Reloading corpus data...")
+        
+        # Reinitialize simple document processor
+        stats = doc_processor.get_corpus_stats()
+        
+        if stats["corpus_loaded"]:
+            documents_loaded = True
+            logger.info("✅ Corpus reloaded successfully")
+            return {
+                "success": True,
+                "message": "Corpus reloaded successfully",
+                "documents_loaded": stats["document_count"],
+                "processor_ready": True
+            }
+        else:
+            documents_loaded = False
+            logger.warning("⚠️ Corpus reload failed - no documents found")
+            return {
+                "success": False,
+                "message": "Failed to reload corpus - check data folder",
+                "documents_loaded": 0,
+                "processor_ready": False
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Corpus reload failed: {str(e)}")
+        documents_loaded = False
+        return {
+            "success": False,
+            "message": f"Reload failed: {str(e)}",
+            "documents_loaded": 0,
+            "processor_ready": False
+        }
 
 if __name__ == "__main__":
     import uvicorn

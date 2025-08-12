@@ -76,10 +76,6 @@ QDRANT_URL=http://localhost:6333
 QDRANT_API_KEY=                              # Optional for local instances
 QDRANT_COLLECTION_NAME=student_loan_corpus
 
-# Data and Cache Configuration  
-DATA_FOLDER=../data/                         # Relative to backend directory
-CACHE_FOLDER=./cache                         # Relative to backend directory
-
 # Logging
 LOG_LEVEL=INFO
 

@@ -6,24 +6,18 @@ from typing import List, Dict, Any
 from pathlib import Path
 import gc
 from logging_config import setup_logging
-from joblib import Memory
 
 from qdrant_client.http.models import Distance, VectorParams
 from qdrant_client import QdrantClient, models
 from langchain_community.vectorstores import Qdrant
 from langchain_qdrant import QdrantVectorStore
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders import DirectoryLoader, PyMuPDFLoader
-from langchain_community.document_loaders import CSVLoader
+
+from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Set up logging
 logger = setup_logging(__name__)
-
-# Set up caching
-CACHE_FOLDER = os.getenv("CACHE_FOLDER", "./cache")
-cache_memory = Memory(location=CACHE_FOLDER, verbose=0)
-logger.info(f"💾 Cache location: {CACHE_FOLDER}")
 
 DEFAULT_FOLDER_LOCATION = "../data/"
 TEXT_EMBEDDINGS_MODEL = "text-embedding-3-small"
@@ -95,90 +89,13 @@ def ensure_collection_exists(client: QdrantClient, collection_name: str) -> bool
         logger.error(f"❌ Failed to ensure collection exists: {e}")
         return False
 
-@cache_memory.cache
-def get_cached_corpus_stats(data_folder: str) -> Dict[str, Any]:
-    """
-    Cached method to compute corpus statistics without recreating vector store.
-    This is cached to avoid expensive recomputation on every API call.
-    """
-    logger.info("🧮 Computing corpus statistics (cached)")
-    
-    # Load documents for stats only - no vector store creation
-    from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader
-    
-    # Load CSV data
-    csv_path = os.path.join(data_folder, "complaints.csv")
-    csv_docs = []
-    if os.path.exists(csv_path):
-        try:
-            loader = CSVLoader(
-                file_path=csv_path,
-                metadata_columns=[
-                    "Date received", "Product", "Sub-product", "Issue", "Sub-issue",
-                    "Consumer complaint narrative", "Company", "State", "ZIP code", "Complaint ID"
-                ]
-            )
-            csv_data = loader.load()
-            
-            # Apply same filtering as main method
-            for doc in csv_data:
-                narrative = doc.metadata.get("Consumer complaint narrative", "").strip()
-                if len(narrative) >= 100 and narrative.count("XXXX") <= 5 and narrative not in ["", "None", "N/A"]:
-                    csv_docs.append(doc)
-        except Exception as e:
-            logger.warning(f"Could not load CSV for stats: {e}")
-    
-    # Load PDF data
-    pdf_docs = []
-    if os.path.exists(data_folder):
-        try:
-            loader = DirectoryLoader(data_folder, glob="*.pdf", loader_cls=PyMuPDFLoader)
-            pdf_docs = loader.load()
-        except Exception as e:
-            logger.warning(f"Could not load PDFs for stats: {e}")
-    
-    total_docs = len(pdf_docs) + len(csv_docs)
-    
-    if total_docs == 0:
-        return {
-            "corpus_loaded": False,
-            "document_count": 0,
-            "chunk_count": 0,
-            "embedding_model": "none",
-            "corpus_metadata": {
-                "total_size_mb": 0.0,
-                "document_types": {"pdf": 0, "csv": 0},
-                "avg_doc_length": 0
-            }
-        }
-    
-    # Calculate statistics without creating vector store
-    total_content_length = sum(len(getattr(doc, 'page_content', '')) for doc in csv_docs + pdf_docs)
-    total_size_mb = total_content_length / (1024 * 1024)
-    avg_doc_length = total_content_length // total_docs if total_docs > 0 else 0
-    estimated_chunks = max(total_docs, total_content_length // 750)
-    
-    logger.info(f"📊 Stats computed: {total_docs} docs, {estimated_chunks} chunks")
-    
-    return {
-        "corpus_loaded": True,
-        "document_count": total_docs,
-        "chunk_count": estimated_chunks,
-        "embedding_model": f"{TEXT_EMBEDDINGS_MODEL} ({TEXT_EMBEDDINGS_MODEL_PROVIDER})",
-        "corpus_metadata": {
-            "total_size_mb": round(total_size_mb, 2),
-            "document_types": {"pdf": len(pdf_docs), "csv": len(csv_docs)},
-            "avg_doc_length": avg_doc_length
-        }
-    }
-
 class SimpleDocumentProcessor:
     """Simple document processor for corpus quality assessment with persistent Qdrant storage."""
 
     def __init__(self):
         self.embedding = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
         self.data_folder = os.getenv("DATA_FOLDER")
-        self._vector_store = None  # Cached vector store instance
+        self._vector_store = None
 
         if not self.data_folder or not os.path.exists(self.data_folder):
             self.data_folder = "../" + DEFAULT_FOLDER_LOCATION
@@ -189,30 +106,6 @@ class SimpleDocumentProcessor:
         logger.info(f"📁 Data folder: {self.data_folder}")
         logger.info(f"🔗 Qdrant server: {QDRANT_URL}")
         logger.info(f"📦 Collection name: {QDRANT_COLLECTION_NAME}")
-
-    def get_cached_vector_store(self):
-        """
-        Get cached vector store instance, creating it if necessary.
-        
-        Returns:
-            QdrantVectorStore: Cached vector store instance
-        """
-        if self._vector_store is None:
-            logger.info("🔄 Initializing vector store for the first time...")
-            
-            # Load and prepare documents
-            csv_docs = self.load_csv_data()
-            pdf_docs = self.load_pdf_data() 
-            all_docs = csv_docs + pdf_docs
-            
-            if all_docs:
-                chunks = self.split_documents(all_docs)
-                self._vector_store = self.get_vector_store(chunks)
-            else:
-                logger.warning("⚠️ No documents found, creating empty vector store")
-                self._vector_store = self.get_vector_store([])
-                
-        return self._vector_store
 
     def load_csv_data(self, filename: str = "complaints.csv") -> List[Dict[str, Any]]:
         """
@@ -391,20 +284,19 @@ class SimpleDocumentProcessor:
 
     def get_corpus_stats(self) -> Dict[str, Any]:
         """
-        Generate corpus statistics using cached computation to avoid expensive recomputation.
+        Generate corpus statistics
         
         Returns:
             Dictionary with corpus statistics
         """
-        logger.info("📊 Getting corpus statistics from cache")
-        
-        try:
-            # Use cached function to avoid expensive document loading and processing
-            return get_cached_corpus_stats(self.data_folder)
-        except Exception as e:
-            logger.error(f"❌ Error getting cached corpus stats: {e}")
-            
-            # Fallback to basic stats if cache fails
+        logger.info("🧮 Computing corpus statistics")
+
+        csv_docs = self.load_csv_data()
+        pdf_docs = self.load_pdf_data()
+
+        combined_docs = csv_docs + pdf_docs
+        total_docs = len(combined_docs)
+        if total_docs == 0:
             return {
                 "corpus_loaded": False,
                 "document_count": 0,
@@ -416,6 +308,29 @@ class SimpleDocumentProcessor:
                     "avg_doc_length": 0
                 }
             }
+        
+        # Calculate statistics without creating vector store
+        total_content_length = sum(len(getattr(doc, 'page_content', '')) for doc in csv_docs + pdf_docs)
+        total_size_mb = total_content_length / (1024 * 1024)
+        avg_doc_length = total_content_length // total_docs if total_docs > 0 else 0
+        estimated_chunks = max(total_docs, total_content_length // 750)
+        
+        logger.info(f"📊 Stats computed: {total_docs} docs, {estimated_chunks} chunks")
+
+        chunks = self.split_documents(combined_docs)
+        self.vector_store = self.get_vector_store(chunks)
+        
+        return {
+            "corpus_loaded": True,
+            "document_count": total_docs,
+            "chunk_count": estimated_chunks,
+            "embedding_model": f"{TEXT_EMBEDDINGS_MODEL} ({TEXT_EMBEDDINGS_MODEL_PROVIDER})",
+            "corpus_metadata": {
+                "total_size_mb": round(total_size_mb, 2),
+                "document_types": {"pdf": len(pdf_docs), "csv": len(csv_docs)},
+                "avg_doc_length": avg_doc_length
+            }
+        }
     
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
@@ -526,3 +441,27 @@ class SimpleDocumentProcessor:
             logger.warning(f"⚠️ No documents provided to add to vector store")
             
         return vector_store
+
+    # def get_cached_vector_store(self):
+    #     """
+    #     Get vector store instance, creating it if necessary.
+        
+    #     Returns:
+    #         QdrantVectorStore: Vector store instance
+    #     """
+    #     if self._vector_store is None:
+    #         logger.info("🔄 Initializing vector store for the first time...")
+            
+    #         # Load and prepare documents
+    #         csv_docs = self.load_csv_data()
+    #         pdf_docs = self.load_pdf_data() 
+    #         all_docs = csv_docs + pdf_docs
+            
+    #         if all_docs:
+    #             chunks = self.split_documents(all_docs)
+    #             self._vector_store = self.get_vector_store(chunks)
+    #         else:
+    #             logger.warning("⚠️ No documents found, creating empty vector store")
+    #             self._vector_store = self.get_vector_store([])
+                
+    #     return self._vector_store

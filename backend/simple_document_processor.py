@@ -3,11 +3,11 @@ import os
 import logging
 from typing import List, Dict, Any
 from logging_config import setup_logging
-from qdrant_manager import QdrantManager
-from data_manager import DataManager
-from corpus_statistics_manager import CorpusStatisticsManager
-from vector_store_manager import VectorStoreManager
-from search_manager import SearchManager
+from managers.qdrant_manager import QdrantManager
+from managers.data_manager import DataManager
+from managers.corpus_statistics_manager import CorpusStatisticsManager
+from managers.vector_store_manager import VectorStoreManager
+from managers.search_manager import SearchManager
 
 # Set up logging
 logger = setup_logging(__name__)

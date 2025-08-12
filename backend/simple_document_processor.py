@@ -89,6 +89,37 @@ def ensure_collection_exists(client: QdrantClient, collection_name: str) -> bool
         logger.error(f"❌ Failed to ensure collection exists: {e}")
         return False
 
+def check_collection_has_documents(client: QdrantClient, collection_name: str, expected_doc_count: int) -> bool:
+    """
+    Check if the collection already has the expected number of documents.
+
+    Args:
+        client: Qdrant client instance
+        collection_name: Name of the collection
+        expected_doc_count: Expected number of documents/chunks
+
+    Returns:
+        bool: True if collection has sufficient documents
+    """
+    try:
+        collection_info = client.get_collection(collection_name)
+        existing_count = collection_info.points_count
+
+        # Consider collection populated if it has at least 80% of expected documents
+        # This accounts for potential variations in chunking
+        threshold = max(1, int(expected_doc_count * 0.8))
+
+        if existing_count >= threshold:
+            logger.info(f"✅ Collection '{collection_name}' has {existing_count} documents (expected: {expected_doc_count})")
+            return True
+        else:
+            logger.info(f"📊 Collection '{collection_name}' has {existing_count} documents, need at least {threshold}")
+            return False
+
+    except Exception as e:
+        logger.warning(f"⚠️ Could not check collection document count: {e}")
+        return False
+
 class SimpleDocumentProcessor:
     """Simple document processor for corpus quality assessment with persistent Qdrant storage."""
 
@@ -96,6 +127,8 @@ class SimpleDocumentProcessor:
         self.embedding = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
         self.data_folder = os.getenv("DATA_FOLDER")
         self._vector_store = None
+        self._corpus_stats_cache = None  # Cache for corpus statistics
+        self._documents_loaded = False   # Track if documents have been loaded
 
         if not self.data_folder or not os.path.exists(self.data_folder):
             self.data_folder = "../" + DEFAULT_FOLDER_LOCATION
@@ -284,20 +317,26 @@ class SimpleDocumentProcessor:
 
     def get_corpus_stats(self) -> Dict[str, Any]:
         """
-        Generate corpus statistics
+        Generate corpus statistics with caching to avoid expensive recomputation.
         
         Returns:
             Dictionary with corpus statistics
         """
-        logger.info("🧮 Computing corpus statistics")
+        # Return cached stats if available
+        if self._corpus_stats_cache is not None:
+            logger.info("📋 Returning cached corpus statistics")
+            return self._corpus_stats_cache
+
+        logger.info("🧮 Computing corpus statistics for the first time")
 
         csv_docs = self.load_csv_data()
         pdf_docs = self.load_pdf_data()
 
         combined_docs = csv_docs + pdf_docs
         total_docs = len(combined_docs)
+
         if total_docs == 0:
-            return {
+            self._corpus_stats_cache = {
                 "corpus_loaded": False,
                 "document_count": 0,
                 "chunk_count": 0,
@@ -308,7 +347,8 @@ class SimpleDocumentProcessor:
                     "avg_doc_length": 0
                 }
             }
-        
+            return self._corpus_stats_cache
+
         # Calculate statistics without creating vector store
         total_content_length = sum(len(getattr(doc, 'page_content', '')) for doc in csv_docs + pdf_docs)
         total_size_mb = total_content_length / (1024 * 1024)
@@ -317,10 +357,41 @@ class SimpleDocumentProcessor:
         
         logger.info(f"📊 Stats computed: {total_docs} docs, {estimated_chunks} chunks")
 
-        chunks = self.split_documents(combined_docs)
-        self.vector_store = self.get_vector_store(chunks)
-        
-        return {
+        # Only create vector store and process documents if needed
+        if not self._documents_loaded:
+            # Check if collection already has the documents we need
+            try:
+                client = get_qdrant_client()
+                if ensure_collection_exists(client, QDRANT_COLLECTION_NAME):
+                    # Estimate expected chunk count
+                    chunks = self.split_documents(combined_docs)
+                    expected_chunk_count = len(chunks)
+
+                    # Check if collection already has sufficient documents
+                    if check_collection_has_documents(client, QDRANT_COLLECTION_NAME, expected_chunk_count):
+                        logger.info("🚀 Collection already populated, skipping document loading")
+                        # Create vector store connection without adding documents
+                        embeddings = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
+                        self.vector_store = QdrantVectorStore(
+                            client=client,
+                            collection_name=QDRANT_COLLECTION_NAME,
+                            embedding=embeddings,
+                        )
+                    else:
+                        logger.info("📥 Loading documents into vector store")
+                        self.vector_store = self.get_vector_store(chunks)
+
+                    self._documents_loaded = True
+                    logger.info("✅ Vector store initialized")
+                else:
+                    logger.error("❌ Could not ensure collection exists")
+            except Exception as e:
+                logger.error(f"❌ Error initializing vector store: {e}")
+        else:
+            logger.info("📚 Documents already loaded, skipping vector store initialization")
+
+        # Cache the computed statistics
+        self._corpus_stats_cache = {
             "corpus_loaded": True,
             "document_count": total_docs,
             "chunk_count": estimated_chunks,
@@ -331,7 +402,9 @@ class SimpleDocumentProcessor:
                 "avg_doc_length": avg_doc_length
             }
         }
-    
+
+        return self._corpus_stats_cache
+
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
         Simple keyword-based document search.

@@ -1,15 +1,20 @@
+# Simple API Requirements for AIE7 Certification Challenge
+# Federal Student Loan RAG API
+
 # Core FastAPI framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.27.0,<1.0.0
 python-multipart==0.0.6
 python-socketio==5.10.0
 websockets==12.0
 
+# Request/response validation
+pydantic>=2.8.0,<3.0.0
+
 # Environment variables
 python-dotenv==1.0.0
 
-# LangChain components for document processing
+# LangChain core components (using older versions that support add_sequence)
 langchain-core>=0.2.2,<0.3.0
 langchain>=0.2.0,<0.3.0
 langchain-openai>=0.1.8,<0.2.0
@@ -17,11 +22,11 @@ langchain-community>=0.2.0,<0.3.0
 
 # Vector database
 qdrant-client==1.15.1
-langchain-qdrant>=0.1.0,<1.0.0
+langchain-qdrant>=0.2.0,<1.0.0
 
 # Document processing
 pypdf2==3.0.1
-pymupdf>=1.23.0
+pymupdf>=1.23.0  # Required for PyMuPDFLoader
 
 # Core dependencies
 numpy>=1.26.0
@@ -33,3 +38,6 @@ typing-extensions>=4.8.0
 # OpenAI dependencies
 tiktoken>=0.5.0
 tokenizers>=0.15.0
+
+# Caching and memory
+joblib==1.5.1

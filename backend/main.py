@@ -3,11 +3,13 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+import traceback
 import asyncio
 import random
 import logging
 import os
-from simple_document_processor import SimpleDocumentProcessor
+from logging_config import setup_logging
+from simple_document_processor import SimpleDocumentProcessor, TEXT_EMBEDDINGS_MODEL, TEXT_EMBEDDINGS_MODEL_PROVIDER
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,8 +17,7 @@ load_dotenv()
 app = FastAPI(title="Corpus Quality Assessment API", version="1.0.0")
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 # Initialize simple document processor
 doc_processor = SimpleDocumentProcessor()
@@ -33,6 +34,7 @@ try:
         logger.warning("⚠️ No documents found - using mock data")
 except Exception as e:
     logger.error(f"❌ Document processing initialization failed: {str(e)}")
+    logger.error(traceback.format_exc())
     logger.info("📝 Falling back to mock data mode")
 
 app.add_middleware(
@@ -48,7 +50,7 @@ MOCK_CORPUS_STATUS = {
     "corpus_loaded": True,
     "document_count": 152,
     "chunk_count": 1247,
-    "embedding_model": "text-embedding-3-small (OpenAI)",
+    "embedding_model": f"{TEXT_EMBEDDINGS_MODEL} ({TEXT_EMBEDDINGS_MODEL_PROVIDER})",
     "corpus_metadata": {
         "total_size_mb": 45.2,
         "document_types": {"pdf": 120, "txt": 32},

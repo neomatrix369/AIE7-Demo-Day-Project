@@ -29,6 +29,72 @@ DEFAULT_FOLDER_LOCATION = "../data/"
 TEXT_EMBEDDINGS_MODEL = "text-embedding-3-small"
 TEXT_EMBEDDINGS_MODEL_PROVIDER = "OpenAI"
 
+# Qdrant configuration
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)  # Optional for local instances
+QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "student_loan_corpus")
+VECTOR_SIZE = 1536  # OpenAI text-embedding-3-small dimensions
+
+def get_qdrant_client() -> QdrantClient:
+    """
+    Create and return a Qdrant client instance.
+    
+    Returns:
+        QdrantClient: Connected Qdrant client
+    """
+    logger.info(f"🔗 Connecting to Qdrant server at {QDRANT_URL}")
+    
+    client = QdrantClient(
+        url=QDRANT_URL,
+        api_key=QDRANT_API_KEY,
+        timeout=30  # 30 second timeout for operations
+    )
+    
+    # Test connection
+    try:
+        collections = client.get_collections()
+        logger.info(f"✅ Successfully connected to Qdrant server")
+        logger.info(f"📊 Found {len(collections.collections)} existing collections")
+    except Exception as e:
+        logger.error(f"❌ Failed to connect to Qdrant server: {e}")
+        raise
+    
+    return client
+
+def ensure_collection_exists(client: QdrantClient, collection_name: str) -> bool:
+    """
+    Ensure the collection exists, create it if it doesn't.
+    
+    Args:
+        client: Qdrant client instance
+        collection_name: Name of the collection
+        
+    Returns:
+        bool: True if collection exists or was created successfully
+    """
+    try:
+        # Check if collection exists
+        collections = client.get_collections()
+        collection_names = [c.name for c in collections.collections]
+        
+        if collection_name in collection_names:
+            collection_info = client.get_collection(collection_name)
+            logger.info(f"📦 Collection '{collection_name}' exists with {collection_info.points_count} points")
+            return True
+        
+        # Create collection if it doesn't exist
+        logger.info(f"📦 Creating new Qdrant collection '{collection_name}'")
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+        )
+        logger.info(f"✅ Successfully created collection '{collection_name}'")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to ensure collection exists: {e}")
+        return False
+
 @cache_memory.cache
 def get_cached_corpus_stats(data_folder: str) -> Dict[str, Any]:
     """
@@ -107,19 +173,46 @@ def get_cached_corpus_stats(data_folder: str) -> Dict[str, Any]:
     }
 
 class SimpleDocumentProcessor:
-    """Simple document processor for corpus quality assessment without heavy dependencies."""
+    """Simple document processor for corpus quality assessment with persistent Qdrant storage."""
 
     def __init__(self):
-        self.embedding = embeddings = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
+        self.embedding = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
         self.data_folder = os.getenv("DATA_FOLDER")
+        self._vector_store = None  # Cached vector store instance
 
-        if not os.path.exists(self.data_folder):
+        if not self.data_folder or not os.path.exists(self.data_folder):
             self.data_folder = "../" + DEFAULT_FOLDER_LOCATION
 
         if not os.path.exists(self.data_folder):
             self.data_folder = os.path.join(os.path.dirname(__file__), "../data/")
         
         logger.info(f"📁 Data folder: {self.data_folder}")
+        logger.info(f"🔗 Qdrant server: {QDRANT_URL}")
+        logger.info(f"📦 Collection name: {QDRANT_COLLECTION_NAME}")
+
+    def get_cached_vector_store(self):
+        """
+        Get cached vector store instance, creating it if necessary.
+        
+        Returns:
+            QdrantVectorStore: Cached vector store instance
+        """
+        if self._vector_store is None:
+            logger.info("🔄 Initializing vector store for the first time...")
+            
+            # Load and prepare documents
+            csv_docs = self.load_csv_data()
+            pdf_docs = self.load_pdf_data() 
+            all_docs = csv_docs + pdf_docs
+            
+            if all_docs:
+                chunks = self.split_documents(all_docs)
+                self._vector_store = self.get_vector_store(chunks)
+            else:
+                logger.warning("⚠️ No documents found, creating empty vector store")
+                self._vector_store = self.get_vector_store([])
+                
+        return self._vector_store
 
     def load_csv_data(self, filename: str = "complaints.csv") -> List[Dict[str, Any]]:
         """
@@ -372,6 +465,14 @@ class SimpleDocumentProcessor:
 
     def get_vector_store(self, split_documents):
         """    
+        Create or connect to persistent Qdrant vector store.
+        
+        Args:
+            split_documents: List of chunked documents to add to the store
+            
+        Returns:
+            QdrantVectorStore: Connected vector store instance
+            
         Example:
             >>> chunks = split_documents(combined_docs)
             >>> vector_store = get_vector_store(chunks)
@@ -379,25 +480,49 @@ class SimpleDocumentProcessor:
             >>> results = retriever.get_relevant_documents("What is FAFSA?")
             >>> print(f"Found {len(results)} relevant documents")
         """
-        logger.info(f"🗃️ Starting Qdrant in-memory database")
-        client = QdrantClient(":memory:")
+        logger.info(f"🗃️ Connecting to persistent Qdrant server")
+        
+        # Get Qdrant client
+        client = get_qdrant_client()
+        
+        # Ensure collection exists
+        collection_name = QDRANT_COLLECTION_NAME
+        if not ensure_collection_exists(client, collection_name):
+            raise RuntimeError(f"Failed to ensure collection '{collection_name}' exists")
 
-        collection_name = 'student_loan_data'
-        logger.info(f"📦 Creating Qdrant collection '{collection_name}'")
-        client.create_collection(
-            collection_name=collection_name,
-            vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
-        )
-
-        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        # Initialize embeddings
+        embeddings = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
+        
+        # Create vector store instance
         vector_store = QdrantVectorStore(
             client=client,
             collection_name=collection_name,
             embedding=embeddings,
         )
 
-        logger.info(f"⬆️ Adding {len(split_documents)} documents to Qdrant collection")
-        # We can now add our documents to our vector store.
-        vector_store.add_documents(documents=split_documents)
-        logger.info(f"✅ Qdrant vector store ready with {len(split_documents)} documents")
+        # Check if collection already has documents
+        collection_info = client.get_collection(collection_name)
+        existing_count = collection_info.points_count
+        
+        if existing_count > 0:
+            logger.info(f"📚 Collection '{collection_name}' already contains {existing_count} documents")
+            logger.info(f"🔄 Checking if we need to add new documents...")
+            
+            # For simplicity, if we have documents, assume the collection is populated
+            # In a production system, you might want to check document IDs or use versioning
+            if existing_count >= len(split_documents):
+                logger.info(f"✅ Collection appears to be fully populated, skipping document addition")
+                return vector_store
+
+        # Add documents to the collection
+        if split_documents:
+            logger.info(f"⬆️ Adding {len(split_documents)} documents to Qdrant collection '{collection_name}'")
+            vector_store.add_documents(documents=split_documents)
+            
+            # Verify documents were added
+            updated_info = client.get_collection(collection_name)
+            logger.info(f"✅ Qdrant vector store ready with {updated_info.points_count} total documents")
+        else:
+            logger.warning(f"⚠️ No documents provided to add to vector store")
+            
         return vector_store

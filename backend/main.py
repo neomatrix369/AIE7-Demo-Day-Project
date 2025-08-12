@@ -12,7 +12,8 @@ from logging_config import setup_logging
 from simple_document_processor import SimpleDocumentProcessor, TEXT_EMBEDDINGS_MODEL, TEXT_EMBEDDINGS_MODEL_PROVIDER
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load environment variables from root .env file
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = FastAPI(title="Corpus Quality Assessment API", version="1.0.0")
 

@@ -9,7 +9,7 @@ import random
 import logging
 import os
 from logging_config import setup_logging
-from simple_document_processor import SimpleDocumentProcessor, TEXT_EMBEDDINGS_MODEL, TEXT_EMBEDDINGS_MODEL_PROVIDER
+from simple_document_processor import SimpleDocumentProcessor
 from dotenv import load_dotenv
 
 # Load environment variables from root .env file
@@ -51,7 +51,7 @@ MOCK_CORPUS_STATUS = {
     "corpus_loaded": True,
     "document_count": 152,
     "chunk_count": 1247,
-    "embedding_model": f"{TEXT_EMBEDDINGS_MODEL} ({TEXT_EMBEDDINGS_MODEL_PROVIDER})",
+    "embedding_model": "mock-model",
     "corpus_metadata": {
         "total_size_mb": 45.2,
         "document_types": {"pdf": 120, "txt": 32},

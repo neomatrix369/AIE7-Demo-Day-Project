@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { experimentApi } from '../services/api';
 import { ExperimentConfig } from '../types';
+import { logSuccess, logError, logInfo, logNavigation, logWebSocketEvent, logProgress } from '../utils/logger';
 
 interface StreamResult {
   question_id: string;
@@ -60,6 +61,17 @@ const ExperimentConfiguration: React.FC = () => {
       return;
     }
 
+    logInfo(`Starting experiment with ${totalQuestions} questions`, {
+      component: 'Experiment',
+      action: 'EXPERIMENT_START',
+      data: {
+        selected_groups: config.selected_groups,
+        top_k: config.top_k,
+        similarity_threshold: config.similarity_threshold,
+        total_questions: totalQuestions
+      }
+    });
+
     setIsRunning(true);
     setProgress(0);
     setResults([]);
@@ -68,38 +80,99 @@ const ExperimentConfiguration: React.FC = () => {
     try {
       await experimentApi.run(config);
 
+      logInfo('Connecting to experiment WebSocket stream', {
+        component: 'Experiment',
+        action: 'WEBSOCKET_CONNECT_START'
+      });
+
       const websocket = new WebSocket('ws://localhost:8000/ws/experiment/stream');
       setWs(websocket);
+
+      websocket.onopen = () => {
+        logWebSocketEvent('connected', 'Experiment stream connected', {
+          component: 'Experiment'
+        });
+      };
 
       websocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         
         if (data.type === 'completed') {
+          logSuccess(`Experiment completed: ${results.length + 1} questions processed`, {
+            component: 'Experiment',
+            action: 'EXPERIMENT_COMPLETE',
+            data: {
+              total_processed: results.length + 1,
+              duration: Date.now()
+            }
+          });
+          
           setCompleted(true);
           setIsRunning(false);
           websocket.close();
         } else {
+          const newProgress = Math.min((results.length + 1) * (100 / totalQuestions), 100);
+          
+          logWebSocketEvent('message', `Question processed: ${data.source.toUpperCase()} (${data.avg_similarity.toFixed(2)})`, {
+            component: 'Experiment'
+          });
+          
+          logProgress('Experiment progress', Math.round(newProgress), {
+            component: 'Experiment',
+            data: {
+              question_source: data.source,
+              similarity_score: data.avg_similarity,
+              processed_count: results.length + 1,
+              total_questions: totalQuestions
+            }
+          });
+          
           setResults(prev => [...prev, data]);
-          setProgress(prev => Math.min(prev + (100 / totalQuestions), 100));
+          setProgress(newProgress);
         }
       };
 
       websocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        logWebSocketEvent('error', 'WebSocket connection failed', {
+          component: 'Experiment',
+          data: { error }
+        });
         setIsRunning(false);
       };
 
-      websocket.onclose = () => {
+      websocket.onclose = (event) => {
+        logWebSocketEvent('closed', `WebSocket closed (code: ${event.code})`, {
+          component: 'Experiment',
+          data: { code: event.code, reason: event.reason }
+        });
         setWs(null);
       };
 
-    } catch (error) {
-      console.error('Error starting experiment:', error);
+    } catch (error: any) {
+      logError(`Failed to start experiment: ${error?.message || 'Unknown error'}`, {
+        component: 'Experiment',
+        action: 'EXPERIMENT_START_ERROR',
+        data: {
+          error_type: error?.code || error?.name || 'Unknown',
+          error_message: error?.message,
+          status: error?.response?.status
+        }
+      });
       setIsRunning(false);
     }
   };
 
   const stopExperiment = () => {
+    logInfo(`User stopped experiment at ${Math.round(progress)}%`, {
+      component: 'Experiment',
+      action: 'EXPERIMENT_STOP',
+      data: {
+        progress_percent: Math.round(progress),
+        questions_processed: results.length,
+        total_questions: totalQuestions
+      }
+    });
+    
     if (ws) {
       ws.close();
     }
@@ -107,10 +180,22 @@ const ExperimentConfiguration: React.FC = () => {
   };
 
   const handleViewResults = () => {
+    logNavigation('Experiment', 'Results', {
+      component: 'Experiment',
+      action: 'NAVIGATE_TO_RESULTS',
+      data: {
+        experiment_completed: completed,
+        questions_processed: results.length
+      }
+    });
     router.push('/results');
   };
 
   const handleBackToQuestions = () => {
+    logNavigation('Experiment', 'Questions', {
+      component: 'Experiment',
+      action: 'NAVIGATE_TO_QUESTIONS'
+    });
     router.push('/questions');
   };
 

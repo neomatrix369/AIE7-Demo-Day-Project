@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 from pathlib import Path
 import gc
 from logging_config import setup_logging
+from joblib import Memory
 
 from qdrant_client.http.models import Distance, VectorParams
 from qdrant_client import QdrantClient, models
@@ -19,9 +20,91 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 # Set up logging
 logger = setup_logging(__name__)
 
+# Set up caching
+CACHE_FOLDER = os.getenv("CACHE_FOLDER", "./cache")
+cache_memory = Memory(location=CACHE_FOLDER, verbose=0)
+logger.info(f"💾 Cache location: {CACHE_FOLDER}")
+
 DEFAULT_FOLDER_LOCATION = "../data/"
 TEXT_EMBEDDINGS_MODEL = "text-embedding-3-small"
 TEXT_EMBEDDINGS_MODEL_PROVIDER = "OpenAI"
+
+@cache_memory.cache
+def get_cached_corpus_stats(data_folder: str) -> Dict[str, Any]:
+    """
+    Cached method to compute corpus statistics without recreating vector store.
+    This is cached to avoid expensive recomputation on every API call.
+    """
+    logger.info("🧮 Computing corpus statistics (cached)")
+    
+    # Load documents for stats only - no vector store creation
+    from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader
+    
+    # Load CSV data
+    csv_path = os.path.join(data_folder, "complaints.csv")
+    csv_docs = []
+    if os.path.exists(csv_path):
+        try:
+            loader = CSVLoader(
+                file_path=csv_path,
+                metadata_columns=[
+                    "Date received", "Product", "Sub-product", "Issue", "Sub-issue",
+                    "Consumer complaint narrative", "Company", "State", "ZIP code", "Complaint ID"
+                ]
+            )
+            csv_data = loader.load()
+            
+            # Apply same filtering as main method
+            for doc in csv_data:
+                narrative = doc.metadata.get("Consumer complaint narrative", "").strip()
+                if len(narrative) >= 100 and narrative.count("XXXX") <= 5 and narrative not in ["", "None", "N/A"]:
+                    csv_docs.append(doc)
+        except Exception as e:
+            logger.warning(f"Could not load CSV for stats: {e}")
+    
+    # Load PDF data
+    pdf_docs = []
+    if os.path.exists(data_folder):
+        try:
+            loader = DirectoryLoader(data_folder, glob="*.pdf", loader_cls=PyMuPDFLoader)
+            pdf_docs = loader.load()
+        except Exception as e:
+            logger.warning(f"Could not load PDFs for stats: {e}")
+    
+    total_docs = len(pdf_docs) + len(csv_docs)
+    
+    if total_docs == 0:
+        return {
+            "corpus_loaded": False,
+            "document_count": 0,
+            "chunk_count": 0,
+            "embedding_model": "none",
+            "corpus_metadata": {
+                "total_size_mb": 0.0,
+                "document_types": {"pdf": 0, "csv": 0},
+                "avg_doc_length": 0
+            }
+        }
+    
+    # Calculate statistics without creating vector store
+    total_content_length = sum(len(getattr(doc, 'page_content', '')) for doc in csv_docs + pdf_docs)
+    total_size_mb = total_content_length / (1024 * 1024)
+    avg_doc_length = total_content_length // total_docs if total_docs > 0 else 0
+    estimated_chunks = max(total_docs, total_content_length // 750)
+    
+    logger.info(f"📊 Stats computed: {total_docs} docs, {estimated_chunks} chunks")
+    
+    return {
+        "corpus_loaded": True,
+        "document_count": total_docs,
+        "chunk_count": estimated_chunks,
+        "embedding_model": f"{TEXT_EMBEDDINGS_MODEL} ({TEXT_EMBEDDINGS_MODEL_PROVIDER})",
+        "corpus_metadata": {
+            "total_size_mb": round(total_size_mb, 2),
+            "document_types": {"pdf": len(pdf_docs), "csv": len(csv_docs)},
+            "avg_doc_length": avg_doc_length
+        }
+    }
 
 class SimpleDocumentProcessor:
     """Simple document processor for corpus quality assessment without heavy dependencies."""
@@ -35,6 +118,8 @@ class SimpleDocumentProcessor:
 
         if not os.path.exists(self.data_folder):
             self.data_folder = os.path.join(os.path.dirname(__file__), "../data/")
+        
+        logger.info(f"📁 Data folder: {self.data_folder}")
 
     def load_csv_data(self, filename: str = "complaints.csv") -> List[Dict[str, Any]]:
         """
@@ -213,17 +298,20 @@ class SimpleDocumentProcessor:
 
     def get_corpus_stats(self) -> Dict[str, Any]:
         """
-        Generate corpus statistics.
+        Generate corpus statistics using cached computation to avoid expensive recomputation.
         
         Returns:
             Dictionary with corpus statistics
         """
-        csv_docs = self.load_csv_data()
-        pdf_docs = self.load_pdf_data()
-
-        total_docs = len(csv_docs) + len(pdf_docs)
-
-        if total_docs == 0:
+        logger.info("📊 Getting corpus statistics from cache")
+        
+        try:
+            # Use cached function to avoid expensive document loading and processing
+            return get_cached_corpus_stats(self.data_folder)
+        except Exception as e:
+            logger.error(f"❌ Error getting cached corpus stats: {e}")
+            
+            # Fallback to basic stats if cache fails
             return {
                 "corpus_loaded": False,
                 "document_count": 0,
@@ -235,35 +323,6 @@ class SimpleDocumentProcessor:
                     "avg_doc_length": 0
                 }
             }
-
-        # Calculate statistics - PDFs create 269 documents (one per page) for the 4 PDF files
-        pdf_files = list(Path(self.data_folder).glob("*.pdf"))
-        if not os.path.exists(self.data_folder):
-            pdf_files = list(Path(os.path.join(os.path.dirname(__file__), "../data/")).glob("*.pdf"))
-
-        total_docs_actual = len(pdf_docs) + len(csv_docs)
-        total_content_length = sum(len(doc.__dict__["page_content"]) for doc in csv_docs + pdf_docs)
-        total_size_mb = total_content_length / (1024 * 1024)
-        avg_doc_length = total_content_length // total_docs if total_docs > 0 else 0
-
-        # Estimate chunk count (based on 750 char average)
-        estimated_chunks = max(total_docs_actual, total_content_length // 750)
-
-        combined_docs = pdf_docs + csv_docs
-        split_docs = self.split_documents(combined_docs)
-        self.vector_store = self.get_vector_store(split_docs)
-
-        return {
-            "corpus_loaded": True,
-            "document_count": total_docs_actual,
-            "chunk_count": estimated_chunks,
-            "embedding_model": f"{TEXT_EMBEDDINGS_MODEL} ({TEXT_EMBEDDINGS_MODEL_PROVIDER})",
-            "corpus_metadata": {
-                "total_size_mb": round(total_size_mb, 2),
-                "document_types": {"pdf": len(pdf_docs), "csv": len(csv_docs)},
-                "avg_doc_length": avg_doc_length
-            }
-        }
     
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """

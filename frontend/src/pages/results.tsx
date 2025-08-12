@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { resultsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
+import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
 
 const AnalysisResults: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
@@ -17,11 +18,41 @@ const AnalysisResults: React.FC = () => {
     const fetchResults = async () => {
       try {
         setLoading(true);
+        logInfo('Loading analysis results', {
+          component: 'Results',
+          action: 'RESULTS_LOAD_START'
+        });
+        
         const data = await resultsApi.getAnalysis();
         setResults(data);
-      } catch (err) {
-        setError('Failed to load analysis results');
-        console.error('Error fetching results:', err);
+        
+        logSuccess(`Results loaded: ${data.overall.total_questions} questions analyzed`, {
+          component: 'Results', 
+          action: 'RESULTS_LOAD_SUCCESS',
+          data: {
+            total_questions: data.overall.total_questions,
+            avg_similarity: data.overall.avg_similarity,
+            success_rate: data.overall.success_rate,
+            corpus_health: data.overall.corpus_health,
+            llm_avg_score: data.per_group.llm.avg_score,
+            ragas_avg_score: data.per_group.ragas.avg_score
+          }
+        });
+        
+      } catch (err: any) {
+        const userMessage = 'Failed to load analysis results';
+        setError(userMessage);
+        
+        logError(`Results loading failed: ${userMessage}`, {
+          component: 'Results',
+          action: 'RESULTS_LOAD_ERROR',
+          data: {
+            error_type: err?.code || err?.name || 'Unknown',
+            error_message: err?.message,
+            status: err?.response?.status
+          }
+        });
+        
       } finally {
         setLoading(false);
       }
@@ -31,6 +62,12 @@ const AnalysisResults: React.FC = () => {
   }, []);
 
   const handleSort = (field: 'similarity' | 'source' | 'status') => {
+    logInfo(`Sorting results by ${field} (${sortField === field && sortDirection === 'asc' ? 'desc' : 'asc'})`, {
+      component: 'Results',
+      action: 'SORT_RESULTS',
+      data: { field, direction: sortField === field && sortDirection === 'asc' ? 'desc' : 'asc' }
+    });
+    
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -88,10 +125,19 @@ const AnalysisResults: React.FC = () => {
   }, [results, sortField, sortDirection, filterStatus]);
 
   const handleBackToExperiment = () => {
+    logNavigation('Results', 'Experiment', {
+      component: 'Results',
+      action: 'NAVIGATE_TO_EXPERIMENT'
+    });
     router.push('/experiment');
   };
 
   const handleRunNewExperiment = () => {
+    logNavigation('Results', 'Dashboard', {
+      component: 'Results',
+      action: 'NAVIGATE_TO_DASHBOARD',
+      data: { reason: 'new_experiment' }
+    });
     router.push('/dashboard');
   };
 
@@ -287,7 +333,15 @@ const AnalysisResults: React.FC = () => {
               <strong>Filter by Status:</strong>
               <select 
                 value={filterStatus} 
-                onChange={(e) => setFilterStatus(e.target.value as any)}
+                onChange={(e) => {
+                  const newFilter = e.target.value as any;
+                  logInfo(`Filtering results by ${newFilter} status`, {
+                    component: 'Results',
+                    action: 'FILTER_RESULTS',
+                    data: { filter: newFilter, previous_filter: filterStatus }
+                  });
+                  setFilterStatus(newFilter);
+                }}
                 className="form-control"
                 style={{ width: '120px', marginLeft: '10px' }}
               >
@@ -363,9 +417,22 @@ const AnalysisResults: React.FC = () => {
                       <button
                         className="button"
                         style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                        onClick={() => setExpandedQuestion(
-                          expandedQuestion === question.id ? null : question.id
-                        )}
+                        onClick={() => {
+                          const isExpanding = expandedQuestion !== question.id;
+                          logInfo(`${isExpanding ? 'Expanding' : 'Collapsing'} question details`, {
+                            component: 'Results',
+                            action: isExpanding ? 'EXPAND_QUESTION' : 'COLLAPSE_QUESTION',
+                            data: {
+                              question_id: question.id,
+                              question_source: question.source,
+                              similarity_score: question.similarity,
+                              retrieved_docs_count: question.retrieved_docs.length
+                            }
+                          });
+                          setExpandedQuestion(
+                            expandedQuestion === question.id ? null : question.id
+                          );
+                        }}
                       >
                         {expandedQuestion === question.id ? 'Hide' : 'View'} Docs
                       </button>

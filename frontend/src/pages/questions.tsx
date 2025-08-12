@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { questionsApi } from '../services/api';
 import { QuestionGroup } from '../types';
+import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
 
 const QuestionGroupsOverview: React.FC = () => {
   const [llmQuestions, setLlmQuestions] = useState<QuestionGroup | null>(null);
@@ -14,6 +15,11 @@ const QuestionGroupsOverview: React.FC = () => {
     const fetchQuestions = async () => {
       try {
         setLoading(true);
+        logInfo('Loading question groups', { 
+          component: 'Questions',
+          action: 'QUESTIONS_LOAD_START'
+        });
+
         const [llmData, ragasData] = await Promise.all([
           questionsApi.getLLMQuestions(),
           questionsApi.getRAGASQuestions()
@@ -21,9 +27,32 @@ const QuestionGroupsOverview: React.FC = () => {
         
         setLlmQuestions(llmData.llm_questions);
         setRagasQuestions(ragasData.ragas_questions);
-      } catch (err) {
-        setError('Failed to load question groups');
-        console.error('Error fetching questions:', err);
+        
+        logSuccess(`Questions loaded: ${llmData.llm_questions.count} LLM + ${ragasData.ragas_questions.count} RAGAS`, {
+          component: 'Questions',
+          action: 'QUESTIONS_LOAD_SUCCESS',
+          data: {
+            llm_count: llmData.llm_questions.count,
+            ragas_count: ragasData.ragas_questions.count,
+            llm_categories: llmData.llm_questions.categories.length,
+            ragas_categories: ragasData.ragas_questions.categories.length
+          }
+        });
+        
+      } catch (err: any) {
+        const userMessage = 'Failed to load question groups';
+        setError(userMessage);
+        
+        logError(`Question loading failed: ${userMessage}`, {
+          component: 'Questions',
+          action: 'QUESTIONS_LOAD_ERROR',
+          data: {
+            error_type: err?.code || err?.name || 'Unknown',
+            error_message: err?.message,
+            status: err?.response?.status
+          }
+        });
+        
       } finally {
         setLoading(false);
       }
@@ -33,10 +62,18 @@ const QuestionGroupsOverview: React.FC = () => {
   }, []);
 
   const handleConfigureExperiment = () => {
+    logNavigation('Questions', 'Experiment', {
+      component: 'Questions',
+      action: 'NAVIGATE_TO_EXPERIMENT'
+    });
     router.push('/experiment');
   };
 
   const handleBackToDashboard = () => {
+    logNavigation('Questions', 'Dashboard', {
+      component: 'Questions', 
+      action: 'NAVIGATE_TO_DASHBOARD'
+    });
     router.push('/dashboard');
   };
 

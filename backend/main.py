@@ -130,70 +130,176 @@ async def run_experiment(config: ExperimentConfig):
 
 @app.get("/api/results/analysis")
 async def get_analysis_results():
-    # Mock analysis results
+    # Generate mock analysis results
+    per_question_results = generate_mock_question_results()
+    
+    # Calculate and return analysis metrics
+    return build_analysis_response(per_question_results)
+
+def generate_mock_question_results() -> List[Dict[str, Any]]:
+    """
+    Generate mock question results for both LLM and RAGAS questions.
+    
+    Returns:
+        List of mock question result dictionaries
+    """
     per_question_results = []
     
     # Generate mock results for LLM questions
+    llm_questions = generate_mock_llm_results()
+    per_question_results.extend(llm_questions)
+    
+    # Generate mock results for RAGAS questions
+    ragas_questions = generate_mock_ragas_results()
+    per_question_results.extend(ragas_questions)
+    
+    return per_question_results
+
+def generate_mock_llm_results() -> List[Dict[str, Any]]:
+    """
+    Generate mock results for LLM questions.
+    
+    Returns:
+        List of mock LLM question results
+    """
+    results = []
     for i in range(25):
         similarity = round(random.uniform(0.3, 0.9), 2)
-        status = "good" if similarity > 0.7 else "weak" if similarity > 0.5 else "poor"
-        per_question_results.append({
+        status = get_similarity_status(similarity)
+        
+        results.append({
             "id": f"llm_q_{i+1:03d}",
             "text": f"LLM Question {i+1}: How to implement feature X?",
             "source": "llm",
             "similarity": similarity,
             "status": status,
-            "retrieved_docs": [
-                {"doc_id": f"d_{j}", "similarity": round(similarity + random.uniform(-0.1, 0.1), 2), 
-                 "title": f"Document {j}"} for j in range(1, 4)
-            ]
+            "retrieved_docs": generate_mock_retrieved_docs(similarity)
         })
     
-    # Generate mock results for RAGAS questions
+    return results
+
+def generate_mock_ragas_results() -> List[Dict[str, Any]]:
+    """
+    Generate mock results for RAGAS questions.
+    
+    Returns:
+        List of mock RAGAS question results
+    """
+    results = []
     for i in range(30):
         similarity = round(random.uniform(0.2, 0.8), 2)
-        status = "good" if similarity > 0.7 else "weak" if similarity > 0.5 else "poor"
-        per_question_results.append({
+        status = get_similarity_status(similarity)
+        
+        results.append({
             "id": f"ragas_q_{i+1:03d}",
             "text": f"RAGAS Question {i+1}: What is concept Y?",
             "source": "ragas",
             "similarity": similarity,
             "status": status,
-            "retrieved_docs": [
-                {"doc_id": f"d_{j}", "similarity": round(similarity + random.uniform(-0.1, 0.1), 2), 
-                 "title": f"Document {j}"} for j in range(1, 4)
-            ]
+            "retrieved_docs": generate_mock_retrieved_docs(similarity)
         })
     
-    # Calculate overall metrics
+    return results
+
+def get_similarity_status(similarity: float) -> str:
+    """
+    Determine status based on similarity score.
+    
+    Args:
+        similarity: Similarity score between 0 and 1
+        
+    Returns:
+        Status string: 'good', 'weak', or 'poor'
+    """
+    if similarity > 0.7:
+        return "good"
+    elif similarity > 0.5:
+        return "weak"
+    else:
+        return "poor"
+
+def generate_mock_retrieved_docs(similarity: float) -> List[Dict[str, Any]]:
+    """
+    Generate mock retrieved documents for a question.
+    
+    Args:
+        similarity: Base similarity score for variation
+        
+    Returns:
+        List of mock document dictionaries
+    """
+    return [
+        {
+            "doc_id": f"d_{j}",
+            "similarity": round(similarity + random.uniform(-0.1, 0.1), 2),
+            "title": f"Document {j}"
+        } for j in range(1, 4)
+    ]
+
+def calculate_overall_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Calculate overall analysis metrics.
+    
+    Args:
+        per_question_results: List of question results
+        
+    Returns:
+        Dictionary with overall metrics
+    """
     all_similarities = [q["similarity"] for q in per_question_results]
     avg_similarity = round(sum(all_similarities) / len(all_similarities), 2)
     success_rate = len([s for s in all_similarities if s > 0.7]) / len(all_similarities)
     
-    # Calculate per-group metrics
-    llm_similarities = [q["similarity"] for q in per_question_results if q["source"] == "llm"]
-    ragas_similarities = [q["similarity"] for q in per_question_results if q["source"] == "ragas"]
-    
     corpus_health = "excellent" if avg_similarity > 0.8 else "good" if avg_similarity > 0.6 else "needs_work"
     
     return {
-        "overall": {
-            "avg_similarity": avg_similarity,
-            "success_rate": round(success_rate, 2),
-            "total_questions": len(per_question_results),
-            "corpus_health": corpus_health,
-            "key_insight": f"{round((1-success_rate)*100)}% of questions scored below 0.7 threshold"
+        "avg_similarity": avg_similarity,
+        "success_rate": round(success_rate, 2),
+        "total_questions": len(per_question_results),
+        "corpus_health": corpus_health,
+        "key_insight": f"{round((1-success_rate)*100)}% of questions scored below 0.7 threshold"
+    }
+
+def calculate_per_group_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Calculate per-group analysis metrics.
+    
+    Args:
+        per_question_results: List of question results
+        
+    Returns:
+        Dictionary with per-group metrics
+    """
+    llm_similarities = [q["similarity"] for q in per_question_results if q["source"] == "llm"]
+    ragas_similarities = [q["similarity"] for q in per_question_results if q["source"] == "ragas"]
+    
+    return {
+        "llm": {
+            "avg_score": round(sum(llm_similarities) / len(llm_similarities), 2),
+            "distribution": llm_similarities
         },
-        "per_group": {
-            "llm": {
-                "avg_score": round(sum(llm_similarities) / len(llm_similarities), 2),
-                "distribution": llm_similarities
-            },
-            "ragas": {
-                "avg_score": round(sum(ragas_similarities) / len(ragas_similarities), 2),
-                "distribution": ragas_similarities
-            }
-        },
+        "ragas": {
+            "avg_score": round(sum(ragas_similarities) / len(ragas_similarities), 2),
+            "distribution": ragas_similarities
+        }
+    }
+
+def build_analysis_response(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Build the complete analysis response.
+    
+    Args:
+        per_question_results: List of question results
+        
+    Returns:
+        Complete analysis response dictionary
+    """
+    overall_metrics = calculate_overall_metrics(per_question_results)
+    per_group_metrics = calculate_per_group_metrics(per_question_results)
+    
+    return {
+        "overall": overall_metrics,
+        "per_group": per_group_metrics,
         "per_question": per_question_results
     }
 
@@ -201,47 +307,97 @@ async def get_analysis_results():
 async def websocket_experiment_stream(websocket: WebSocket):
     await websocket.accept()
     
-    # Simulate real-time experiment execution
-    all_questions = []
+    # Generate all questions for the experiment
+    all_questions = generate_experiment_questions()
     
-    # Add LLM questions
-    for i in range(25):
-        all_questions.append({
-            "question_id": f"llm_q_{i+1:03d}",
-            "question": f"LLM Question {i+1}: How to implement feature X?",
-            "source": "llm"
-        })
-    
-    # Add RAGAS questions
-    for i in range(30):
-        all_questions.append({
-            "question_id": f"ragas_q_{i+1:03d}",
-            "question": f"RAGAS Question {i+1}: What is concept Y?",
-            "source": "ragas"
-        })
-    
-    for question in all_questions:
-        # Simulate processing delay
-        await asyncio.sleep(0.5)
-        
-        # Generate mock result
-        similarity = round(random.uniform(0.3, 0.9), 2)
-        result = {
-            **question,
-            "avg_similarity": similarity,
-            "retrieved_docs": [
-                {
-                    "doc_id": f"d_{j}",
-                    "similarity": round(similarity + random.uniform(-0.1, 0.1), 2),
-                    "title": f"Document {j}"
-                } for j in range(1, 4)
-            ]
-        }
-        
-        await websocket.send_json(result)
+    # Stream results for each question
+    await stream_question_results(websocket, all_questions)
     
     # Send completion signal
     await websocket.send_json({"type": "completed", "message": "Experiment completed"})
+
+def generate_experiment_questions() -> List[Dict[str, Any]]:
+    """
+    Generate all questions for the experiment simulation.
+    
+    Returns:
+        List of question dictionaries for both LLM and RAGAS
+    """
+    all_questions = []
+    
+    # Add LLM questions
+    llm_questions = generate_llm_experiment_questions()
+    all_questions.extend(llm_questions)
+    
+    # Add RAGAS questions
+    ragas_questions = generate_ragas_experiment_questions()
+    all_questions.extend(ragas_questions)
+    
+    return all_questions
+
+def generate_llm_experiment_questions() -> List[Dict[str, Any]]:
+    """
+    Generate LLM questions for experiment streaming.
+    
+    Returns:
+        List of LLM question dictionaries
+    """
+    return [
+        {
+            "question_id": f"llm_q_{i+1:03d}",
+            "question": f"LLM Question {i+1}: How to implement feature X?",
+            "source": "llm"
+        } for i in range(25)
+    ]
+
+def generate_ragas_experiment_questions() -> List[Dict[str, Any]]:
+    """
+    Generate RAGAS questions for experiment streaming.
+    
+    Returns:
+        List of RAGAS question dictionaries
+    """
+    return [
+        {
+            "question_id": f"ragas_q_{i+1:03d}",
+            "question": f"RAGAS Question {i+1}: What is concept Y?",
+            "source": "ragas"
+        } for i in range(30)
+    ]
+
+async def stream_question_results(websocket: WebSocket, questions: List[Dict[str, Any]]) -> None:
+    """
+    Stream processing results for each question.
+    
+    Args:
+        websocket: WebSocket connection
+        questions: List of questions to process
+    """
+    for question in questions:
+        # Simulate processing delay
+        await asyncio.sleep(0.5)
+        
+        # Generate and send mock result
+        result = generate_streaming_result(question)
+        await websocket.send_json(result)
+
+def generate_streaming_result(question: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generate a mock streaming result for a question.
+    
+    Args:
+        question: Question dictionary
+        
+    Returns:
+        Result dictionary with similarity and retrieved docs
+    """
+    similarity = round(random.uniform(0.3, 0.9), 2)
+    
+    return {
+        **question,
+        "avg_similarity": similarity,
+        "retrieved_docs": generate_mock_retrieved_docs(similarity)
+    }
 
 @app.get("/")
 async def root():

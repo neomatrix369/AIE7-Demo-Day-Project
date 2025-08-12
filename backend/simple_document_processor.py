@@ -156,112 +156,191 @@ class SimpleDocumentProcessor:
             logger.warning(f"⚠️ CSV file not found: {filename}")
             return []
 
-        try:    
-            loader = CSVLoader(
-                file_path=f"{csv_path}",
-                metadata_columns=[
-                    "Date received",
-                    "Product",
-                    "Sub-product",
-                    "Issue",
-                    "Sub-issue",
-                    "Consumer complaint narrative",
-                    "Company public response",
-                    "Company",
-                    "State",
-                    "ZIP code",
-                    "Tags",
-                    "Consumer consent provided?",
-                    "Submitted via",
-                    "Date sent to company",
-                    "Company response to consumer",
-                    "Timely response?",
-                    "Consumer disputed?",
-                    "Complaint ID",
-                ],
-            )
-
-            logger.info(f"📊 Loading student loan complaints from: {csv_path}")
-
-            # STEP 1: Load raw data
-            loan_complaint_data = loader.load()
-            initial_count = len(loan_complaint_data)
-            logger.info(f"📋 STEP 1 - Raw CSV loaded: {initial_count:,} records")
-
-            # STEP 2: Set page content from narrative
-            for doc in loan_complaint_data:
-                doc.page_content = doc.metadata["Consumer complaint narrative"]
-
-            logger.info(
-                f"📝 STEP 2 - Page content set: {len(loan_complaint_data):,} records (no change)"
-            )
-
-            # STEP 3: Apply quality filters with detailed tracking
-            logger.info(f"🔍 STEP 3 - Applying quality filters...")
-
-            filter_stats = {
-                "too_short": 0,
-                "too_many_xxxx": 0,
-                "empty_or_na": 0,
-                "multiple_issues": 0,
-                "valid": 0,
-            }
-
-            filtered_docs = []
-
-            for i, doc in enumerate(loan_complaint_data):
-                narrative = doc.metadata.get("Consumer complaint narrative", "")
-                issues = []
-
-                # Check each filter condition
-                if len(narrative.strip()) < 100:
-                    filter_stats["too_short"] += 1
-                    issues.append("length")
-
-                if narrative.count("XXXX") > 5:
-                    filter_stats["too_many_xxxx"] += 1
-                    issues.append("redaction")
-
-                if narrative.strip() in ["", "None", "N/A"]:
-                    filter_stats["empty_or_na"] += 1
-                    issues.append("empty")
-
-                # Track records with multiple issues
-                if len(issues) > 1:
-                    filter_stats["multiple_issues"] += 1
-
-                # Keep valid records
-                if not issues:
-                    filter_stats["valid"] += 1
-                    doc.page_content = (
-                        f"Customer Issue: {doc.metadata.get('Issue', 'Unknown')}\n"
-                    )
-                    doc.page_content += f"Product: {doc.metadata.get('Product', 'Unknown')}\n"
-                    doc.page_content += f"Complaint Details: {narrative}"
-                    filtered_docs.append(doc)
-
-            # Log detailed filter results
-            logger.info(f"📊 FILTER RESULTS:")
-            logger.info(f"   ❌ Too short (< 100 chars): {filter_stats['too_short']:,}")
-            logger.info(f"   ❌ Too many XXXX (> 5): {filter_stats['too_many_xxxx']:,}")
-            logger.info(f"   ❌ Empty/None/N/A: {filter_stats['empty_or_na']:,}")
-            logger.info(f"   ⚠️  Multiple issues: {filter_stats['multiple_issues']:,}")
-
-            total_filtered = initial_count - len(filtered_docs)
-            retention_rate = (len(filtered_docs) / initial_count) * 100
-
-            logger.info(f"📈 SUMMARY:")
-            logger.info(f"   ✅ Valid records kept: {len(filtered_docs):,}")
-            logger.info(f"   🗑️  Total filtered out: {total_filtered:,}")
-            logger.info(f"   📊 Retention rate: {retention_rate:.1f}%")
-
+        try:
+            raw_documents = self._load_raw_csv_documents(csv_path)
+            if not raw_documents:
+                return []
+            
+            self._set_page_content_from_narrative(raw_documents)
+            filtered_documents = self._apply_quality_filters(raw_documents)
+            
             gc.collect()
-    
-            logger.info(f"✅ Loaded {len(filtered_docs)} valid complaint records from CSV")
-            return filtered_docs.copy()
+            logger.info(f"✅ Loaded {len(filtered_documents)} valid complaint records from CSV")
+            return filtered_documents.copy()
         except Exception as e:
             logger.error(f"❌ Error loading CSV: {str(e)}")
             return []
+    
+    def _get_csv_metadata_columns(self) -> List[str]:
+        """
+        Get the list of metadata columns for CSV loading.
+        
+        Returns:
+            List of column names to include as metadata
+        """
+        return [
+            "Date received",
+            "Product",
+            "Sub-product",
+            "Issue",
+            "Sub-issue",
+            "Consumer complaint narrative",
+            "Company public response",
+            "Company",
+            "State",
+            "ZIP code",
+            "Tags",
+            "Consumer consent provided?",
+            "Submitted via",
+            "Date sent to company",
+            "Company response to consumer",
+            "Timely response?",
+            "Consumer disputed?",
+            "Complaint ID",
+        ]
+    
+    def _load_raw_csv_documents(self, csv_path: str) -> List[Dict[str, Any]]:
+        """
+        Load raw CSV documents using LangChain CSVLoader.
+        
+        Args:
+            csv_path: Path to the CSV file
+            
+        Returns:
+            List of raw document objects
+        """
+        loader = CSVLoader(
+            file_path=csv_path,
+            metadata_columns=self._get_csv_metadata_columns()
+        )
+
+        logger.info(f"📊 Loading student loan complaints from: {csv_path}")
+        loan_complaint_data = loader.load()
+        initial_count = len(loan_complaint_data)
+        logger.info(f"📋 STEP 1 - Raw CSV loaded: {initial_count:,} records")
+        
+        return loan_complaint_data
+    
+    def _set_page_content_from_narrative(self, documents: List[Dict[str, Any]]) -> None:
+        """
+        Set the page content for each document from the complaint narrative.
+        
+        Args:
+            documents: List of document objects to modify
+        """
+        for doc in documents:
+            doc.page_content = doc.metadata["Consumer complaint narrative"]
+
+        logger.info(
+            f"📝 STEP 2 - Page content set: {len(documents):,} records (no change)"
+        )
+    
+    def _validate_complaint_quality(self, narrative: str) -> List[str]:
+        """
+        Validate the quality of a complaint narrative.
+        
+        Args:
+            narrative: The complaint narrative text
+            
+        Returns:
+            List of quality issues found (empty list if valid)
+        """
+        issues = []
+        
+        if len(narrative.strip()) < 100:
+            issues.append("length")
+        
+        if narrative.count("XXXX") > 5:
+            issues.append("redaction")
+        
+        if narrative.strip() in ["", "None", "N/A"]:
+            issues.append("empty")
+        
+        return issues
+    
+    def _format_valid_document_content(self, doc: Dict[str, Any], narrative: str) -> None:
+        """
+        Format the page content for a valid document.
+        
+        Args:
+            doc: Document object to format
+            narrative: The complaint narrative text
+        """
+        doc.page_content = (
+            f"Customer Issue: {doc.metadata.get('Issue', 'Unknown')}\n"
+            f"Product: {doc.metadata.get('Product', 'Unknown')}\n"
+            f"Complaint Details: {narrative}"
+        )
+    
+    def _log_filter_results(self, filter_stats: Dict[str, int], initial_count: int, final_count: int) -> None:
+        """
+        Log detailed filter results and statistics.
+        
+        Args:
+            filter_stats: Dictionary with filter statistics
+            initial_count: Initial number of documents
+            final_count: Final number of documents after filtering
+        """
+        logger.info(f"📊 FILTER RESULTS:")
+        logger.info(f"   ❌ Too short (< 100 chars): {filter_stats['too_short']:,}")
+        logger.info(f"   ❌ Too many XXXX (> 5): {filter_stats['too_many_xxxx']:,}")
+        logger.info(f"   ❌ Empty/None/N/A: {filter_stats['empty_or_na']:,}")
+        logger.info(f"   ⚠️  Multiple issues: {filter_stats['multiple_issues']:,}")
+
+        total_filtered = initial_count - final_count
+        retention_rate = (final_count / initial_count) * 100
+
+        logger.info(f"📈 SUMMARY:")
+        logger.info(f"   ✅ Valid records kept: {final_count:,}")
+        logger.info(f"   🗑️  Total filtered out: {total_filtered:,}")
+        logger.info(f"   📊 Retention rate: {retention_rate:.1f}%")
+    
+    def _apply_quality_filters(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Apply quality filters to documents and return valid ones.
+        
+        Args:
+            documents: List of raw documents to filter
+            
+        Returns:
+            List of documents that pass quality filters
+        """
+        logger.info(f"🔍 STEP 3 - Applying quality filters...")
+
+        filter_stats = {
+            "too_short": 0,
+            "too_many_xxxx": 0,
+            "empty_or_na": 0,
+            "multiple_issues": 0,
+            "valid": 0,
+        }
+
+        filtered_docs = []
+
+        for doc in documents:
+            narrative = doc.metadata.get("Consumer complaint narrative", "")
+            issues = self._validate_complaint_quality(narrative)
+
+            # Update filter statistics
+            if "length" in issues:
+                filter_stats["too_short"] += 1
+            if "redaction" in issues:
+                filter_stats["too_many_xxxx"] += 1
+            if "empty" in issues:
+                filter_stats["empty_or_na"] += 1
+            
+            # Track records with multiple issues
+            if len(issues) > 1:
+                filter_stats["multiple_issues"] += 1
+
+            # Keep valid records
+            if not issues:
+                filter_stats["valid"] += 1
+                self._format_valid_document_content(doc, narrative)
+                filtered_docs.append(doc)
+
+        self._log_filter_results(filter_stats, len(documents), len(filtered_docs))
+        return filtered_docs
 
     def load_pdf_data(self) -> List[Dict[str, Any]]:
         """
@@ -328,82 +407,159 @@ class SimpleDocumentProcessor:
             return self._corpus_stats_cache
 
         logger.info("🧮 Computing corpus statistics for the first time")
-
+        
+        # Load and process documents
         csv_docs = self.load_csv_data()
         pdf_docs = self.load_pdf_data()
-
         combined_docs = csv_docs + pdf_docs
-        total_docs = len(combined_docs)
-
-        if total_docs == 0:
-            self._corpus_stats_cache = {
-                "corpus_loaded": False,
-                "document_count": 0,
-                "chunk_count": 0,
-                "embedding_model": "none",
-                "corpus_metadata": {
-                    "total_size_mb": 0.0,
-                    "document_types": {"pdf": 0, "csv": 0},
-                    "avg_doc_length": 0
-                }
-            }
+        
+        # Handle empty corpus case
+        if not combined_docs:
+            self._corpus_stats_cache = self._create_empty_corpus_stats()
             return self._corpus_stats_cache
-
-        # Calculate statistics without creating vector store
-        total_content_length = sum(len(getattr(doc, 'page_content', '')) for doc in csv_docs + pdf_docs)
+        
+        # Calculate basic statistics
+        stats = self._calculate_corpus_statistics(csv_docs, pdf_docs, combined_docs)
+        
+        # Initialize vector store if needed
+        self._initialize_vector_store_if_needed(combined_docs)
+        
+        # Cache and return the computed statistics
+        self._corpus_stats_cache = self._create_corpus_stats_response(stats, csv_docs, pdf_docs)
+        return self._corpus_stats_cache
+    
+    def _create_empty_corpus_stats(self) -> Dict[str, Any]:
+        """
+        Create statistics response for empty corpus.
+        
+        Returns:
+            Dictionary with empty corpus statistics
+        """
+        return {
+            "corpus_loaded": False,
+            "document_count": 0,
+            "chunk_count": 0,
+            "embedding_model": "none",
+            "corpus_metadata": {
+                "total_size_mb": 0.0,
+                "document_types": {"pdf": 0, "csv": 0},
+                "avg_doc_length": 0
+            }
+        }
+    
+    def _calculate_corpus_statistics(self, csv_docs: List[Dict[str, Any]], 
+                                   pdf_docs: List[Dict[str, Any]], 
+                                   combined_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Calculate basic corpus statistics.
+        
+        Args:
+            csv_docs: List of CSV documents
+            pdf_docs: List of PDF documents
+            combined_docs: Combined list of all documents
+            
+        Returns:
+            Dictionary with calculated statistics
+        """
+        total_docs = len(combined_docs)
+        total_content_length = sum(len(getattr(doc, 'page_content', '')) for doc in combined_docs)
         total_size_mb = total_content_length / (1024 * 1024)
         avg_doc_length = total_content_length // total_docs if total_docs > 0 else 0
         estimated_chunks = max(total_docs, total_content_length // 750)
         
         logger.info(f"📊 Stats computed: {total_docs} docs, {estimated_chunks} chunks")
-
-        # Only create vector store and process documents if needed
-        if not self._documents_loaded:
-            # Check if collection already has the documents we need
-            try:
-                client = get_qdrant_client()
-                if ensure_collection_exists(client, QDRANT_COLLECTION_NAME):
-                    # Estimate expected chunk count
-                    chunks = self.split_documents(combined_docs)
-                    expected_chunk_count = len(chunks)
-
-                    # Check if collection already has sufficient documents
-                    if check_collection_has_documents(client, QDRANT_COLLECTION_NAME, expected_chunk_count):
-                        logger.info("🚀 Collection already populated, skipping document loading")
-                        # Create vector store connection without adding documents
-                        embeddings = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
-                        self.vector_store = QdrantVectorStore(
-                            client=client,
-                            collection_name=QDRANT_COLLECTION_NAME,
-                            embedding=embeddings,
-                        )
-                    else:
-                        logger.info("📥 Loading documents into vector store")
-                        self.vector_store = self.get_vector_store(chunks)
-
-                    self._documents_loaded = True
-                    logger.info("✅ Vector store initialized")
-                else:
-                    logger.error("❌ Could not ensure collection exists")
-            except Exception as e:
-                logger.error(f"❌ Error initializing vector store: {e}")
-        else:
+        
+        return {
+            "total_docs": total_docs,
+            "total_content_length": total_content_length,
+            "total_size_mb": total_size_mb,
+            "avg_doc_length": avg_doc_length,
+            "estimated_chunks": estimated_chunks
+        }
+    
+    def _initialize_vector_store_if_needed(self, combined_docs: List[Dict[str, Any]]) -> None:
+        """
+        Initialize vector store if documents haven't been loaded yet.
+        
+        Args:
+            combined_docs: Combined list of all documents
+        """
+        if self._documents_loaded:
             logger.info("📚 Documents already loaded, skipping vector store initialization")
+            return
+        
+        try:
+            client = get_qdrant_client()
+            if not ensure_collection_exists(client, QDRANT_COLLECTION_NAME):
+                logger.error("❌ Could not ensure collection exists")
+                return
+            
+            # Estimate expected chunk count
+            chunks = self.split_documents(combined_docs)
+            expected_chunk_count = len(chunks)
 
-        # Cache the computed statistics
-        self._corpus_stats_cache = {
+            # Check if collection already has sufficient documents
+            if check_collection_has_documents(client, QDRANT_COLLECTION_NAME, expected_chunk_count):
+                self._connect_to_existing_collection(client)
+            else:
+                self._load_documents_to_collection(chunks)
+
+            self._documents_loaded = True
+            logger.info("✅ Vector store initialized")
+            
+        except Exception as e:
+            logger.error(f"❌ Error initializing vector store: {e}")
+    
+    def _connect_to_existing_collection(self, client: QdrantClient) -> None:
+        """
+        Connect to existing Qdrant collection without adding documents.
+        
+        Args:
+            client: Qdrant client instance
+        """
+        logger.info("🚀 Collection already populated, skipping document loading")
+        embeddings = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
+        self.vector_store = QdrantVectorStore(
+            client=client,
+            collection_name=QDRANT_COLLECTION_NAME,
+            embedding=embeddings,
+        )
+    
+    def _load_documents_to_collection(self, chunks: List[Dict[str, Any]]) -> None:
+        """
+        Load documents into the Qdrant collection.
+        
+        Args:
+            chunks: Document chunks to load
+        """
+        logger.info("📥 Loading documents into vector store")
+        self.vector_store = self.get_vector_store(chunks)
+    
+    def _create_corpus_stats_response(self, stats: Dict[str, Any], 
+                                    csv_docs: List[Dict[str, Any]], 
+                                    pdf_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create the final corpus statistics response.
+        
+        Args:
+            stats: Calculated statistics
+            csv_docs: List of CSV documents
+            pdf_docs: List of PDF documents
+            
+        Returns:
+            Complete corpus statistics dictionary
+        """
+        return {
             "corpus_loaded": True,
-            "document_count": total_docs,
-            "chunk_count": estimated_chunks,
+            "document_count": stats["total_docs"],
+            "chunk_count": stats["estimated_chunks"],
             "embedding_model": f"{TEXT_EMBEDDINGS_MODEL} ({TEXT_EMBEDDINGS_MODEL_PROVIDER})",
             "corpus_metadata": {
-                "total_size_mb": round(total_size_mb, 2),
+                "total_size_mb": round(stats["total_size_mb"], 2),
                 "document_types": {"pdf": len(pdf_docs), "csv": len(csv_docs)},
-                "avg_doc_length": avg_doc_length
+                "avg_doc_length": stats["avg_doc_length"]
             }
         }
-
-        return self._corpus_stats_cache
 
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
@@ -470,25 +626,65 @@ class SimpleDocumentProcessor:
         """
         logger.info(f"🗃️ Connecting to persistent Qdrant server")
         
-        # Get Qdrant client
+        # Setup Qdrant client and collection
+        client = self._setup_qdrant_client_and_collection()
+        
+        # Create vector store instance
+        vector_store = self._create_vector_store_instance(client)
+        
+        # Handle document addition if needed
+        self._handle_document_addition(client, vector_store, split_documents)
+        
+        return vector_store
+    
+    def _setup_qdrant_client_and_collection(self) -> QdrantClient:
+        """
+        Setup Qdrant client and ensure collection exists.
+        
+        Returns:
+            QdrantClient: Connected Qdrant client
+            
+        Raises:
+            RuntimeError: If collection setup fails
+        """
         client = get_qdrant_client()
         
-        # Ensure collection exists
         collection_name = QDRANT_COLLECTION_NAME
         if not ensure_collection_exists(client, collection_name):
             raise RuntimeError(f"Failed to ensure collection '{collection_name}' exists")
-
-        # Initialize embeddings
+        
+        return client
+    
+    def _create_vector_store_instance(self, client: QdrantClient) -> QdrantVectorStore:
+        """
+        Create a QdrantVectorStore instance.
+        
+        Args:
+            client: Qdrant client instance
+            
+        Returns:
+            QdrantVectorStore: Vector store instance
+        """
         embeddings = OpenAIEmbeddings(model=TEXT_EMBEDDINGS_MODEL)
         
-        # Create vector store instance
-        vector_store = QdrantVectorStore(
+        return QdrantVectorStore(
             client=client,
-            collection_name=collection_name,
+            collection_name=QDRANT_COLLECTION_NAME,
             embedding=embeddings,
         )
-
-        # Check if collection already has documents
+    
+    def _check_existing_documents(self, client: QdrantClient, split_documents_count: int) -> bool:
+        """
+        Check if collection already has sufficient documents.
+        
+        Args:
+            client: Qdrant client instance
+            split_documents_count: Number of documents to be added
+            
+        Returns:
+            bool: True if collection is already sufficiently populated
+        """
+        collection_name = QDRANT_COLLECTION_NAME
         collection_info = client.get_collection(collection_name)
         existing_count = collection_info.points_count
         
@@ -498,43 +694,48 @@ class SimpleDocumentProcessor:
             
             # For simplicity, if we have documents, assume the collection is populated
             # In a production system, you might want to check document IDs or use versioning
-            if existing_count >= len(split_documents):
+            if existing_count >= split_documents_count:
                 logger.info(f"✅ Collection appears to be fully populated, skipping document addition")
-                return vector_store
-
-        # Add documents to the collection
-        if split_documents:
-            logger.info(f"⬆️ Adding {len(split_documents)} documents to Qdrant collection '{collection_name}'")
-            vector_store.add_documents(documents=split_documents)
-            
-            # Verify documents were added
-            updated_info = client.get_collection(collection_name)
-            logger.info(f"✅ Qdrant vector store ready with {updated_info.points_count} total documents")
-        else:
-            logger.warning(f"⚠️ No documents provided to add to vector store")
-            
-        return vector_store
-
-    # def get_cached_vector_store(self):
-    #     """
-    #     Get vector store instance, creating it if necessary.
+                return True
         
-    #     Returns:
-    #         QdrantVectorStore: Vector store instance
-    #     """
-    #     if self._vector_store is None:
-    #         logger.info("🔄 Initializing vector store for the first time...")
-            
-    #         # Load and prepare documents
-    #         csv_docs = self.load_csv_data()
-    #         pdf_docs = self.load_pdf_data() 
-    #         all_docs = csv_docs + pdf_docs
-            
-    #         if all_docs:
-    #             chunks = self.split_documents(all_docs)
-    #             self._vector_store = self.get_vector_store(chunks)
-    #         else:
-    #             logger.warning("⚠️ No documents found, creating empty vector store")
-    #             self._vector_store = self.get_vector_store([])
-                
-    #     return self._vector_store
+        return False
+    
+    def _add_documents_to_collection(self, client: QdrantClient, vector_store: QdrantVectorStore, 
+                                   split_documents: List[Dict[str, Any]]) -> None:
+        """
+        Add documents to the Qdrant collection.
+        
+        Args:
+            client: Qdrant client instance
+            vector_store: Vector store instance
+            split_documents: Documents to add
+        """
+        collection_name = QDRANT_COLLECTION_NAME
+        logger.info(f"⬆️ Adding {len(split_documents)} documents to Qdrant collection '{collection_name}'")
+        
+        vector_store.add_documents(documents=split_documents)
+        
+        # Verify documents were added
+        updated_info = client.get_collection(collection_name)
+        logger.info(f"✅ Qdrant vector store ready with {updated_info.points_count} total documents")
+    
+    def _handle_document_addition(self, client: QdrantClient, vector_store: QdrantVectorStore, 
+                                split_documents: List[Dict[str, Any]]) -> None:
+        """
+        Handle the logic for adding documents to the collection if needed.
+        
+        Args:
+            client: Qdrant client instance
+            vector_store: Vector store instance
+            split_documents: Documents to potentially add
+        """
+        if not split_documents:
+            logger.warning(f"⚠️ No documents provided to add to vector store")
+            return
+        
+        # Check if we need to add documents
+        if self._check_existing_documents(client, len(split_documents)):
+            return
+        
+        # Add documents to the collection
+        self._add_documents_to_collection(client, vector_store, split_documents)

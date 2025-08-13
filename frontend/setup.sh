@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🎨 Setting up Corpus Quality Assessment Next.js Frontend..."
+echo "🎨 Setting up RagCheck Next.js Frontend..."
 
 # Check if Node.js version is compatible
 NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)

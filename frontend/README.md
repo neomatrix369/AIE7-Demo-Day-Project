@@ -1,4 +1,4 @@
-# Frontend - Corpus Quality Assessment Tool
+# Frontend - RagCheck
 
 Next.js frontend with comprehensive logging, real-time WebSocket communication, and user-friendly interface for corpus quality analysis.
 

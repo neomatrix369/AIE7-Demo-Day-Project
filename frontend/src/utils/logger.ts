@@ -1,5 +1,5 @@
 /**
- * Frontend logging utility for Corpus Quality Assessment Tool
+ * Frontend logging utility for RagCheck
  * Focuses on user-friendly messages and important system events
  */
 

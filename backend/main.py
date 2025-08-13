@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 # Load environment variables from root .env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-app = FastAPI(title="Corpus Quality Assessment API", version="1.0.0")
+app = FastAPI(title="RagCheck API", version="1.0.0")
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -402,7 +402,7 @@ def generate_streaming_result(question: Dict[str, Any]) -> Dict[str, Any]:
 @app.get("/")
 async def root():
     return {
-        "message": "Corpus Quality Assessment API", 
+        "message": "RagCheck API", 
         "status": "running",
         "document_processor": {
             "initialized": documents_loaded,

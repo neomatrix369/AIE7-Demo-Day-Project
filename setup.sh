@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🏗️ Setting up Corpus Quality Assessment PoC..."
+echo "🏗️ Setting up RagCheck..."
 echo "=================================================="
 echo ""
 

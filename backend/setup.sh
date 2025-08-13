@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Setting up Corpus Quality Assessment Backend..."
+echo "🚀 Setting up RagCheck Backend..."
 
 # Create virtual environment using uv
 echo "📦 Creating virtual environment..."

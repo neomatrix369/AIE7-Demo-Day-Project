@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Setup and start Qdrant for Corpus Quality Assessment Tool
+# Setup and start Qdrant for RagCheck
 # This script starts Qdrant via Docker Compose and waits for it to be ready
 
 echo "🚀 Starting Qdrant Vector Database..."

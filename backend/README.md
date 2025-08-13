@@ -1,4 +1,4 @@
-# Backend - Corpus Quality Assessment Tool
+# Backend - RagCheck
 
 FastAPI backend with real document processing, vector embeddings, and persistent storage using Qdrant.
 

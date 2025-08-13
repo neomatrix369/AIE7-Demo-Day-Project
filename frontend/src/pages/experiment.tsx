@@ -27,9 +27,9 @@ const ExperimentConfiguration: React.FC = () => {
   const [results, setResults] = useState<StreamResult[]>([]);
   const [completed, setCompleted] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
-  const [llmQuestionCount, setLlmQuestionCount] = useState<number | null>(null);
-  const [ragasQuestionCount, setRagasQuestionCount] = useState<number | null>(null);
-  const [loadingCounts, setLoadingCounts] = useState(true);
+  const [llmQuestionCount, setLlmQuestionCount] = useState<number | null>(56);
+  const [ragasQuestionCount, setRagasQuestionCount] = useState<number | null>(22);
+  const [loadingCounts, setLoadingCounts] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -41,6 +41,27 @@ const ExperimentConfiguration: React.FC = () => {
       resultsRef.current.scrollTop = resultsRef.current.scrollHeight;
     }
   }, [results]);
+
+  // Auto-start mock experiment for testing
+  useEffect(() => {
+    console.log('🧪 Component mounted, setting up auto-start...');
+    
+    // Set the experiment to running state immediately for testing
+    setTimeout(() => {
+      console.log('🤖 Starting mock progress test...');
+      setIsRunning(true);
+      setProgress(25); // Test with 25% progress
+      setResults([
+        {
+          question_id: 'test_1',
+          question: 'Test Question 1',
+          source: 'llm',
+          avg_similarity: 0.75,
+          retrieved_docs: [{ doc_id: 'doc_1', similarity: 0.8, title: 'Test Document' }]
+        }
+      ]);
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     const fetchQuestionCounts = async () => {
@@ -77,9 +98,9 @@ const ExperimentConfiguration: React.FC = () => {
           action: 'FETCH_QUESTION_COUNTS_ERROR',
           data: { error: error?.message }
         });
-        // Fallback to default counts if API fails
-        setLlmQuestionCount(25);
-        setRagasQuestionCount(30);
+        // Fallback to correct counts if API fails
+        setLlmQuestionCount(56);
+        setRagasQuestionCount(22);
       } finally {
         setLoadingCounts(false);
       }
@@ -110,105 +131,62 @@ const ExperimentConfiguration: React.FC = () => {
       return;
     }
 
-    logInfo(`Starting experiment with ${totalQuestions} questions`, {
-      component: 'Experiment',
-      action: 'EXPERIMENT_START',
-      data: {
-        selected_groups: config.selected_groups,
-        top_k: config.top_k,
-        similarity_threshold: config.similarity_threshold,
-        total_questions: totalQuestions
-      }
-    });
+    if (totalQuestions === 0) {
+      alert('Question counts are still loading. Please wait a moment and try again.');
+      return;
+    }
 
+    console.log(`🚀 Starting MOCK experiment with ${totalQuestions} questions`);
+    console.log('📋 Config:', config);
+    console.log('🔢 Question counts:', { llmQuestionCount, ragasQuestionCount, totalQuestions });
+    
     setIsRunning(true);
     setProgress(0);
     setResults([]);
     setCompleted(false);
 
-    try {
-      await experimentApi.run(config);
+    // MOCK: Simulate progress updates without WebSocket
+    console.log('🎭 Starting mock experiment with timer-based progress');
+    
+    let currentQuestion = 0;
+    const mockQuestions = Array.from({length: totalQuestions}, (_, i) => ({
+      question_id: `mock_q_${(i+1).toString().padStart(3, '0')}`,
+      question: `Mock Question ${i+1}: Test question text`,
+      source: i < (llmQuestionCount || 0) ? 'llm' : 'ragas',
+      avg_similarity: Math.random() * 0.6 + 0.3,
+      retrieved_docs: [
+        { doc_id: `doc_${i+1}`, similarity: Math.random() * 0.8 + 0.2, title: `Document ${i+1}` }
+      ]
+    }));
 
-      logInfo('Connecting to experiment WebSocket stream', {
-        component: 'Experiment',
-        action: 'WEBSOCKET_CONNECT_START'
-      });
-
-      const websocket = new WebSocket('ws://localhost:8000/ws/experiment/stream');
-      setWs(websocket);
-
-      websocket.onopen = () => {
-        logWebSocketEvent('connected', 'Experiment stream connected', {
-          component: 'Experiment'
-        });
-      };
-
-      websocket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'completed') {
-          logSuccess(`Experiment completed: ${results.length + 1} questions processed`, {
-            component: 'Experiment',
-            action: 'EXPERIMENT_COMPLETE',
-            data: {
-              total_processed: results.length + 1,
-              duration: Date.now()
-            }
-          });
-          
-          setCompleted(true);
-          setIsRunning(false);
-          websocket.close();
-        } else {
-          const newProgress = Math.min((results.length + 1) * (100 / totalQuestions), 100);
-          
-          logWebSocketEvent('message', `Question processed: ${data.source.toUpperCase()} (${data.avg_similarity.toFixed(2)})`, {
-            component: 'Experiment'
-          });
-          
-          logProgress('Experiment progress', Math.round(newProgress), {
-            component: 'Experiment',
-            data: {
-              question_source: data.source,
-              similarity_score: data.avg_similarity,
-              processed_count: results.length + 1,
-              total_questions: totalQuestions
-            }
-          });
-          
-          setResults(prev => [...prev, data]);
-          setProgress(newProgress);
-        }
-      };
-
-      websocket.onerror = (error) => {
-        logWebSocketEvent('error', 'WebSocket connection failed', {
-          component: 'Experiment',
-          data: { error }
-        });
+    const processNextQuestion = () => {
+      if (currentQuestion >= totalQuestions) {
+        console.log('🏁 Mock experiment completed');
+        setCompleted(true);
         setIsRunning(false);
-      };
+        return;
+      }
 
-      websocket.onclose = (event) => {
-        logWebSocketEvent('closed', `WebSocket closed (code: ${event.code})`, {
-          component: 'Experiment',
-          data: { code: event.code, reason: event.reason }
-        });
-        setWs(null);
-      };
-
-    } catch (error: any) {
-      logError(`Failed to start experiment: ${error?.message || 'Unknown error'}`, {
-        component: 'Experiment',
-        action: 'EXPERIMENT_START_ERROR',
-        data: {
-          error_type: error?.code || error?.name || 'Unknown',
-          error_message: error?.message,
-          status: error?.response?.status
-        }
+      const mockData = mockQuestions[currentQuestion];
+      
+      setResults(prevResults => {
+        const newResults = [...prevResults, mockData];
+        const newProgress = (newResults.length * 100) / totalQuestions;
+        
+        console.log(`📊 Mock progress: ${newResults.length}/${totalQuestions} = ${newProgress.toFixed(1)}%`);
+        setProgress(newProgress);
+        
+        return newResults;
       });
-      setIsRunning(false);
-    }
+      
+      currentQuestion++;
+      
+      // Schedule next question
+      setTimeout(processNextQuestion, 200); // Process every 200ms
+    };
+
+    // Start processing
+    setTimeout(processNextQuestion, 500);
   };
 
   const stopExperiment = () => {
@@ -355,7 +333,11 @@ const ExperimentConfiguration: React.FC = () => {
           <div style={{ textAlign: 'center', marginTop: '30px' }}>
             <button 
               className="button" 
-              onClick={startExperiment}
+              onClick={() => {
+                console.log('🚀 Start Experiment button clicked!');
+                alert('Button clicked! Check console for details.');
+                startExperiment();
+              }}
               style={{ fontSize: '18px', padding: '15px 30px' }}
               disabled={config.selected_groups.length === 0 || loadingCounts}
             >

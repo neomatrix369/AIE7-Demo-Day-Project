@@ -40,7 +40,7 @@ except Exception as e:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -334,16 +334,31 @@ def build_analysis_response(per_question_results: List[Dict[str, Any]]) -> Dict[
 
 @app.websocket("/ws/experiment/stream")
 async def websocket_experiment_stream(websocket: WebSocket):
+    logger.info("🔌 WebSocket connection attempt")
     await websocket.accept()
+    logger.info("✅ WebSocket connection accepted")
     
-    # Generate all questions for the experiment
-    all_questions = generate_experiment_questions()
-    
-    # Stream results for each question
-    await stream_question_results(websocket, all_questions)
-    
-    # Send completion signal
-    await websocket.send_json({"type": "completed", "message": "Experiment completed"})
+    try:
+        # Wait for configuration from the client
+        logger.info("⏳ Waiting for configuration from client...")
+        config_data = await websocket.receive_json()
+        logger.info(f"📨 Received config: {config_data}")
+        config = ExperimentConfig(**config_data)
+        logger.info(f"✅ Config validated: {config.selected_groups} groups, {config.top_k} top_k")
+        
+        # Generate questions based on selected groups using real data
+        all_questions = generate_real_experiment_questions(config.selected_groups)
+        logger.info(f"📝 Generated {len(all_questions)} questions for experiment")
+        
+        # Stream results for each question
+        await stream_question_results(websocket, all_questions)
+        
+        # Send completion signal
+        logger.info("🏁 Sending completion signal")
+        await websocket.send_json({"type": "completed", "message": "Experiment completed"})
+    except Exception as e:
+        await websocket.send_json({"type": "error", "message": f"Experiment failed: {str(e)}"})
+        await websocket.close()
 
 def generate_experiment_questions() -> List[Dict[str, Any]]:
     """
@@ -393,6 +408,50 @@ def generate_ragas_experiment_questions() -> List[Dict[str, Any]]:
             "source": "ragas"
         } for i in range(30)
     ]
+
+def generate_real_experiment_questions(selected_groups: List[str]) -> List[Dict[str, Any]]:
+    """
+    Generate real questions from JSON files based on selected groups.
+    
+    Args:
+        selected_groups: List of selected question groups ('llm' and/or 'ragas')
+        
+    Returns:
+        List of real question dictionaries from JSON data
+    """
+    all_questions = []
+    question_counter = 1
+    
+    if "llm" in selected_groups:
+        # Get real LLM questions from loaded data
+        llm_data = LLM_QUESTIONS["questions"]
+        for group in llm_data:
+            for question in group.get("questions", []):
+                all_questions.append({
+                    "question_id": f"llm_q_{question_counter:03d}",
+                    "question": question["text"],
+                    "source": "llm",
+                    "focus": question.get("focus", "General"),
+                    "group_name": group["name"]
+                })
+                question_counter += 1
+    
+    if "ragas" in selected_groups:
+        # Get real RAGAS questions from loaded data
+        ragas_data = RAGAS_QUESTIONS["questions"]
+        question_counter = 1  # Reset counter for RAGAS
+        for group in ragas_data:
+            for question in group.get("questions", []):
+                all_questions.append({
+                    "question_id": f"ragas_q_{question_counter:03d}",
+                    "question": question["text"],
+                    "source": "ragas",
+                    "focus": question.get("focus", "General"),
+                    "group_name": group["name"]
+                })
+                question_counter += 1
+    
+    return all_questions
 
 async def stream_question_results(websocket: WebSocket, questions: List[Dict[str, Any]]) -> None:
     """

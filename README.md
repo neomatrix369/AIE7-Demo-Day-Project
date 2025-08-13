@@ -1,6 +1,6 @@
 # RagCheck
 
-A 4-screen wizard application for assessing corpus quality using AI-generated and RAGAS-generated questions with real document processing and vector similarity search.
+A 4-screen wizard application for corpus/data quality assessment using AI-generated and RAGAS-generated questions with real document processing and vector similarity search.
 
 ## Project Structure
 

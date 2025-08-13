@@ -24,7 +24,7 @@ A 4-screen wizard application for corpus/data quality assessment using AI-genera
 │   └── src/types/index.ts     # TypeScript interfaces
 ├── scripts/                    # Setup and utility scripts
 │   └── setup_qdrant.sh        # Qdrant startup and health check
-├── docker-compose.yml          # Qdrant database container configuration
+├── docker-compose.yml          # Qdrant database container with health monitoring
 ├── .env.example               # Comprehensive environment variables template
 ├── .env                       # Your environment configuration (gitignored)
 └── README.md                  # This file
@@ -40,7 +40,7 @@ A 4-screen wizard application for corpus/data quality assessment using AI-genera
 
 ### 🏗️ Technical Architecture
 - **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking
-- **🗃️ Persistent Vector Storage**: Qdrant database with cosine similarity search and automatic collection management
+- **🗃️ Persistent Vector Storage**: Qdrant database with cosine similarity search, automatic collection management, and health monitoring
 - **⚡ Performance Optimization**: Caching prevents expensive document reprocessing
 - **📡 Real-time Communication**: WebSocket streaming for live experiment progress updates
 - **📋 Comprehensive Logging**: User-friendly logging system with development/production modes
@@ -84,6 +84,9 @@ npm run dev
 ```bash
 # Start Qdrant container
 docker-compose up -d qdrant
+
+# Check container health status
+docker ps  # Shows (healthy) status
 
 # Verify connection
 curl http://localhost:6333/
@@ -144,7 +147,8 @@ npm run dev
 - **Custom Logging** - User-friendly logging system
 
 ### Infrastructure
-- **Docker & Docker Compose** - Qdrant database containerization and service orchestration
+- **Docker & Docker Compose** - Qdrant database containerization with health monitoring and service orchestration
+- **Health Monitoring** - TCP-based health checks for container reliability
 - **Persistent Storage** - Docker volumes for Qdrant data persistence
 - **Environment Management** - Centralized configuration with comprehensive .env.example
 

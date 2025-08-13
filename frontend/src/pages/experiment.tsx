@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { experimentApi } from '../services/api';
+import { experimentApi, questionsApi } from '../services/api';
 import { ExperimentConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation, logWebSocketEvent, logProgress } from '../utils/logger';
 
@@ -27,17 +27,66 @@ const ExperimentConfiguration: React.FC = () => {
   const [results, setResults] = useState<StreamResult[]>([]);
   const [completed, setCompleted] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [llmQuestionCount, setLlmQuestionCount] = useState<number | null>(null);
+  const [ragasQuestionCount, setRagasQuestionCount] = useState<number | null>(null);
+  const [loadingCounts, setLoadingCounts] = useState(true);
   const resultsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const totalQuestions = (config.selected_groups.includes('llm') ? 25 : 0) + 
-                        (config.selected_groups.includes('ragas') ? 30 : 0);
+  const totalQuestions = (config.selected_groups.includes('llm') ? (llmQuestionCount || 0) : 0) + 
+                        (config.selected_groups.includes('ragas') ? (ragasQuestionCount || 0) : 0);
 
   useEffect(() => {
     if (resultsRef.current) {
       resultsRef.current.scrollTop = resultsRef.current.scrollHeight;
     }
   }, [results]);
+
+  useEffect(() => {
+    const fetchQuestionCounts = async () => {
+      try {
+        setLoadingCounts(true);
+        logInfo('Fetching question counts from API', {
+          component: 'Experiment',
+          action: 'FETCH_QUESTION_COUNTS'
+        });
+
+        const [llmQuestions, ragasQuestions] = await Promise.all([
+          questionsApi.getLLMQuestions(),
+          questionsApi.getRAGASQuestions()
+        ]);
+
+        const llmCount = Array.isArray(llmQuestions) 
+          ? llmQuestions.reduce((total, group) => total + (group.questions ? group.questions.length : 0), 0) 
+          : 0;
+        const ragasCount = Array.isArray(ragasQuestions) 
+          ? ragasQuestions.reduce((total, group) => total + (group.questions ? group.questions.length : 0), 0)
+          : 0;
+
+        setLlmQuestionCount(llmCount);
+        setRagasQuestionCount(ragasCount);
+
+        logSuccess(`Question counts loaded: LLM=${llmCount}, RAGAS=${ragasCount}`, {
+          component: 'Experiment',
+          action: 'QUESTION_COUNTS_LOADED',
+          data: { llm_count: llmCount, ragas_count: ragasCount }
+        });
+      } catch (error: any) {
+        logError(`Failed to fetch question counts: ${error?.message || 'Unknown error'}`, {
+          component: 'Experiment',
+          action: 'FETCH_QUESTION_COUNTS_ERROR',
+          data: { error: error?.message }
+        });
+        // Fallback to default counts if API fails
+        setLlmQuestionCount(25);
+        setRagasQuestionCount(30);
+      } finally {
+        setLoadingCounts(false);
+      }
+    };
+
+    fetchQuestionCounts();
+  }, []);
 
   const handleGroupChange = (group: string, checked: boolean) => {
     setConfig(prev => ({
@@ -232,7 +281,7 @@ const ExperimentConfiguration: React.FC = () => {
                   disabled={isRunning}
                 />
                 <label htmlFor="llm-questions">
-                  Run LLM Questions (25 questions)
+                  Run LLM Questions ({loadingCounts ? '...' : llmQuestionCount || 0} questions)
                 </label>
               </div>
               <div className="checkbox">
@@ -244,7 +293,7 @@ const ExperimentConfiguration: React.FC = () => {
                   disabled={isRunning}
                 />
                 <label htmlFor="ragas-questions">
-                  Run RAGAS Questions (30 questions)
+                  Run RAGAS Questions ({loadingCounts ? '...' : ragasQuestionCount || 0} questions)
                 </label>
               </div>
               <div className="checkbox">
@@ -262,7 +311,7 @@ const ExperimentConfiguration: React.FC = () => {
                   disabled={isRunning}
                 />
                 <label htmlFor="both-questions">
-                  Run Both Groups ({totalQuestions} total questions)
+                  Run Both Groups ({loadingCounts ? '...' : totalQuestions} total questions)
                 </label>
               </div>
             </div>
@@ -308,7 +357,7 @@ const ExperimentConfiguration: React.FC = () => {
               className="button" 
               onClick={startExperiment}
               style={{ fontSize: '18px', padding: '15px 30px' }}
-              disabled={config.selected_groups.length === 0}
+              disabled={config.selected_groups.length === 0 || loadingCounts}
             >
               🚀 Start Experiment
             </button>

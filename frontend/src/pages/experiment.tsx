@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { experimentApi, questionsApi } from '../services/api';
 import { ExperimentConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation, logWebSocketEvent, logProgress } from '../utils/logger';
+import NavigationHeader from '../components/NavigationHeader';
 
 interface StreamResult {
   question_id: string;
@@ -242,6 +243,14 @@ const ExperimentConfiguration: React.FC = () => {
     router.push('/questions');
   };
 
+  const handleManageExperiments = () => {
+    logNavigation('Experiment', 'Experiments', {
+      component: 'Experiment',
+      action: 'NAVIGATE_TO_EXPERIMENTS'
+    });
+    router.push('/experiments');
+  };
+
   const getStatusColor = (similarity: number) => {
     if (similarity > 0.7) return '#28a745';
     if (similarity > 0.5) return '#ffc107';
@@ -256,6 +265,7 @@ const ExperimentConfiguration: React.FC = () => {
 
   return (
     <div>
+      <NavigationHeader currentPage="experiment" />
       <div className="card">
         <h2>⚙️ Experiment Configuration</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -443,6 +453,15 @@ const ExperimentConfiguration: React.FC = () => {
             disabled={isRunning}
           >
             ← Back to Questions
+          </button>
+          
+          <button 
+            className="button button-secondary" 
+            onClick={handleManageExperiments}
+            disabled={isRunning}
+            style={{ backgroundColor: '#6f42c1' }}
+          >
+            📁 Manage Experiments
           </button>
         </div>
       </div>

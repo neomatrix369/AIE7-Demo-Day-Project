@@ -100,3 +100,21 @@ export const resultsApi = {
   clearResults: (): Promise<{success: boolean, message: string}> =>
     api.post('/results/clear').then(res => res.data),
 };
+
+export const experimentsApi = {
+  list: (): Promise<{success: boolean, experiments: Array<{
+    filename: string;
+    timestamp: string;
+    total_questions: number;
+    sources: string[];
+    avg_similarity: number;
+    file_size: number;
+  }>}> =>
+    api.get('/experiments/list').then(res => res.data),
+  
+  load: (filename: string): Promise<{success: boolean, message: string, count?: number}> =>
+    api.post('/experiments/load', null, { params: { filename } }).then(res => res.data),
+  
+  delete: (filename: string): Promise<{success: boolean, message: string}> =>
+    api.delete('/experiments/delete', { params: { filename } }).then(res => res.data),
+};

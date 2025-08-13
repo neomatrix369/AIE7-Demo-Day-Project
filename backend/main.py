@@ -33,32 +33,123 @@ documents_loaded = False
 # Store for experiment results
 experiment_results = []
 
-def save_experiment_results(results: List[Dict[str, Any]]) -> None:
-    """Save experiment results to a JSON file."""
+def save_experiment_results(results: List[Dict[str, Any]]) -> str:
+    """Save experiment results to a timestamped JSON file in experiments folder."""
     try:
         import json
-        results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
+        from datetime import datetime
+        
+        # Create experiments folder if it doesn't exist
+        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        os.makedirs(experiments_folder, exist_ok=True)
+        
+        # Generate timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"experiment_{timestamp}.json"
+        results_file = os.path.join(experiments_folder, filename)
+        
+        # Add metadata to results
+        experiment_data = {
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "filename": filename,
+                "total_questions": len(results),
+                "sources": list(set(r["source"] for r in results)),
+                "avg_similarity": sum(r["avg_similarity"] for r in results) / len(results) if results else 0
+            },
+            "results": results
+        }
+        
         with open(results_file, 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        logger.info(f"💾 Saved {len(results)} experiment results to file")
+            json.dump(experiment_data, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"💾 Saved {len(results)} experiment results to {filename}")
+        return filename
+        
     except Exception as e:
         logger.error(f"❌ Failed to save experiment results: {e}")
+        return ""
 
-def load_experiment_results() -> List[Dict[str, Any]]:
+def load_experiment_results(filename: str = None) -> List[Dict[str, Any]]:
     """Load experiment results from JSON file."""
     try:
         import json
-        results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
+        
+        if filename:
+            # Load specific experiment file
+            experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+            results_file = os.path.join(experiments_folder, filename)
+        else:
+            # Load the most recent experiment (for backward compatibility)
+            results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
+        
         if os.path.exists(results_file):
             with open(results_file, 'r', encoding='utf-8') as f:
-                results = json.load(f)
-            logger.info(f"📂 Loaded {len(results)} experiment results from file")
+                data = json.load(f)
+            
+            # Handle both old format (direct results) and new format (with metadata)
+            if isinstance(data, list):
+                results = data
+            else:
+                results = data.get("results", [])
+            
+            logger.info(f"📂 Loaded {len(results)} experiment results from {os.path.basename(results_file)}")
             return results
     except Exception as e:
         logger.error(f"❌ Failed to load experiment results: {e}")
     return []
 
-# Load any existing results on startup
+def list_experiment_files() -> List[Dict[str, Any]]:
+    """List all available experiment files with metadata."""
+    try:
+        import json
+        from datetime import datetime
+        
+        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        if not os.path.exists(experiments_folder):
+            return []
+        
+        experiment_files = []
+        for filename in os.listdir(experiments_folder):
+            if filename.endswith('.json'):
+                filepath = os.path.join(experiments_folder, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    
+                    # Extract metadata
+                    if isinstance(data, dict) and "metadata" in data:
+                        metadata = data["metadata"]
+                        experiment_files.append({
+                            "filename": filename,
+                            "timestamp": metadata.get("timestamp", ""),
+                            "total_questions": metadata.get("total_questions", 0),
+                            "sources": metadata.get("sources", []),
+                            "avg_similarity": metadata.get("avg_similarity", 0),
+                            "file_size": os.path.getsize(filepath)
+                        })
+                    else:
+                        # Old format file
+                        experiment_files.append({
+                            "filename": filename,
+                            "timestamp": datetime.fromtimestamp(os.path.getmtime(filepath)).isoformat(),
+                            "total_questions": len(data) if isinstance(data, list) else 0,
+                            "sources": list(set(r.get("source", "") for r in data)) if isinstance(data, list) else [],
+                            "avg_similarity": sum(r.get("avg_similarity", 0) for r in data) / len(data) if isinstance(data, list) and data else 0,
+                            "file_size": os.path.getsize(filepath)
+                        })
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not read experiment file {filename}: {e}")
+        
+        # Sort by timestamp (newest first)
+        experiment_files.sort(key=lambda x: x["timestamp"], reverse=True)
+        return experiment_files
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to list experiment files: {e}")
+        return []
+
+# Load any existing results on startup (for backward compatibility)
 experiment_results = load_experiment_results()
 
 # Try to load documents on startup
@@ -301,6 +392,78 @@ async def set_test_results():
     
     logger.info("🧪 Set test experiment results")
     return {"success": True, "message": "Test results set", "count": len(test_results)}
+
+@app.get("/api/experiments/list")
+async def list_experiments():
+    """List all available experiment files."""
+    try:
+        experiment_files = list_experiment_files()
+        logger.info(f"📋 Listed {len(experiment_files)} experiment files")
+        return {
+            "success": True,
+            "experiments": experiment_files
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to list experiments: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to list experiments: {str(e)}",
+            "experiments": []
+        }
+
+@app.post("/api/experiments/load")
+async def load_experiment(filename: str):
+    """Load a specific experiment file."""
+    global experiment_results
+    
+    try:
+        results = load_experiment_results(filename)
+        if results:
+            experiment_results = results
+            logger.info(f"📂 Loaded experiment {filename} with {len(results)} results")
+            return {
+                "success": True,
+                "message": f"Loaded experiment {filename}",
+                "count": len(results)
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"No results found in {filename}"
+            }
+    except Exception as e:
+        logger.error(f"❌ Failed to load experiment {filename}: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to load experiment: {str(e)}"
+        }
+
+@app.delete("/api/experiments/delete")
+async def delete_experiment(filename: str):
+    """Delete a specific experiment file."""
+    try:
+        import os
+        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        filepath = os.path.join(experiments_folder, filename)
+        
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            logger.info(f"🗑️ Deleted experiment file {filename}")
+            return {
+                "success": True,
+                "message": f"Deleted experiment {filename}"
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Experiment file {filename} not found"
+            }
+    except Exception as e:
+        logger.error(f"❌ Failed to delete experiment {filename}: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to delete experiment: {str(e)}"
+        }
 
 def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """

@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { questionsApi } from '../services/api';
 import { QuestionGroup } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import NavigationHeader from '../components/NavigationHeader';
 
 const QuestionGroupsOverview: React.FC = () => {
   const [llmQuestions, setLlmQuestions] = useState<QuestionGroup | null>(null);
@@ -72,6 +73,14 @@ const QuestionGroupsOverview: React.FC = () => {
     router.push('/experiment');
   };
 
+  const handleManageExperiments = () => {
+    logNavigation('Questions', 'Experiments', {
+      component: 'Questions',
+      action: 'NAVIGATE_TO_EXPERIMENTS'
+    });
+    router.push('/experiments');
+  };
+
   const handleBackToDashboard = () => {
     logNavigation('Questions', 'Dashboard', {
       component: 'Questions', 
@@ -107,6 +116,7 @@ const QuestionGroupsOverview: React.FC = () => {
 
   return (
     <div>
+      <NavigationHeader currentPage="questions" />
       <div className="card">
         <h2>🤖 Question Groups Overview</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -233,13 +243,23 @@ const QuestionGroupsOverview: React.FC = () => {
             ← Back to Dashboard
           </button>
           
-          <button 
-            className="button" 
-            onClick={handleConfigureExperiment}
-            style={{ fontSize: '18px', padding: '15px 30px' }}
-          >
-            Configure Experiment →
-          </button>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button 
+              className="button button-secondary" 
+              onClick={handleManageExperiments}
+              style={{ backgroundColor: '#6f42c1' }}
+            >
+              📁 Manage Experiments
+            </button>
+            
+            <button 
+              className="button" 
+              onClick={handleConfigureExperiment}
+              style={{ fontSize: '18px', padding: '15px 30px' }}
+            >
+              Configure Experiment →
+            </button>
+          </div>
         </div>
       </div>
     </div>

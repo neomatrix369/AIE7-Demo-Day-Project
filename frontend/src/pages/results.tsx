@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { resultsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import NavigationHeader from '../components/NavigationHeader';
 
 const AnalysisResults: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
@@ -141,6 +142,14 @@ const AnalysisResults: React.FC = () => {
     router.push('/dashboard');
   };
 
+  const handleManageExperiments = () => {
+    logNavigation('Results', 'Experiments', {
+      component: 'Results',
+      action: 'NAVIGATE_TO_EXPERIMENTS'
+    });
+    router.push('/experiments');
+  };
+
   const handleClearResults = async () => {
     if (!window.confirm('Are you sure you want to clear all experiment results? This action cannot be undone.')) {
       return;
@@ -217,6 +226,13 @@ const AnalysisResults: React.FC = () => {
             </button>
             <button 
               className="button button-secondary" 
+              onClick={handleManageExperiments}
+              style={{ backgroundColor: '#6f42c1' }}
+            >
+              📁 Manage Experiments
+            </button>
+            <button 
+              className="button button-secondary" 
               onClick={handleRunNewExperiment}
             >
               🏠 Go to Dashboard
@@ -229,6 +245,7 @@ const AnalysisResults: React.FC = () => {
 
   return (
     <div>
+      <NavigationHeader currentPage="results" />
       <div className="card">
         <h2>📊 Analysis Results Dashboard</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -310,19 +327,19 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#28a745',
-                      width: `${(results.per_group.llm.distribution.filter(s => s > 0.7).length / 25) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s > 0.7).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#ffc107',
-                      width: `${(results.per_group.llm.distribution.filter(s => s > 0.5 && s <= 0.7).length / 25) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s > 0.5 && s <= 0.7).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#dc3545',
-                      width: `${(results.per_group.llm.distribution.filter(s => s <= 0.5).length / 25) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s <= 0.5).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                 </div>
@@ -363,19 +380,19 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#28a745',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s > 0.7).length / 30) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s > 0.7).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#ffc107',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s > 0.5 && s <= 0.7).length / 30) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s > 0.5 && s <= 0.7).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#dc3545',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s <= 0.5).length / 30) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s <= 0.5).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                 </div>
@@ -552,6 +569,14 @@ const AnalysisResults: React.FC = () => {
           </button>
           
           <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              className="button button-secondary" 
+              onClick={handleManageExperiments}
+              style={{ backgroundColor: '#6f42c1' }}
+            >
+              📁 Manage Experiments
+            </button>
+            
             <button 
               className="button button-secondary" 
               onClick={handleClearResults}

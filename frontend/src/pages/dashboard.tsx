@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { corpusApi } from '../services/api';
 import { CorpusStatus } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import NavigationHeader from '../components/NavigationHeader';
 
 const DataLoadingDashboard: React.FC = () => {
   const [corpusStatus, setCorpusStatus] = useState<CorpusStatus | null>(null);
@@ -63,6 +64,14 @@ const DataLoadingDashboard: React.FC = () => {
     router.push('/questions');
   };
 
+  const handleManageExperiments = () => {
+    logNavigation('Dashboard', 'Experiments', {
+      component: 'Dashboard',
+      action: 'NAVIGATE_TO_EXPERIMENTS'
+    });
+    router.push('/experiments');
+  };
+
   if (loading) {
     return (
       <div className="card">
@@ -105,6 +114,7 @@ const DataLoadingDashboard: React.FC = () => {
 
   return (
     <div>
+      <NavigationHeader currentPage="dashboard" />
       <div className="card">
         <h2>📊 RagCheck - Ready to Analyze</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -168,13 +178,23 @@ const DataLoadingDashboard: React.FC = () => {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '30px' }}>
-          <button 
-            className="button" 
-            onClick={handleProceedToQuestions}
-            style={{ fontSize: '18px', padding: '15px 30px' }}
-          >
-            Proceed to Question Analysis →
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <button 
+              className="button" 
+              onClick={handleProceedToQuestions}
+              style={{ fontSize: '18px', padding: '15px 30px' }}
+            >
+              Proceed to Question Analysis →
+            </button>
+            
+            <button 
+              className="button button-secondary" 
+              onClick={handleManageExperiments}
+              style={{ fontSize: '18px', padding: '15px 30px', backgroundColor: '#6f42c1' }}
+            >
+              📁 Manage Experiments
+            </button>
+          </div>
         </div>
       </div>
     </div>

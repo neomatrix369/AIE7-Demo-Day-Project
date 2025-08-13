@@ -65,3 +65,12 @@ export interface AnalysisResults {
   };
   per_question: QuestionResult[];
 }
+
+export interface ExperimentFile {
+  filename: string;
+  timestamp: string;
+  total_questions: number;
+  sources: string[];
+  avg_similarity: number;
+  file_size: number;
+}

@@ -7,8 +7,14 @@ A 4-screen wizard application for assessing corpus quality using AI-generated an
 ```
 ├── backend/                    # FastAPI backend with document processing
 │   ├── main.py                # FastAPI application with WebSocket support
-│   ├── simple_document_processor.py  # Document processing with Qdrant integration
-│   ├── test_qdrant.py         # Qdrant connection testing utility
+│   ├── simple_document_processor.py  # Document processing orchestrator
+│   ├── managers/              # Business logic managers
+│   │   ├── __init__.py
+│   │   ├── qdrant_manager.py
+│   │   ├── data_manager.py
+│   │   ├── corpus_statistics_manager.py
+│   │   ├── vector_store_manager.py
+│   │   └── search_manager.py
 │   ├── logging_config.py      # Centralized logging configuration
 │   └── requirements.txt       # Python dependencies
 ├── frontend/                   # Next.js frontend with comprehensive logging
@@ -35,7 +41,7 @@ A 4-screen wizard application for assessing corpus quality using AI-generated an
 ### 🏗️ Technical Architecture
 - **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking
 - **🗃️ Persistent Vector Storage**: Qdrant database with cosine similarity search and automatic collection management
-- **⚡ Performance Optimization**: Joblib caching prevents expensive document reprocessing
+- **⚡ Performance Optimization**: Caching prevents expensive document reprocessing
 - **📡 Real-time Communication**: WebSocket streaming for live experiment progress updates
 - **📋 Comprehensive Logging**: User-friendly logging system with development/production modes
 - **🎨 Responsive Design**: Mobile-friendly interface with CSS Grid and Flexbox layouts
@@ -129,7 +135,7 @@ npm run dev
 - **Qdrant** - Vector database for similarity search
 - **LangChain** - Document processing and embeddings
 - **OpenAI** - Text embeddings (text-embedding-3-small)
-- **Joblib** - Caching for performance optimization
+
 
 ### Frontend  
 - **Next.js** - React framework with TypeScript

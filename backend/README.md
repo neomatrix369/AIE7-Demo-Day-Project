@@ -9,11 +9,12 @@ FastAPI backend with real document processing, vector embeddings, and persistent
 2. **Text Chunking**: Documents split into 750-char chunks with 100-char overlap
 3. **Vector Embeddings**: OpenAI text-embedding-3-small (1536 dimensions)
 4. **Vector Storage**: Qdrant database with cosine similarity search
-5. **Caching**: Joblib caching prevents expensive reprocessing
+5. **Caching**: Caching prevents expensive reprocessing
 
 ### Key Components
 - **`main.py`**: FastAPI application with REST API and WebSocket endpoints
-- **`simple_document_processor.py`**: Document processing and Qdrant integration
+- **`simple_document_processor.py`**: Document processing orchestrator
+- **`managers/`**: Directory for business logic managers
 - **`test_qdrant.py`**: Qdrant connection testing utility
 - **`logging_config.py`**: Centralized logging configuration
 
@@ -98,7 +99,7 @@ DEBUG=false
 ## Performance Features
 
 ### Caching System
-- **Joblib caching** prevents expensive document reprocessing
+
 - **Corpus statistics** cached to avoid recomputation
 - **Vector store** reuses existing Qdrant collections
 
@@ -133,6 +134,6 @@ DEBUG=false
 - **Text Splitter**: Document chunking
 
 ### Utilities
-- **Joblib**: Caching and persistence
+
 - **Uvicorn**: ASGI server
 - **Python-dotenv**: Environment management

@@ -10,6 +10,9 @@ import logging
 import os
 from logging_config import setup_logging
 from simple_document_processor import SimpleDocumentProcessor
+from managers.qdrant_manager import QdrantManager
+from managers.data_manager import DataManager
+from managers.search_manager import SearchManager
 from dotenv import load_dotenv
 
 # Load environment variables from root .env file
@@ -20,17 +23,64 @@ app = FastAPI(title="RagCheck API", version="1.0.0")
 # Set up logging
 logger = setup_logging(__name__)
 
-# Initialize simple document processor
+# Initialize managers
 doc_processor = SimpleDocumentProcessor()
+qdrant_manager = QdrantManager(collection_name="student_loan_corpus")
+data_manager = DataManager(data_folder=os.path.join(os.path.dirname(__file__), '..', 'data'))
+search_manager = SearchManager(data_manager, qdrant_manager)
 documents_loaded = False
+
+# Store for experiment results
+experiment_results = []
+
+def save_experiment_results(results: List[Dict[str, Any]]) -> None:
+    """Save experiment results to a JSON file."""
+    try:
+        import json
+        results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
+        with open(results_file, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        logger.info(f"💾 Saved {len(results)} experiment results to file")
+    except Exception as e:
+        logger.error(f"❌ Failed to save experiment results: {e}")
+
+def load_experiment_results() -> List[Dict[str, Any]]:
+    """Load experiment results from JSON file."""
+    try:
+        import json
+        results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
+        if os.path.exists(results_file):
+            with open(results_file, 'r', encoding='utf-8') as f:
+                results = json.load(f)
+            logger.info(f"📂 Loaded {len(results)} experiment results from file")
+            return results
+    except Exception as e:
+        logger.error(f"❌ Failed to load experiment results: {e}")
+    return []
+
+# Load any existing results on startup
+experiment_results = load_experiment_results()
 
 # Try to load documents on startup
 try:
-    logger.info("🚀 Initializing simple document processing...")
+    logger.info("🚀 Initializing document processing and vector store...")
     stats = doc_processor.get_corpus_stats()
     if stats["corpus_loaded"]:
         documents_loaded = True
         logger.info("✅ Document processing initialized successfully")
+        
+        # Initialize vector store if needed
+        try:
+            combined_docs = data_manager.load_all_documents()
+            if combined_docs:
+                qdrant_manager.initialize_collection()
+                search_manager.get_vector_store()  # Test connection
+                logger.info("✅ Vector store initialized successfully")
+            else:
+                logger.warning("⚠️ No documents found for vector store")
+        except Exception as e:
+            logger.error(f"❌ Vector store initialization failed: {str(e)}")
+            logger.info("📝 Will use keyword search fallback")
     else:
         logger.warning("⚠️ No documents found - using mock data")
 except Exception as e:
@@ -159,76 +209,131 @@ async def run_experiment(config: ExperimentConfig):
 
 @app.get("/api/results/analysis")
 async def get_analysis_results():
-    # Generate mock analysis results
-    per_question_results = generate_mock_question_results()
+    """Get analysis results from the most recent experiment."""
+    global experiment_results
+    
+    if not experiment_results:
+        logger.warning("⚠️ No experiment results available, returning empty analysis")
+        return {
+            "overall": {
+                "avg_similarity": 0.0,
+                "success_rate": 0.0,
+                "total_questions": 0,
+                "corpus_health": "no_data",
+                "key_insight": "No experiment has been run yet"
+            },
+            "per_group": {
+                "llm": {"avg_score": 0.0, "distribution": []},
+                "ragas": {"avg_score": 0.0, "distribution": []}
+            },
+            "per_question": []
+        }
+    
+    logger.info(f"📊 Analyzing {len(experiment_results)} experiment results")
+    
+    # Convert experiment results to analysis format
+    per_question_results = convert_experiment_results_to_analysis(experiment_results)
     
     # Calculate and return analysis metrics
     return build_analysis_response(per_question_results)
 
-def generate_mock_question_results() -> List[Dict[str, Any]]:
-    """
-    Generate mock question results for both LLM and RAGAS questions.
+@app.post("/api/results/clear")
+async def clear_experiment_results():
+    """Clear stored experiment results."""
+    global experiment_results
     
+    try:
+        experiment_results.clear()
+        
+        # Also delete the file
+        results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
+        if os.path.exists(results_file):
+            os.remove(results_file)
+        
+        logger.info("🗑️ Cleared experiment results")
+        return {"success": True, "message": "Experiment results cleared"}
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to clear experiment results: {e}")
+        return {"success": False, "message": f"Failed to clear results: {str(e)}"}
+
+@app.post("/api/results/test")
+async def set_test_results():
+    """Set test results for debugging (development only)."""
+    global experiment_results
+    
+    # Create some test results
+    test_results = [
+        {
+            "question_id": "llm_q_001",
+            "question": "How much can I borrow for my degree program?",
+            "source": "llm",
+            "avg_similarity": 0.75,
+            "retrieved_docs": [
+                {"doc_id": "doc_1", "similarity": 0.8, "title": "Student Loan Limits"},
+                {"doc_id": "doc_2", "similarity": 0.7, "title": "Borrowing Guidelines"}
+            ]
+        },
+        {
+            "question_id": "ragas_q_001", 
+            "question": "What is the issue with Aidvantage in the borrower's complaint?",
+            "source": "ragas",
+            "avg_similarity": 0.65,
+            "retrieved_docs": [
+                {"doc_id": "doc_3", "similarity": 0.7, "title": "Servicer Complaints"},
+                {"doc_id": "doc_4", "similarity": 0.6, "title": "Aidvantage Issues"}
+            ]
+        },
+        {
+            "question_id": "llm_q_002",
+            "question": "What are my repayment options after graduation?",
+            "source": "llm",
+            "avg_similarity": 0.85,
+            "retrieved_docs": [
+                {"doc_id": "doc_5", "similarity": 0.9, "title": "Repayment Plans"},
+                {"doc_id": "doc_6", "similarity": 0.8, "title": "Graduation Options"}
+            ]
+        }
+    ]
+    
+    experiment_results = test_results
+    save_experiment_results(experiment_results)
+    
+    logger.info("🧪 Set test experiment results")
+    return {"success": True, "message": "Test results set", "count": len(test_results)}
+
+def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Convert experiment results to analysis format.
+    
+    Args:
+        experiment_results: List of experiment results from WebSocket streaming
+        
     Returns:
-        List of mock question result dictionaries
+        List of question results in analysis format
     """
     per_question_results = []
     
-    # Generate mock results for LLM questions
-    llm_questions = generate_mock_llm_results()
-    per_question_results.extend(llm_questions)
+    for result in experiment_results:
+        # Determine status based on similarity
+        status = get_similarity_status(result["avg_similarity"])
+        
+        # Convert to analysis format
+        analysis_result = {
+            "id": result["question_id"],
+            "text": result["question"],
+            "source": result["source"],
+            "similarity": result["avg_similarity"],
+            "status": status,
+            "retrieved_docs": result["retrieved_docs"]
+        }
+        
+        per_question_results.append(analysis_result)
     
-    # Generate mock results for RAGAS questions
-    ragas_questions = generate_mock_ragas_results()
-    per_question_results.extend(ragas_questions)
-    
+    logger.info(f"✅ Converted {len(per_question_results)} experiment results to analysis format")
     return per_question_results
 
-def generate_mock_llm_results() -> List[Dict[str, Any]]:
-    """
-    Generate mock results for LLM questions.
-    
-    Returns:
-        List of mock LLM question results
-    """
-    results = []
-    for i in range(25):
-        similarity = round(random.uniform(0.3, 0.9), 2)
-        status = get_similarity_status(similarity)
-        
-        results.append({
-            "id": f"llm_q_{i+1:03d}",
-            "text": f"LLM Question {i+1}: How to implement feature X?",
-            "source": "llm",
-            "similarity": similarity,
-            "status": status,
-            "retrieved_docs": generate_mock_retrieved_docs(similarity)
-        })
-    
-    return results
 
-def generate_mock_ragas_results() -> List[Dict[str, Any]]:
-    """
-    Generate mock results for RAGAS questions.
-    
-    Returns:
-        List of mock RAGAS question results
-    """
-    results = []
-    for i in range(30):
-        similarity = round(random.uniform(0.2, 0.8), 2)
-        status = get_similarity_status(similarity)
-        
-        results.append({
-            "id": f"ragas_q_{i+1:03d}",
-            "text": f"RAGAS Question {i+1}: What is concept Y?",
-            "source": "ragas",
-            "similarity": similarity,
-            "status": status,
-            "retrieved_docs": generate_mock_retrieved_docs(similarity)
-        })
-    
-    return results
 
 def get_similarity_status(similarity: float) -> str:
     """
@@ -247,23 +352,7 @@ def get_similarity_status(similarity: float) -> str:
     else:
         return "poor"
 
-def generate_mock_retrieved_docs(similarity: float) -> List[Dict[str, Any]]:
-    """
-    Generate mock retrieved documents for a question.
-    
-    Args:
-        similarity: Base similarity score for variation
-        
-    Returns:
-        List of mock document dictionaries
-    """
-    return [
-        {
-            "doc_id": f"d_{j}",
-            "similarity": round(similarity + random.uniform(-0.1, 0.1), 2),
-            "title": f"Document {j}"
-        } for j in range(1, 4)
-    ]
+
 
 def calculate_overall_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
@@ -351,7 +440,11 @@ async def websocket_experiment_stream(websocket: WebSocket):
         logger.info(f"📝 Generated {len(all_questions)} questions for experiment")
         
         # Stream results for each question
-        await stream_question_results(websocket, all_questions)
+        experiment_results.clear()  # Clear previous results
+        await stream_question_results(websocket, all_questions, config)
+        
+        # Save experiment results
+        save_experiment_results(experiment_results)
         
         # Send completion signal
         logger.info("🏁 Sending completion signal")
@@ -453,39 +546,98 @@ def generate_real_experiment_questions(selected_groups: List[str]) -> List[Dict[
     
     return all_questions
 
-async def stream_question_results(websocket: WebSocket, questions: List[Dict[str, Any]]) -> None:
+async def stream_question_results(websocket: WebSocket, questions: List[Dict[str, Any]], config: ExperimentConfig) -> None:
     """
-    Stream processing results for each question.
+    Stream processing results for each question using real vector search.
     
     Args:
         websocket: WebSocket connection
         questions: List of questions to process
+        config: Experiment configuration
     """
-    for question in questions:
-        # Simulate processing delay
-        await asyncio.sleep(0.5)
-        
-        # Generate and send mock result
-        result = generate_streaming_result(question)
-        await websocket.send_json(result)
+    for i, question in enumerate(questions):
+        try:
+            # Simulate processing delay
+            await asyncio.sleep(0.3)
+            
+            # Perform real vector search
+            result = await process_question_with_search(question, config)
+            
+            # Store the result for analysis
+            experiment_results.append(result)
+            
+            await websocket.send_json(result)
+            
+            # Send progress update
+            progress = ((i + 1) / len(questions)) * 100
+            await websocket.send_json({
+                "type": "progress",
+                "progress": round(progress, 1),
+                "processed": i + 1,
+                "total": len(questions)
+            })
+            
+        except Exception as e:
+            logger.error(f"❌ Error processing question {question.get('question_id', 'unknown')}: {e}")
+            # Send error result but continue
+            error_result = {
+                **question,
+                "avg_similarity": 0.0,
+                "retrieved_docs": [],
+                "error": str(e)
+            }
+            await websocket.send_json(error_result)
 
-def generate_streaming_result(question: Dict[str, Any]) -> Dict[str, Any]:
+async def process_question_with_search(question: Dict[str, Any], config: ExperimentConfig) -> Dict[str, Any]:
     """
-    Generate a mock streaming result for a question.
+    Process a single question using real vector search.
     
     Args:
         question: Question dictionary
+        config: Experiment configuration
         
     Returns:
-        Result dictionary with similarity and retrieved docs
+        Result dictionary with real similarity scores and retrieved docs
     """
-    similarity = round(random.uniform(0.3, 0.9), 2)
-    
-    return {
-        **question,
-        "avg_similarity": similarity,
-        "retrieved_docs": generate_mock_retrieved_docs(similarity)
-    }
+    try:
+        query = question["question"]
+        
+        # Perform vector search with configuration
+        search_results = search_manager.search_with_similarity_threshold(
+            query=query,
+            top_k=config.top_k,
+            threshold=config.similarity_threshold
+        )
+        
+        # Calculate average similarity
+        if search_results:
+            avg_similarity = sum(r["similarity"] for r in search_results) / len(search_results)
+        else:
+            avg_similarity = 0.0
+        
+        # Format retrieved documents
+        retrieved_docs = []
+        for result in search_results:
+            retrieved_docs.append({
+                "doc_id": result["doc_id"],
+                "similarity": result["similarity"],
+                "title": result["title"]
+            })
+        
+        return {
+            **question,
+            "avg_similarity": round(avg_similarity, 3),
+            "retrieved_docs": retrieved_docs
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Search failed for question {question.get('question_id', 'unknown')}: {e}")
+        return {
+            **question,
+            "avg_similarity": 0.0,
+            "retrieved_docs": [],
+            "error": str(e)
+        }
 
 @app.get("/")
 async def root():
@@ -501,7 +653,7 @@ async def root():
 
 @app.get("/api/corpus/search")
 async def search_corpus(query: str, top_k: int = 5):
-    """Search the corpus using simple keyword matching."""
+    """Search the corpus using vector similarity search."""
     if not documents_loaded:
         return {
             "error": "Documents not loaded",
@@ -512,8 +664,8 @@ async def search_corpus(query: str, top_k: int = 5):
     try:
         logger.info(f"🔍 Searching corpus for: {query[:100]}...")
         
-        # Perform simple search
-        results = doc_processor.search_documents(query, top_k)
+        # Perform vector search using enhanced search manager
+        results = search_manager.search_documents(query, top_k)
         
         logger.info(f"📚 Found {len(results)} relevant documents")
         
@@ -521,7 +673,7 @@ async def search_corpus(query: str, top_k: int = 5):
             "query": query,
             "results": results,
             "total_found": len(results),
-            "search_method": "keyword_matching"
+            "search_method": "vector_similarity" if search_manager.get_vector_store() else "keyword_matching"
         }
         
     except Exception as e:

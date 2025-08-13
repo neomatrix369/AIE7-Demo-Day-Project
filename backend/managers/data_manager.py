@@ -158,3 +158,31 @@ class DataManager:
         split_docs = text_splitter.split_documents(documents)
         logger.info(f"✅ Created {len(split_docs)} document chunks")
         return split_docs
+
+    def load_all_documents(self) -> List[Dict[str, Any]]:
+        """
+        Load all documents from CSV and PDF sources.
+        
+        Returns:
+            List of all loaded documents
+        """
+        try:
+            logger.info("📚 Loading all documents...")
+            
+            # Load CSV data
+            csv_docs = self.load_csv_data()
+            logger.info(f"📊 Loaded {len(csv_docs)} CSV documents")
+            
+            # Load PDF data
+            pdf_docs = self.load_pdf_data()
+            logger.info(f"📄 Loaded {len(pdf_docs)} PDF documents")
+            
+            # Combine all documents
+            all_docs = csv_docs + pdf_docs
+            logger.info(f"✅ Total documents loaded: {len(all_docs)}")
+            
+            return all_docs
+            
+        except Exception as e:
+            logger.error(f"❌ Error loading all documents: {str(e)}")
+            return []

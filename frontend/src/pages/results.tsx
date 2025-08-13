@@ -141,6 +141,40 @@ const AnalysisResults: React.FC = () => {
     router.push('/dashboard');
   };
 
+  const handleClearResults = async () => {
+    if (!window.confirm('Are you sure you want to clear all experiment results? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      logInfo('Clearing experiment results', {
+        component: 'Results',
+        action: 'CLEAR_RESULTS_START'
+      });
+
+      const response = await resultsApi.clearResults();
+      
+      if (response.success) {
+        setResults(null);
+        logSuccess('Experiment results cleared successfully', {
+          component: 'Results',
+          action: 'CLEAR_RESULTS_SUCCESS'
+        });
+        alert('Experiment results cleared successfully');
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (err: any) {
+      const errorMessage = 'Failed to clear experiment results';
+      logError(`${errorMessage}: ${err?.message || 'Unknown error'}`, {
+        component: 'Results',
+        action: 'CLEAR_RESULTS_ERROR',
+        data: { error: err?.message }
+      });
+      alert(`${errorMessage}: ${err?.message || 'Unknown error'}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="card">
@@ -152,12 +186,42 @@ const AnalysisResults: React.FC = () => {
     );
   }
 
-  if (error || !results) {
+  if (error) {
     return (
       <div className="card">
         <h2>Error Loading Results</h2>
         <div style={{ color: '#dc3545', padding: '20px' }}>
-          {error || 'Unknown error occurred'}
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!results || results.overall.total_questions === 0) {
+    return (
+      <div className="card">
+        <h2>📊 Analysis Results Dashboard</h2>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div style={{ fontSize: '24px', color: '#666', marginBottom: '20px' }}>
+            No Experiment Results Available
+          </div>
+          <div style={{ fontSize: '16px', color: '#888', marginBottom: '30px' }}>
+            Run an experiment first to see analysis results here.
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+            <button 
+              className="button" 
+              onClick={handleBackToExperiment}
+            >
+              🧪 Go to Experiment
+            </button>
+            <button 
+              className="button button-secondary" 
+              onClick={handleRunNewExperiment}
+            >
+              🏠 Go to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -487,13 +551,23 @@ const AnalysisResults: React.FC = () => {
             ← Back to Experiment
           </button>
           
-          <button 
-            className="button" 
-            onClick={handleRunNewExperiment}
-            style={{ backgroundColor: '#28a745' }}
-          >
-            🔄 Run New Experiment
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              className="button button-secondary" 
+              onClick={handleClearResults}
+              style={{ backgroundColor: '#dc3545', color: 'white' }}
+            >
+              🗑️ Clear Results
+            </button>
+            
+            <button 
+              className="button" 
+              onClick={handleRunNewExperiment}
+              style={{ backgroundColor: '#28a745' }}
+            >
+              🔄 Run New Experiment
+            </button>
+          </div>
         </div>
       </div>
     </div>

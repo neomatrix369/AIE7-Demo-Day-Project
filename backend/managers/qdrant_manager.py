@@ -75,3 +75,13 @@ class QdrantManager:
         except Exception as e:
             logger.warning(f"⚠️ Could not check collection document count: {e}")
             return False
+
+    def initialize_collection(self) -> bool:
+        """
+        Initialize the collection if it doesn't exist.
+        """
+        try:
+            return self._ensure_collection_exists()
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize collection: {e}")
+            return False

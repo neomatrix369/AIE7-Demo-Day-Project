@@ -75,3 +75,5 @@ coverage/
 **/.next/*
 
 CLAUDE.md
+
+experiments/*

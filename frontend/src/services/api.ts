@@ -96,4 +96,7 @@ export const experimentApi = {
 export const resultsApi = {
   getAnalysis: (): Promise<AnalysisResults> =>
     api.get('/results/analysis').then(res => res.data),
+  
+  clearResults: (): Promise<{success: boolean, message: string}> =>
+    api.post('/results/clear').then(res => res.data),
 };

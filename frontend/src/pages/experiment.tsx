@@ -27,14 +27,12 @@ const ExperimentConfiguration: React.FC = () => {
   const [results, setResults] = useState<StreamResult[]>([]);
   const [completed, setCompleted] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
-  const [llmQuestionCount, setLlmQuestionCount] = useState<number | null>(56);
-  const [ragasQuestionCount, setRagasQuestionCount] = useState<number | null>(22);
+  const [llmQuestionCount, setLlmQuestionCount] = useState<number | null>(null);
+  const [ragasQuestionCount, setRagasQuestionCount] = useState<number | null>(null);
   const [loadingCounts, setLoadingCounts] = useState(false);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
-  const totalQuestions = (config.selected_groups.includes('llm') ? (llmQuestionCount || 0) : 0) + 
-                        (config.selected_groups.includes('ragas') ? (ragasQuestionCount || 0) : 0);
 
   useEffect(() => {
     if (resultsRef.current) {
@@ -42,26 +40,25 @@ const ExperimentConfiguration: React.FC = () => {
     }
   }, [results]);
 
-  // Auto-start mock experiment for testing
+  // Calculate total questions based on selected groups
   useEffect(() => {
-    console.log('🧪 Component mounted, setting up auto-start...');
-    
-    // Set the experiment to running state immediately for testing
-    setTimeout(() => {
-      console.log('🤖 Starting mock progress test...');
-      setIsRunning(true);
-      setProgress(25); // Test with 25% progress
-      setResults([
-        {
-          question_id: 'test_1',
-          question: 'Test Question 1',
-          source: 'llm',
-          avg_similarity: 0.75,
-          retrieved_docs: [{ doc_id: 'doc_1', similarity: 0.8, title: 'Test Document' }]
-        }
-      ]);
-    }, 1000);
-  }, []);
+    let total = 0;
+    if (config.selected_groups.includes('llm') && llmQuestionCount !== null) {
+      total += llmQuestionCount;
+    }
+    if (config.selected_groups.includes('ragas') && ragasQuestionCount !== null) {
+      total += ragasQuestionCount;
+    }
+    setTotalQuestions(total);
+  }, [config.selected_groups, llmQuestionCount, ragasQuestionCount]);
+
+  // Update progress when results change
+  useEffect(() => {
+    if (totalQuestions > 0) {
+      const newProgress = Math.min((results.length * 100) / totalQuestions, 100);
+      setProgress(newProgress);
+    }
+  }, [results.length, totalQuestions]);
 
   useEffect(() => {
     const fetchQuestionCounts = async () => {
@@ -77,6 +74,7 @@ const ExperimentConfiguration: React.FC = () => {
           questionsApi.getRAGASQuestions()
         ]);
 
+        // Calculate total questions from the real data structure
         const llmCount = Array.isArray(llmQuestions) 
           ? llmQuestions.reduce((total, group) => total + (group.questions ? group.questions.length : 0), 0) 
           : 0;
@@ -98,7 +96,7 @@ const ExperimentConfiguration: React.FC = () => {
           action: 'FETCH_QUESTION_COUNTS_ERROR',
           data: { error: error?.message }
         });
-        // Fallback to correct counts if API fails
+        // Fallback to default counts if API fails
         setLlmQuestionCount(56);
         setRagasQuestionCount(22);
       } finally {
@@ -136,7 +134,7 @@ const ExperimentConfiguration: React.FC = () => {
       return;
     }
 
-    console.log(`🚀 Starting MOCK experiment with ${totalQuestions} questions`);
+    console.log(`🚀 Starting REAL experiment with ${totalQuestions} questions`);
     console.log('📋 Config:', config);
     console.log('🔢 Question counts:', { llmQuestionCount, ragasQuestionCount, totalQuestions });
     
@@ -145,48 +143,66 @@ const ExperimentConfiguration: React.FC = () => {
     setResults([]);
     setCompleted(false);
 
-    // MOCK: Simulate progress updates without WebSocket
-    console.log('🎭 Starting mock experiment with timer-based progress');
+    // Connect to WebSocket for real-time streaming
+    const wsUrl = `ws://localhost:8000/ws/experiment/stream`;
+    const websocket = new WebSocket(wsUrl);
     
-    let currentQuestion = 0;
-    const mockQuestions = Array.from({length: totalQuestions}, (_, i) => ({
-      question_id: `mock_q_${(i+1).toString().padStart(3, '0')}`,
-      question: `Mock Question ${i+1}: Test question text`,
-      source: i < (llmQuestionCount || 0) ? 'llm' : 'ragas',
-      avg_similarity: Math.random() * 0.6 + 0.3,
-      retrieved_docs: [
-        { doc_id: `doc_${i+1}`, similarity: Math.random() * 0.8 + 0.2, title: `Document ${i+1}` }
-      ]
-    }));
-
-    const processNextQuestion = () => {
-      if (currentQuestion >= totalQuestions) {
-        console.log('🏁 Mock experiment completed');
-        setCompleted(true);
+    // Set a timeout for WebSocket connection
+    const connectionTimeout = setTimeout(() => {
+      if (websocket.readyState !== WebSocket.OPEN) {
+        console.error('❌ WebSocket connection timeout');
+        alert('Connection timeout. Please check if the backend server is running.');
         setIsRunning(false);
-        return;
+        websocket.close();
       }
+    }, 5000); // 5 second timeout
 
-      const mockData = mockQuestions[currentQuestion];
-      
-      setResults(prevResults => {
-        const newResults = [...prevResults, mockData];
-        const newProgress = (newResults.length * 100) / totalQuestions;
-        
-        console.log(`📊 Mock progress: ${newResults.length}/${totalQuestions} = ${newProgress.toFixed(1)}%`);
-        setProgress(newProgress);
-        
-        return newResults;
-      });
-      
-      currentQuestion++;
-      
-      // Schedule next question
-      setTimeout(processNextQuestion, 200); // Process every 200ms
+    websocket.onopen = () => {
+      clearTimeout(connectionTimeout);
+      console.log('🔌 WebSocket connected, sending config...');
+      websocket.send(JSON.stringify(config));
     };
 
-    // Start processing
-    setTimeout(processNextQuestion, 500);
+    websocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'completed') {
+          console.log('🏁 Experiment completed');
+          setCompleted(true);
+          setIsRunning(false);
+          websocket.close();
+        } else if (data.type === 'error') {
+          console.error('❌ Experiment error:', data.message);
+          alert(`Experiment failed: ${data.message}`);
+          setIsRunning(false);
+          websocket.close();
+        } else if (data.type === 'progress') {
+          // Handle progress updates
+          console.log('📊 Progress update:', data);
+          setProgress(data.progress);
+        } else {
+          // This is a question result
+          console.log('📊 Received result:', data);
+          setResults(prevResults => [...prevResults, data]);
+        }
+      } catch (error) {
+        console.error('❌ Error parsing WebSocket message:', error);
+      }
+    };
+
+    websocket.onerror = (error) => {
+      console.error('❌ WebSocket error:', error);
+      alert('Failed to connect to experiment stream. Please try again.');
+      setIsRunning(false);
+    };
+
+    websocket.onclose = () => {
+      console.log('🔌 WebSocket connection closed');
+      setWs(null);
+    };
+
+    setWs(websocket);
   };
 
   const stopExperiment = () => {
@@ -333,11 +349,7 @@ const ExperimentConfiguration: React.FC = () => {
           <div style={{ textAlign: 'center', marginTop: '30px' }}>
             <button 
               className="button" 
-              onClick={() => {
-                console.log('🚀 Start Experiment button clicked!');
-                alert('Button clicked! Check console for details.');
-                startExperiment();
-              }}
+              onClick={startExperiment}
               style={{ fontSize: '18px', padding: '15px 30px' }}
               disabled={config.selected_groups.length === 0 || loadingCounts}
             >
@@ -352,11 +364,11 @@ const ExperimentConfiguration: React.FC = () => {
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
-                style={{ width: `${progress}%` }}
+                style={{ width: `${Math.min(progress, 100)}%` }}
               ></div>
             </div>
             <div style={{ textAlign: 'center', marginTop: '10px' }}>
-              Progress: {Math.round(progress)}% ({results.length}/{totalQuestions} questions processed)
+              Progress: {Math.round(Math.min(progress, 100))}% ({results.length}/{totalQuestions} questions processed)
             </div>
             <div style={{ textAlign: 'center', marginTop: '15px' }}>
               <button 

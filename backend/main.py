@@ -46,6 +46,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import json
+
 # Fallback mock data
 MOCK_CORPUS_STATUS = {
     "corpus_loaded": True,
@@ -59,25 +61,52 @@ MOCK_CORPUS_STATUS = {
     }
 }
 
-LLM_QUESTIONS = {
-    "count": 25,
-    "sample": [
-        "How to implement OAuth 2.0 authentication?",
-        "What are the best practices for API design?",
-        "How to troubleshoot database connection issues?"
-    ],
-    "categories": ["implementation", "best_practices", "troubleshooting"]
-}
+def load_questions_from_file(filename: str) -> Dict[str, Any]:
+    """
+    Load questions from a JSON file.
+    
+    Args:
+        filename: The path to the JSON file
+        
+    Returns:
+        A dictionary containing the questions, count, and categories
+    """
+    try:
+        with open(filename, 'r', encoding='utf-8-sig') as f:
+            questions_data = json.load(f)
+        
+        # Restructure the data to match the original format
+        all_questions = []
+        categories = []
+        for category in questions_data:
+            categories.append(category["name"])
+            for question in category["questions"]:
+                all_questions.append(question["text"])
 
-RAGAS_QUESTIONS = {
-    "count": 30,
-    "sample": [
-        "What is JWT token expiration?",
-        "Explain rate limiting strategies",
-        "What are the benefits of microservices architecture?"
-    ],
-    "categories": ["factual", "reasoning", "multi_hop"]
-}
+        return {
+            "count": len(all_questions),
+            "sample": random.sample(all_questions, min(len(all_questions), 3)),
+            "categories": categories,
+            "questions": questions_data
+        }
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading questions from {filename}: {e}")
+        return {
+            "count": 0,
+            "sample": [],
+            "categories": [],
+            "questions": []
+        }
+
+# Load LLM questions from the JSON file
+LLM_QUESTIONS = load_questions_from_file(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'questions', 'llm-generated.json')
+)
+
+# Load RAGAS questions from the JSON file
+RAGAS_QUESTIONS = load_questions_from_file(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'questions', 'ragas-generated.json')
+)
 
 # Pydantic models
 class ExperimentConfig(BaseModel):
@@ -106,11 +135,11 @@ async def get_corpus_status():
 
 @app.get("/api/questions/llm")
 async def get_llm_questions():
-    return {"llm_questions": LLM_QUESTIONS}
+    return LLM_QUESTIONS["questions"]
 
 @app.get("/api/questions/ragas")
 async def get_ragas_questions():
-    return {"ragas_questions": RAGAS_QUESTIONS}
+    return RAGAS_QUESTIONS["questions"]
 
 @app.post("/api/experiment/run")
 async def run_experiment(config: ExperimentConfig):

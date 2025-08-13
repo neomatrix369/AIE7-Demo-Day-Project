@@ -1,0 +1,118 @@
+[
+  {
+    "id": "general-user",
+    "name": "General User",
+    "description": "A general user seeking basic information about federal student aid processes. This person is likely researching financial aid options or trying to understand how different academic calendar types affect their aid eligibility. They ask straightforward, well-formatted questions and are looking for clear, official information.",
+    "questions": [
+      {
+        "text": "How is the Pell Grant award calculated for students enrolled in subscription-based academic calendars?",
+        "focus": "Pell Grant eligibility and calculation"
+      },
+      {
+        "text": "What is the issue with Aidvantage in the borrower's complaint?",
+        "focus": "Loan servicer issues and borrower rights"
+      },
+      {
+        "text": "How does FERPA protect student loan borrowers' personal data?",
+        "focus": "Data privacy and protection"
+      },
+      {
+        "text": "What concerns does the borrower have regarding Nelnet's communication about their student loan issuer?",
+        "focus": "Loan servicer issues and borrower rights"
+      },
+      {
+        "text": "How does the violation of the FCRA relate to the improper reporting and collection of student loans after the Department of Education's abolishment?",
+        "focus": "Legal protections and borrower rights"
+      }
+    ]
+  },
+  {
+    "id": "current-student",
+    "name": "Current Student",
+    "description": "A current student actively navigating the financial aid system. This person uses informal language and may have spelling or grammar issues typical of quick text communication. They're asking practical questions about their current situation and how various policies affect their aid eligibility and disbursement.",
+    "questions": [
+      {
+        "text": "Are veterinary clinical experiences allowed to be included in standard term periods for financial aid purposes?",
+        "focus": "Clinical program requirements and financial aid"
+      },
+      {
+        "text": "Whaat are the condishuns under wich a program meassuring progress in credit-hours is considdred to have a non-term calender?",
+        "focus": "Non-traditional program structures and aid"
+      },
+      {
+        "text": "so like if a student gettin Pell Grant in a clock-hour or non-term credit-hour program, and they finish more weeks or hours faster than scheduled, do that mean they get more Pell Grant money or the payment periods change or what happen with the Pell Grant disbursement?",
+        "focus": "Pell Grant eligibility and calculation"
+      },
+      {
+        "text": "Wut are the disbursment timing rules for Title IV funds in subscription-based programs and how does Volume 8, Chapter 3 provide guidance for clinical work in standard terms?",
+        "focus": "Financial aid disbursement timing and requirements"
+      },
+      {
+        "text": "how volume 8 chapter 6 and volume 8 chapter 3 talk about nonstandard terms and direct loan rules for subscription-based and clinical work programs?",
+        "focus": "Clinical program requirements and financial aid"
+      }
+    ]
+  },
+  {
+    "id": "recent-graduate",
+    "name": "Recent Graduate",
+    "description": "A recent graduate who has experience with the financial aid system and is asking detailed, technical questions. This person uses formal language and seeks comprehensive understanding of complex regulations, possibly for professional, academic, or research purposes.",
+    "questions": [
+      {
+        "text": "how do disbursement timing rules for federal student aid differ between clock-hour or non-term credit-hour programs and subscription-based programs, especially regarding when students become eligible for their next disbursement?",
+        "focus": "Financial aid disbursement timing and requirements"
+      },
+      {
+        "text": "What are the differences in disbursement timing requirements for federal student aid between clock-hour or non-term credit-hour programs and subscription-based programs?",
+        "focus": "Financial aid disbursement timing and requirements"
+      },
+      {
+        "text": "How does the disbursement timing for federal student aid differ between clock-hour or non-term credit-hour programs and subscription-based programs, particularly regarding the requirements students must meet before receiving subsequent disbursements?",
+        "focus": "Financial aid disbursement timing and requirements"
+      },
+      {
+        "text": "How does the disbursement timing for federal student aid differ between standard clock-hour or non-term credit-hour programs and subscription-based programs, particularly regarding the requirements a student must meet before receiving subsequent disbursements?",
+        "focus": "Financial aid disbursement timing and requirements"
+      },
+      {
+        "text": "How do the examples in Appendix A and Appendix B illustrate the differences in disbursement timing and eligibility requirements for students in clock-hour or non-term credit-hour programs versus subscription-based programs?",
+        "focus": "Financial aid disbursement timing and requirements"
+      },
+      {
+        "text": "How do the requirements for Pell Grant disbursement and calculation differ between clock-hour or non-term credit-hour programs and subscription-based academic calendars, and what are the implications for payment periods and academic progress measurement?",
+        "focus": "Pell Grant eligibility and calculation"
+      },
+      {
+        "text": "How can borrowers address issues related to their student loan 'loan' when they experience lack of transparency, difficulty logging in, and poor customer service from lenders or servicers, especially in cases where there is little to no written confirmation of forbearance status and long wait times for assistance?",
+        "focus": "Loan servicer issues and borrower rights"
+      },
+      {
+        "text": "How does the illegal student loan reporting after the Department of Education abolishment relate to the data breach involving personal info of students, and what rights are protected under the Department of Education's actions?",
+        "focus": "Data privacy and protection"
+      },
+      {
+        "text": "How does the failure of XXXX and XXXX to conduct proper reinvestigations under the FCRA, as highlighted by the CFPB lawsuit, relate to the misconduct and errors made by XXXX in the transfer and handling of the account to Nelnet, and what implications does this have for borrower rights under the FCRA?",
+        "focus": "Legal protections and borrower rights"
+      },
+      {
+        "text": "How does the CFPB's involvement relate to the legal violations and improper reporting of student loan data by Nelnet and associated entities, as described in the context?",
+        "focus": "Legal protections and borrower rights"
+      },
+      {
+        "text": "How does NelNet's repeated failure to process auto-debit payments, despite confirmation, relate to borrower rights and potential violations of privacy laws?",
+        "focus": "Legal protections and borrower rights"
+      }
+    ]
+  },
+  {
+    "id": "public-service-worker",
+    "name": "Public Service Worker",
+    "description": "A public service worker or advocate who helps others navigate financial aid issues. This person is knowledgeable about borrower rights and systemic issues, and asks questions from a professional perspective to better assist their clients or constituents.",
+    "questions": [
+      {
+        "text": "As a consumer rights advocate, how should I address the issue of re-amortization delays for federal student loans after the COVID-19 forbearance ended, especially considering the significant increase in monthly payments from $180.00 to $360.00 and the potential financial hardship for many borrowers?",
+        "focus": "COVID-19 forbearance and payment resumption"
+      }
+    ]
+  }
+]

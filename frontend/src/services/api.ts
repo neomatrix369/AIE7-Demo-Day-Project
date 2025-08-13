@@ -81,10 +81,10 @@ export const corpusApi = {
 };
 
 export const questionsApi = {
-  getLLMQuestions: (): Promise<{ llm_questions: QuestionGroup }> =>
+  getLLMQuestions: (): Promise<QuestionGroup> =>
     api.get('/questions/llm').then(res => res.data),
   
-  getRAGASQuestions: (): Promise<{ ragas_questions: QuestionGroup }> =>
+  getRAGASQuestions: (): Promise<QuestionGroup> =>
     api.get('/questions/ragas').then(res => res.data),
 };
 

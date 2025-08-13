@@ -20,22 +20,25 @@ const QuestionGroupsOverview: React.FC = () => {
           action: 'QUESTIONS_LOAD_START'
         });
 
-        const [llmData, ragasData] = await Promise.all([
+        const [llmQuestionsData, ragasQuestionsData] = await Promise.all([
           questionsApi.getLLMQuestions(),
           questionsApi.getRAGASQuestions()
         ]);
         
-        setLlmQuestions(llmData.llm_questions);
-        setRagasQuestions(ragasData.ragas_questions);
+        setLlmQuestions(llmQuestionsData);
+        setRagasQuestions(ragasQuestionsData);
         
-        logSuccess(`Questions loaded: ${llmData.llm_questions.count} LLM + ${ragasData.ragas_questions.count} RAGAS`, {
+        const totalLlmQuestions = llmQuestionsData.reduce((acc, category) => acc + category.questions.length, 0);
+        const totalRagasQuestions = ragasQuestionsData.reduce((acc, category) => acc + category.questions.length, 0);
+
+        logSuccess(`Questions loaded: ${totalLlmQuestions} LLM + ${totalRagasQuestions} RAGAS`, {
           component: 'Questions',
           action: 'QUESTIONS_LOAD_SUCCESS',
           data: {
-            llm_count: llmData.llm_questions.count,
-            ragas_count: ragasData.ragas_questions.count,
-            llm_categories: llmData.llm_questions.categories.length,
-            ragas_categories: ragasData.ragas_questions.categories.length
+            llm_count: llmQuestionsData.length,
+            ragas_count: ragasQuestionsData.length,
+            llm_categories: llmQuestionsData.length,
+            ragas_categories: ragasQuestionsData.length
           }
         });
         
@@ -99,6 +102,9 @@ const QuestionGroupsOverview: React.FC = () => {
     );
   }
 
+  const totalLlmQuestions = llmQuestions.reduce((acc, category) => acc + category.questions.length, 0);
+  const totalRagasQuestions = ragasQuestions.reduce((acc, category) => acc + category.questions.length, 0);
+
   return (
     <div>
       <div className="card">
@@ -112,11 +118,11 @@ const QuestionGroupsOverview: React.FC = () => {
             <h3>🤖 LLM Generated Questions</h3>
             <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '20px' }}>
               <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                <span className="stat-value" style={{ color: '#007bff' }}>{llmQuestions.count}</span>
+                <span className="stat-value" style={{ color: '#007bff' }}>{totalLlmQuestions}</span>
                 <div className="stat-label">Questions Generated</div>
               </div>
               <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                <span className="stat-value" style={{ color: '#007bff' }}>{llmQuestions.categories.length}</span>
+                <span className="stat-value" style={{ color: '#007bff' }}>{llmQuestions.length}</span>
                 <div className="stat-label">Question Types</div>
               </div>
             </div>
@@ -124,7 +130,7 @@ const QuestionGroupsOverview: React.FC = () => {
             <div style={{ marginBottom: '20px' }}>
               <h4>Question Categories:</h4>
               <div style={{ padding: '10px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '4px' }}>
-                {llmQuestions.categories.map((category, index) => (
+                {llmQuestions.map((category, index) => (
                   <span
                     key={index}
                     style={{
@@ -138,7 +144,7 @@ const QuestionGroupsOverview: React.FC = () => {
                       textTransform: 'capitalize'
                     }}
                   >
-                    {category.replace('_', ' ')}
+                    {category.name.replace('_', ' ')}
                   </span>
                 ))}
               </div>
@@ -147,10 +153,12 @@ const QuestionGroupsOverview: React.FC = () => {
             <div>
               <h4>Sample Questions:</h4>
               <div className="question-list">
-                {llmQuestions.sample.map((question, index) => (
-                  <div key={index} className="question-item">
-                    <span style={{ color: '#666', fontSize: '0.9rem' }}>{index + 1}.</span> {question}
-                  </div>
+                {llmQuestions.slice(0, 5).map((category) => (
+                  category.questions.slice(0, 1).map((question, index) => (
+                    <div key={`${category.id}-${index}`} className="question-item">
+                      <span style={{ color: '#666', fontSize: '0.9rem' }}>{category.emoji}</span> {question.text}
+                    </div>
+                  ))
                 ))}
               </div>
             </div>
@@ -160,11 +168,11 @@ const QuestionGroupsOverview: React.FC = () => {
             <h3>📊 RAGAS Generated Questions</h3>
             <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '20px' }}>
               <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                <span className="stat-value" style={{ color: '#28a745' }}>{ragasQuestions.count}</span>
+                <span className="stat-value" style={{ color: '#28a745' }}>{totalRagasQuestions}</span>
                 <div className="stat-label">Questions Generated</div>
               </div>
               <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                <span className="stat-value" style={{ color: '#28a745' }}>{ragasQuestions.categories.length}</span>
+                <span className="stat-value" style={{ color: '#28a745' }}>{ragasQuestions.length}</span>
                 <div className="stat-label">Question Types</div>
               </div>
             </div>
@@ -172,7 +180,7 @@ const QuestionGroupsOverview: React.FC = () => {
             <div style={{ marginBottom: '20px' }}>
               <h4>Question Categories:</h4>
               <div style={{ padding: '10px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '4px' }}>
-                {ragasQuestions.categories.map((category, index) => (
+                {ragasQuestions.map((category, index) => (
                   <span
                     key={index}
                     style={{
@@ -186,7 +194,7 @@ const QuestionGroupsOverview: React.FC = () => {
                       textTransform: 'capitalize'
                     }}
                   >
-                    {category.replace('_', ' ')}
+                    {category.name.replace('_', ' ')}
                   </span>
                 ))}
               </div>
@@ -195,10 +203,12 @@ const QuestionGroupsOverview: React.FC = () => {
             <div>
               <h4>Sample Questions:</h4>
               <div className="question-list">
-                {ragasQuestions.sample.map((question, index) => (
-                  <div key={index} className="question-item">
-                    <span style={{ color: '#666', fontSize: '0.9rem' }}>{index + 1}.</span> {question}
-                  </div>
+                {ragasQuestions.slice(0, 5).map((category) => (
+                  category.questions.slice(0, 1).map((question, index) => (
+                    <div key={`${category.id}-${index}`} className="question-item">
+                      <span style={{ color: '#666', fontSize: '0.9rem' }}></span> {question.text}
+                    </div>
+                  ))
                 ))}
               </div>
             </div>
@@ -211,7 +221,7 @@ const QuestionGroupsOverview: React.FC = () => {
             Both question sets ready for analysis
           </div>
           <div style={{ color: '#666' }}>
-            Total: {llmQuestions.count + ragasQuestions.count} questions available for experiment
+            Total: {totalLlmQuestions + totalRagasQuestions} questions available for experiment
           </div>
         </div>
 

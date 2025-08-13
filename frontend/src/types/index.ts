@@ -10,11 +10,21 @@ export interface CorpusStatus {
   };
 }
 
-export interface QuestionGroup {
-  count: number;
-  sample: string[];
-  categories: string[];
+export interface Question {
+  text: string;
+  focus: string;
 }
+
+export interface QuestionCategory {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  color: string;
+  questions: Question[];
+}
+
+export type QuestionGroup = QuestionCategory[];
 
 export interface ExperimentConfig {
   selected_groups: string[];

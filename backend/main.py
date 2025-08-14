@@ -562,9 +562,9 @@ def calculate_overall_metrics(per_question_results: List[Dict[str, Any]]) -> Dic
     """
     all_quality_scores = [q["quality_score"] for q in per_question_results]
     avg_quality_score = round(sum(all_quality_scores) / len(all_quality_scores), 1)
-    success_rate = len([s for s in all_quality_scores if s > 7.0]) / len(all_quality_scores)
+    success_rate = len([s for s in all_quality_scores if s >= 7.0]) / len(all_quality_scores)
     
-    corpus_health = "excellent" if avg_quality_score > 8.0 else "good" if avg_quality_score > 6.0 else "needs_work"
+    corpus_health = "excellent" if avg_quality_score >= 8.0 else "good" if avg_quality_score >= 6.0 else "needs_work"
     
     return {
         "avg_quality_score": avg_quality_score,

@@ -169,6 +169,18 @@ const ExperimentManagement: React.FC = () => {
     }
   };
 
+  const getStatusColor = (qualityScore: number) => {
+    if (qualityScore >= 7.0) return '#28a745';
+    if (qualityScore >= 5.0) return '#ffc107';
+    return '#dc3545';
+  };
+
+  const getStatusText = (qualityScore: number) => {
+    if (qualityScore >= 7.0) return 'GOOD';
+    if (qualityScore >= 5.0) return 'WEAK';
+    return 'POOR';
+  };
+
   if (loading) {
     return (
       <div className="card">
@@ -303,7 +315,16 @@ const ExperimentManagement: React.FC = () => {
                         <strong>❓ Questions:</strong> {experiment.total_questions}
                       </div>
                       <div>
-                        <strong>📈 Quality Score:</strong> {experiment.avg_quality_score ? experiment.avg_quality_score.toFixed(1) : 0.0}
+                        <strong>📈 Quality Score:</strong>
+                        <div>
+                          {experiment.avg_quality_score ? experiment.avg_quality_score.toFixed(1) : 0.0}
+                        </div>
+                        <div style={{
+                          color: getStatusColor(experiment.avg_quality_score),
+                          fontWeight: 'bold'
+                        }}>
+                          {getStatusText(experiment.avg_quality_score)}
+                        </div>
                       </div>
                       <div>
                         <strong>📁 Sources:</strong> {experiment.sources.join(', ')}

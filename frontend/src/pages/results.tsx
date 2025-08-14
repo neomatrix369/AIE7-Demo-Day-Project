@@ -79,6 +79,18 @@ const AnalysisResults: React.FC = () => {
     }
   };
 
+  const getStatusColor = (qualityScore: number) => {
+    if (qualityScore > 7.0) return '#28a745';
+    if (qualityScore > 5.0) return '#ffc107';
+    return '#dc3545';
+  };
+
+  const getStatusText = (qualityScore: number) => {
+    if (qualityScore > 7.0) return 'GOOD';
+    if (qualityScore > 5.0) return 'WEAK';
+    return 'POOR';
+  };
+
   const getHealthColor = (health: string) => {
     switch (health) {
       case 'excellent': return 'health-excellent';
@@ -281,7 +293,14 @@ const AnalysisResults: React.FC = () => {
             <div className="stats-grid">
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-                  {results.overall.avg_quality_score.toFixed(1)}
+                  {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
+                  <span style={{
+                    fontSize: '1.5rem',
+                    color: getStatusColor(results.overall.avg_quality_score),
+                    marginLeft: '10px'
+                  }}>
+                    ({getStatusText(results.overall.avg_quality_score)})
+                  </span>
                 </div>
                 <div style={{ fontSize: '1rem', opacity: 0.9 }}>Quality Score</div>
               </div>
@@ -326,7 +345,14 @@ const AnalysisResults: React.FC = () => {
               <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#007bff' }}>
-                    {results.per_group.llm.avg_quality_score.toFixed(1)}
+                    {results.per_group.llm.avg_quality_score ? results.per_group.llm.avg_quality_score.toFixed(1) : 0}
+                    <span style={{
+                      fontSize: '1.5rem',
+                      color: getStatusColor(results.per_group.llm.avg_quality_score),
+                      marginLeft: '10px'
+                    }}>
+                      ({getStatusText(results.per_group.llm.avg_quality_score)})
+                    </span>
                   </span>
                   <div className="stat-label">Quality Score</div>
                 </div>
@@ -380,6 +406,12 @@ const AnalysisResults: React.FC = () => {
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#28a745' }}>
                     {results.per_group.ragas.avg_quality_score ? results.per_group.ragas.avg_quality_score.toFixed(1) : 0}
+                    <div style={{
+                      fontSize: '1.5rem',
+                      color: getStatusColor(results.per_group.ragas.avg_quality_score),
+                    }}>
+                      {getStatusText(results.per_group.ragas.avg_quality_score)}
+                    </div>
                   </span>
                   <div className="stat-label">Quality Score</div>
                 </div>
@@ -409,7 +441,7 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#ffc107',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s > 5.0 && s <= 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s >= 5.0 && s < 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
@@ -577,7 +609,7 @@ const AnalysisResults: React.FC = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {question.quality_score ? question.quality_score.toFixed(1) : 0.0}
+                        {question.quality_score ? question.quality_score.toFixed(1) : 0}
                         <div className="quality-score-bar">
                           <div 
                             className={`quality-score-fill ${getQualityScoreBarClass(question.quality_score)}`}

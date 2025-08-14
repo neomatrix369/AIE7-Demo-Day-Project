@@ -11,7 +11,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
   showTitle = true,
   style = {}
 }) => {
-  const titleText = showTitle ? '🏷️ RagCheck Quality' : '';
+  const titleText = showTitle ? '🏷️ RagCheck Quality Score' : '';
 
   if (format === 'compact') {
     return (

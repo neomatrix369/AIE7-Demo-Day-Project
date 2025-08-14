@@ -307,7 +307,7 @@ const ExperimentManagement: React.FC = () => {
                         <strong>❓ Questions:</strong> {experiment.total_questions}
                       </div>
                       <div>
-                        <strong>📈 Avg Similarity:</strong> {experiment.avg_similarity.toFixed(3)}
+                        <strong>📈 Quality Score:</strong> {experiment.avg_quality_score.toFixed(3)}
                       </div>
                       <div>
                         <strong>📁 Sources:</strong> {experiment.sources.join(', ')}

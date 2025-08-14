@@ -10,7 +10,7 @@ const AnalysisResults: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<'similarity' | 'source' | 'status'>('similarity');
+  const [sortField, setSortField] = useState<'quality_score' | 'source' | 'status'>('quality_score');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filterStatus, setFilterStatus] = useState<'all' | 'good' | 'weak' | 'poor'>('all');
   const [searchText, setSearchText] = useState<string>('');
@@ -34,11 +34,11 @@ const AnalysisResults: React.FC = () => {
           action: 'RESULTS_LOAD_SUCCESS',
           data: {
             total_questions: data.overall.total_questions,
-            avg_similarity: data.overall.avg_similarity,
+            avg_quality_score: data.overall.avg_quality_score,
             success_rate: data.overall.success_rate,
             corpus_health: data.overall.corpus_health,
-            llm_avg_score: data.per_group.llm.avg_score,
-            ragas_avg_score: data.per_group.ragas.avg_score
+            llm_avg_quality_score: data.per_group.llm.avg_quality_score,
+            ragas_avg_quality_score: data.per_group.ragas.avg_quality_score
           }
         });
         
@@ -64,7 +64,7 @@ const AnalysisResults: React.FC = () => {
     fetchResults();
   }, []);
 
-  const handleSort = (field: 'similarity' | 'source' | 'status') => {
+  const handleSort = (field: 'quality_score' | 'source' | 'status') => {
     logInfo(`Sorting results by ${field} (${sortField === field && sortDirection === 'asc' ? 'desc' : 'asc'})`, {
       component: 'Results',
       action: 'SORT_RESULTS',
@@ -87,10 +87,10 @@ const AnalysisResults: React.FC = () => {
     }
   };
 
-  const getSimilarityBarClass = (similarity: number) => {
-    if (similarity > 0.7) return 'similarity-good';
-    if (similarity > 0.5) return 'similarity-weak';
-    return 'similarity-poor';
+  const getQualityScoreBarClass = (qualityScore: number) => {
+    if (qualityScore > 0.7) return 'quality-score-good';
+    if (qualityScore > 0.5) return 'quality-score-weak';
+    return 'quality-score-poor';
   };
 
   const filteredAndSortedQuestions = React.useMemo(() => {
@@ -124,9 +124,9 @@ const AnalysisResults: React.FC = () => {
       let aVal: any, bVal: any;
       
       switch (sortField) {
-        case 'similarity':
-          aVal = a.similarity;
-          bVal = b.similarity;
+        case 'quality_score':
+          aVal = a.quality_score;
+          bVal = b.quality_score;
           break;
         case 'source':
           aVal = a.source;
@@ -279,15 +279,15 @@ const AnalysisResults: React.FC = () => {
             <div className="stats-grid">
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-                  {results.overall.avg_similarity.toFixed(2)}
+                  {results.overall.avg_quality_score.toFixed(2)}
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>Average Similarity Score</div>
+                <div style={{ fontSize: '1rem', opacity: 0.9 }}>Quality Score</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
                   {Math.round(results.overall.success_rate * 100)}%
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>Success Rate (&gt;0.7)</div>
+                <div style={{ fontSize: '1rem', opacity: 0.9 }}>High Quality Rate (&gt;0.7)</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
@@ -324,15 +324,15 @@ const AnalysisResults: React.FC = () => {
               <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#007bff' }}>
-                    {results.per_group.llm.avg_score.toFixed(2)}
+                    {results.per_group.llm.avg_quality_score.toFixed(2)}
                   </span>
-                  <div className="stat-label">Average Score</div>
+                  <div className="stat-label">Quality Score</div>
                 </div>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#007bff' }}>
                     {results.per_group.llm.distribution.filter(s => s > 0.7).length}
                   </span>
-                  <div className="stat-label">Good Scores (&gt;0.7)</div>
+                  <div className="stat-label">High Quality Scores (&gt;0.7)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>
@@ -377,15 +377,15 @@ const AnalysisResults: React.FC = () => {
               <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#28a745' }}>
-                    {results.per_group.ragas.avg_score.toFixed(2)}
+                    {results.per_group.ragas.avg_quality_score.toFixed(2)}
                   </span>
-                  <div className="stat-label">Average Score</div>
+                  <div className="stat-label">Quality Score</div>
                 </div>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#28a745' }}>
                     {results.per_group.ragas.distribution.filter(s => s > 0.7).length}
                   </span>
-                  <div className="stat-label">Good Scores (&gt;0.7)</div>
+                  <div className="stat-label">High Quality Scores (&gt;0.7)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>
@@ -541,8 +541,8 @@ const AnalysisResults: React.FC = () => {
                   Source {sortField === 'source' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th>Question</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('similarity')}>
-                  Similarity {sortField === 'similarity' && (sortDirection === 'asc' ? '↑' : '↓')}
+                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('quality_score')}>
+                  Quality Score {sortField === 'quality_score' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>
                   Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -575,11 +575,11 @@ const AnalysisResults: React.FC = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {question.similarity.toFixed(2)}
-                        <div className="similarity-bar">
+                        {question.quality_score.toFixed(2)}
+                        <div className="quality-score-bar">
                           <div 
-                            className={`similarity-fill ${getSimilarityBarClass(question.similarity)}`}
-                            style={{ width: `${question.similarity * 100}%` }}
+                            className={`quality-score-fill ${getQualityScoreBarClass(question.quality_score)}`}
+                            style={{ width: `${question.quality_score * 100}%` }}
                           ></div>
                         </div>
                       </div>
@@ -603,7 +603,7 @@ const AnalysisResults: React.FC = () => {
                             data: {
                               question_id: question.id,
                               question_source: question.source,
-                              similarity_score: question.similarity,
+                              quality_score: question.quality_score,
                               retrieved_docs_count: question.retrieved_docs.length
                             }
                           });
@@ -638,8 +638,8 @@ const AnalysisResults: React.FC = () => {
                               }}>
                                 <span><strong>{doc.title}</strong> (ID: {doc.doc_id})</span>
                                 <span style={{ 
-                                  color: getSimilarityBarClass(doc.similarity).includes('good') ? '#28a745' :
-                                        getSimilarityBarClass(doc.similarity).includes('weak') ? '#ffc107' : '#dc3545',
+                                  color: getQualityScoreBarClass(doc.similarity).includes('good') ? '#28a745' :
+                                        getQualityScoreBarClass(doc.similarity).includes('weak') ? '#ffc107' : '#dc3545',
                                   fontWeight: 'bold'
                                 }}>
                                   {doc.similarity.toFixed(3)}

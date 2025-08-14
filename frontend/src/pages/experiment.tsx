@@ -10,7 +10,7 @@ interface StreamResult {
   question_id: string;
   question: string;
   source: string;
-  avg_similarity: number;
+  avg_quality_score: number;
   retrieved_docs: Array<{
     doc_id: string;
     similarity: number;
@@ -184,9 +184,13 @@ const ExperimentConfiguration: React.FC = () => {
           console.log('📊 Progress update:', data);
           setProgress(data.progress);
         } else {
-          // This is a question result
-          console.log('📊 Received result:', data);
-          setResults(prevResults => [...prevResults, data]);
+          // This is a question result - transform old field names for backwards compatibility
+          const transformedData = {
+            ...data,
+            avg_quality_score: data.avg_quality_score || data.avg_similarity,
+          };
+          console.log('📊 Received result:', transformedData);
+          setResults(prevResults => [...prevResults, transformedData]);
         }
       } catch (error) {
         console.error('❌ Error parsing WebSocket message:', error);
@@ -252,15 +256,15 @@ const ExperimentConfiguration: React.FC = () => {
     router.push('/experiments');
   };
 
-  const getStatusColor = (similarity: number) => {
-    if (similarity > 0.7) return '#28a745';
-    if (similarity > 0.5) return '#ffc107';
+  const getStatusColor = (qualityScore: number) => {
+    if (qualityScore > 0.7) return '#28a745';
+    if (qualityScore > 0.5) return '#ffc107';
     return '#dc3545';
   };
 
-  const getStatusText = (similarity: number) => {
-    if (similarity > 0.7) return 'GOOD';
-    if (similarity > 0.5) return 'WEAK';
+  const getStatusText = (qualityScore: number) => {
+    if (qualityScore > 0.7) return 'GOOD';
+    if (qualityScore > 0.5) return 'WEAK';
     return 'POOR';
   };
 
@@ -438,10 +442,10 @@ const ExperimentConfiguration: React.FC = () => {
                     <div style={{ 
                       minWidth: '80px',
                       textAlign: 'right',
-                      color: getStatusColor(result.avg_similarity),
+                      color: getStatusColor(result.avg_quality_score),
                       fontWeight: 'bold'
                     }}>
-                      {result.avg_similarity.toFixed(2)} ({getStatusText(result.avg_similarity)})
+                      {result.avg_quality_score.toFixed(2)} ({getStatusText(result.avg_quality_score)})
                     </div>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>

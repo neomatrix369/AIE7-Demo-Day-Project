@@ -36,7 +36,7 @@ export interface QuestionResult {
   id: string;
   text: string;
   source: string;
-  similarity: number;
+  quality_score: number;
   status: 'good' | 'weak' | 'poor';
   retrieved_docs: Array<{
     doc_id: string;
@@ -47,7 +47,7 @@ export interface QuestionResult {
 
 export interface AnalysisResults {
   overall: {
-    avg_similarity: number;
+    avg_quality_score: number;
     success_rate: number;
     total_questions: number;
     corpus_health: string;
@@ -55,11 +55,11 @@ export interface AnalysisResults {
   };
   per_group: {
     llm: {
-      avg_score: number;
+      avg_quality_score: number;
       distribution: number[];
     };
     ragas: {
-      avg_score: number;
+      avg_quality_score: number;
       distribution: number[];
     };
   };
@@ -71,6 +71,6 @@ export interface ExperimentFile {
   timestamp: string;
   total_questions: number;
   sources: string[];
-  avg_similarity: number;
+  avg_quality_score: number;
   file_size: number;
 }

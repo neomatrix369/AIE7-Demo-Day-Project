@@ -95,7 +95,31 @@ export const experimentApi = {
 
 export const resultsApi = {
   getAnalysis: (): Promise<AnalysisResults> =>
-    api.get('/results/analysis').then(res => res.data),
+    api.get('/results/analysis').then(res => {
+      const data = res.data;
+      // Transform old field names to new ones for backwards compatibility
+      return {
+        ...data,
+        overall: {
+          ...data.overall,
+          avg_quality_score: data.overall.avg_quality_score || data.overall.avg_similarity,
+        },
+        per_group: {
+          llm: {
+            ...data.per_group.llm,
+            avg_quality_score: data.per_group.llm.avg_quality_score || data.per_group.llm.avg_score,
+          },
+          ragas: {
+            ...data.per_group.ragas,
+            avg_quality_score: data.per_group.ragas.avg_quality_score || data.per_group.ragas.avg_score,
+          },
+        },
+        per_question: data.per_question.map((question: any) => ({
+          ...question,
+          quality_score: question.quality_score || question.similarity,
+        })),
+      };
+    }),
   
   clearResults: (): Promise<{success: boolean, message: string}> =>
     api.post('/results/clear').then(res => res.data),
@@ -107,10 +131,19 @@ export const experimentsApi = {
     timestamp: string;
     total_questions: number;
     sources: string[];
-    avg_similarity: number;
+    avg_quality_score: number;
     file_size: number;
   }>}> =>
-    api.get('/experiments/list').then(res => res.data),
+    api.get('/experiments/list').then(res => {
+      const data = res.data;
+      return {
+        ...data,
+        experiments: data.experiments.map((exp: any) => ({
+          ...exp,
+          avg_quality_score: exp.avg_quality_score || exp.avg_similarity,
+        })),
+      };
+    }),
   
   load: (filename: string): Promise<{success: boolean, message: string, count?: number}> =>
     api.post('/experiments/load', null, { params: { filename } }).then(res => res.data),

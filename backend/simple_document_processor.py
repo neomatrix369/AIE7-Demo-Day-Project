@@ -24,7 +24,7 @@ class SimpleDocumentProcessor:
         self.data_manager = DataManager(self.data_folder)
         self.corpus_stats_manager = CorpusStatisticsManager()
         self.vector_store_manager = VectorStoreManager(self.qdrant_manager, self.data_manager)
-        self.search_manager = SearchManager(self.data_manager)
+        self.search_manager = SearchManager(self.data_manager, self.qdrant_manager)
         self._documents_loaded = False
 
     def _get_data_folder(self) -> str:

@@ -379,7 +379,7 @@ const AnalysisResults: React.FC = () => {
               <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#28a745' }}>
-                    {results.per_group.ragas.avg_quality_score.toFixed(1)}
+                    {results.per_group.ragas.avg_quality_score ? results.per_group.ragas.avg_quality_score.toFixed(1) : 0}
                   </span>
                   <div className="stat-label">Quality Score</div>
                 </div>
@@ -577,7 +577,7 @@ const AnalysisResults: React.FC = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {question.quality_score ? question.quality_score.toFixed(1) : 'N/A'}
+                        {question.quality_score ? question.quality_score.toFixed(1) : 0.0}
                         <div className="quality-score-bar">
                           <div 
                             className={`quality-score-fill ${getQualityScoreBarClass(question.quality_score)}`}
@@ -594,28 +594,38 @@ const AnalysisResults: React.FC = () => {
                     </td>
                     <td>{question.retrieved_docs.length}</td>
                     <td>
-                      <button
-                        className="button"
-                        style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                        onClick={() => {
-                          const isExpanding = expandedQuestion !== question.id;
-                          logInfo(`${isExpanding ? 'Expanding' : 'Collapsing'} question details`, {
-                            component: 'Results',
-                            action: isExpanding ? 'EXPAND_QUESTION' : 'COLLAPSE_QUESTION',
-                            data: {
-                              question_id: question.id,
-                              question_source: question.source,
-                              quality_score: question.quality_score,
-                              retrieved_docs_count: question.retrieved_docs.length
-                            }
-                          });
-                          setExpandedQuestion(
-                            expandedQuestion === question.id ? null : question.id
-                          );
-                        }}
-                      >
-                        {expandedQuestion === question.id ? 'Hide' : 'View'} Docs
-                      </button>
+                      {question.retrieved_docs.length === 0 ? (
+                        <button
+                          className="button"
+                          style={{ padding: '4px 8px', fontSize: '0.8rem', backgroundColor: '#ccc', cursor: 'not-allowed' }}
+                          disabled
+                        >
+                          No Docs
+                        </button>
+                      ) : (
+                        <button
+                          className="button"
+                          style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                          onClick={() => {
+                            const isExpanding = expandedQuestion !== question.id;
+                            logInfo(`${isExpanding ? 'Expanding' : 'Collapsing'} question details`, {
+                              component: 'Results',
+                              action: isExpanding ? 'EXPAND_QUESTION' : 'COLLAPSE_QUESTION',
+                              data: {
+                                question_id: question.id,
+                                question_source: question.source,
+                                quality_score: question.quality_score,
+                                retrieved_docs_count: question.retrieved_docs.length
+                              }
+                            });
+                            setExpandedQuestion(
+                              expandedQuestion === question.id ? null : question.id
+                            );
+                          }}
+                        >
+                          {expandedQuestion === question.id ? 'Hide' : 'View'} Docs
+                        </button>
+                      )}
                     </td>
                   </tr>
                   {expandedQuestion === question.id && (
@@ -650,7 +660,7 @@ const AnalysisResults: React.FC = () => {
                                       fontWeight: 'bold',
                                       fontSize: '0.9rem'
                                     }}>
-                                      {doc.similarity ? doc.similarity.toFixed(3) : 'N/A'}
+                                      {doc.similarity ? doc.similarity.toFixed(3) : 0.0}
                                     </span>
                                   </td>
                                 </tr>

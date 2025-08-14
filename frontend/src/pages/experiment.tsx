@@ -445,7 +445,7 @@ const ExperimentConfiguration: React.FC = () => {
                       color: getStatusColor(result.avg_quality_score),
                       fontWeight: 'bold'
                     }}>
-                      {result.avg_quality_score ? result.avg_quality_score.toFixed(1) : 'N/A'} ({getStatusText(result.avg_quality_score)})
+                      {result.avg_quality_score ? result.avg_quality_score.toFixed(1) : 0} ({getStatusText(result.avg_quality_score)})
                     </div>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>

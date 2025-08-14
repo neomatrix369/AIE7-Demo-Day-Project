@@ -34,16 +34,9 @@ class SearchManager:
 
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
-        Search documents using vector similarity if available, fallback to keyword search.
+        Search documents using vector similarity.
         """
-        # Try vector search first
-        vector_results = self.vector_search(query, top_k)
-        if vector_results:
-            return vector_results
-        
-        # Fallback to keyword search
-        logger.info("🔄 Vector search not available, using keyword search")
-        return self.keyword_search(query, top_k)
+        return self.vector_search(query, top_k)
 
     def vector_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
@@ -76,46 +69,6 @@ class SearchManager:
         except Exception as e:
             logger.error(f"❌ Vector search failed: {e}")
             return []
-
-    def keyword_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """
-        Simple keyword-based document search (fallback method).
-        """
-        csv_docs = self.data_manager.load_csv_data()
-        pdf_docs = self.data_manager.load_pdf_data()
-        all_docs = csv_docs + pdf_docs
-        
-        if not all_docs:
-            return []
-        
-        query_lower = query.lower()
-        query_words = query_lower.split()
-        
-        results = []
-        for doc in all_docs:
-            content_lower = doc.page_content.lower()
-            score = 0
-            
-            for word in query_words:
-                score += content_lower.count(word)
-            
-            if query_lower in content_lower:
-                score += 5
-            
-            if score > 0:
-                # Convert keyword score to similarity-like score
-                similarity = min(score / max(1, len(query_words)) / 10, 0.9)
-                
-                results.append({
-                    "content": doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content,
-                    "similarity": round(similarity, 3),
-                    "metadata": doc.metadata,
-                    "doc_id": doc.metadata.get("source", "unknown"),
-                    "title": doc.metadata.get("title", "Document")
-                })
-        
-        results.sort(key=lambda x: x["similarity"], reverse=True)
-        return results[:top_k]
 
     def search_with_similarity_threshold(self, query: str, top_k: int = 5, threshold: float = 0.5) -> List[Dict[str, Any]]:
         """

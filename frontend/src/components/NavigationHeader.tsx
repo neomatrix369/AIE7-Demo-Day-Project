@@ -84,7 +84,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({ currentPage }) => {
               fontWeight: isActive('experiment') ? 'bold' : 'normal'
             }}
           >
-            🧪 Experiment
+            🧪 Run an Experiment
           </button>
           
           <button
@@ -114,7 +114,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({ currentPage }) => {
               fontWeight: isActive('results') ? 'bold' : 'normal'
             }}
           >
-            📊 Results
+            📊 Last Experiment Results
           </button>
         </nav>
       </div>

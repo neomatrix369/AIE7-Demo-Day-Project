@@ -62,12 +62,9 @@ class SearchManager:
             
             results = []
             for doc, score in docs_and_scores:
-                # Convert score to similarity (Qdrant returns distance, we want similarity)
-                similarity = 1.0 - score  # Convert distance to similarity
-                
                 results.append({
                     "content": doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content,
-                    "similarity": round(similarity, 3),
+                    "similarity": round(score, 3),
                     "metadata": doc.metadata,
                     "doc_id": doc.metadata.get("source", "unknown"),
                     "title": doc.metadata.get("title", "Document")

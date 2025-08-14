@@ -88,8 +88,8 @@ const AnalysisResults: React.FC = () => {
   };
 
   const getQualityScoreBarClass = (qualityScore: number) => {
-    if (qualityScore > 0.7) return 'quality-score-good';
-    if (qualityScore > 0.5) return 'quality-score-weak';
+    if (qualityScore > 7.0) return 'quality-score-good';
+    if (qualityScore > 5.0) return 'quality-score-weak';
     return 'quality-score-poor';
   };
 
@@ -110,13 +110,15 @@ const AnalysisResults: React.FC = () => {
         // Search in question text
         const questionMatch = q.text.toLowerCase().includes(searchLower);
         
+        const sourceMatch = q.source.toLowerCase().includes(searchLower);
+
         // Search in document titles
         const docMatch = q.retrieved_docs.some(doc => 
           doc.title.toLowerCase().includes(searchLower) ||
           doc.doc_id.toLowerCase().includes(searchLower)
         );
         
-        return questionMatch || docMatch;
+        return questionMatch || docMatch || sourceMatch;
       });
     }
 
@@ -279,7 +281,7 @@ const AnalysisResults: React.FC = () => {
             <div className="stats-grid">
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-                  {results.overall.avg_quality_score.toFixed(2)}
+                  {results.overall.avg_quality_score.toFixed(1)}
                 </div>
                 <div style={{ fontSize: '1rem', opacity: 0.9 }}>Quality Score</div>
               </div>
@@ -287,7 +289,7 @@ const AnalysisResults: React.FC = () => {
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
                   {Math.round(results.overall.success_rate * 100)}%
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>High Quality Rate (&gt;0.7)</div>
+                <div style={{ fontSize: '1rem', opacity: 0.9 }}>High Quality Rate (&gt;7.0)</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
@@ -324,15 +326,15 @@ const AnalysisResults: React.FC = () => {
               <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#007bff' }}>
-                    {results.per_group.llm.avg_quality_score.toFixed(2)}
+                    {results.per_group.llm.avg_quality_score.toFixed(1)}
                   </span>
                   <div className="stat-label">Quality Score</div>
                 </div>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#007bff' }}>
-                    {results.per_group.llm.distribution.filter(s => s > 0.7).length}
+                    {results.per_group.llm.distribution.filter(s => s > 7.0).length}
                   </span>
-                  <div className="stat-label">High Quality Scores (&gt;0.7)</div>
+                  <div className="stat-label">High Quality Scores (&gt;7.0)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>
@@ -348,19 +350,19 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#28a745',
-                      width: `${(results.per_group.llm.distribution.filter(s => s > 0.7).length / results.per_group.llm.distribution.length) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s > 7.0).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#ffc107',
-                      width: `${(results.per_group.llm.distribution.filter(s => s > 0.5 && s <= 0.7).length / results.per_group.llm.distribution.length) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s > 5.0 && s <= 7.0).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#dc3545',
-                      width: `${(results.per_group.llm.distribution.filter(s => s <= 0.5).length / results.per_group.llm.distribution.length) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s <= 5.0).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                 </div>
@@ -377,15 +379,15 @@ const AnalysisResults: React.FC = () => {
               <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#28a745' }}>
-                    {results.per_group.ragas.avg_quality_score.toFixed(2)}
+                    {results.per_group.ragas.avg_quality_score.toFixed(1)}
                   </span>
                   <div className="stat-label">Quality Score</div>
                 </div>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#28a745' }}>
-                    {results.per_group.ragas.distribution.filter(s => s > 0.7).length}
+                    {results.per_group.ragas.distribution.filter(s => s > 7.0).length}
                   </span>
-                  <div className="stat-label">High Quality Scores (&gt;0.7)</div>
+                  <div className="stat-label">High Quality Scores (&gt;7.0)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>
@@ -401,19 +403,19 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#28a745',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s > 0.7).length / results.per_group.ragas.distribution.length) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s > 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#ffc107',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s > 0.5 && s <= 0.7).length / results.per_group.ragas.distribution.length) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s > 5.0 && s <= 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#dc3545',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s <= 0.5).length / results.per_group.ragas.distribution.length) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s <= 5.0).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                 </div>
@@ -575,11 +577,11 @@ const AnalysisResults: React.FC = () => {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {question.quality_score.toFixed(2)}
+                        {question.quality_score ? question.quality_score.toFixed(1) : 'N/A'}
                         <div className="quality-score-bar">
                           <div 
                             className={`quality-score-fill ${getQualityScoreBarClass(question.quality_score)}`}
-                            style={{ width: `${question.quality_score * 100}%` }}
+                            style={{ width: `${question.quality_score * 10}%` }}
                           ></div>
                         </div>
                       </div>
@@ -648,7 +650,7 @@ const AnalysisResults: React.FC = () => {
                                       fontWeight: 'bold',
                                       fontSize: '0.9rem'
                                     }}>
-                                      {doc.similarity.toFixed(3)}
+                                      {doc.similarity ? doc.similarity.toFixed(3) : 'N/A'}
                                     </span>
                                   </td>
                                 </tr>

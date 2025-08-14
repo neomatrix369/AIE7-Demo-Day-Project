@@ -38,14 +38,21 @@ def test_analysis_functions():
     
     try:
         # Import the functions we need to test
-        from main import convert_experiment_results_to_analysis, get_similarity_status, calculate_overall_metrics, calculate_per_group_metrics, build_analysis_response
+        from main import convert_experiment_results_to_analysis, get_quality_status, similarity_to_quality_score, calculate_overall_metrics, calculate_per_group_metrics, build_analysis_response
         
-        # Test similarity status
-        print("📊 Testing similarity status...")
-        assert get_similarity_status(0.8) == "good"
-        assert get_similarity_status(0.6) == "weak"
-        assert get_similarity_status(0.4) == "poor"
-        print("✅ Similarity status tests passed")
+        # Test quality score transformation
+        print("📊 Testing quality score transformation...")
+        assert similarity_to_quality_score(0.8) == 8.0
+        assert similarity_to_quality_score(0.65) == 6.5
+        assert similarity_to_quality_score(0.5) == 5.0
+        print("✅ Quality score transformation tests passed")
+        
+        # Test quality status
+        print("📊 Testing quality status...")
+        assert get_quality_status(8.0) == "good"
+        assert get_quality_status(6.0) == "weak"
+        assert get_quality_status(4.0) == "poor"
+        print("✅ Quality status tests passed")
         
         # Test conversion
         print("🔄 Testing result conversion...")
@@ -53,14 +60,16 @@ def test_analysis_functions():
         assert len(converted) == 2
         assert converted[0]["id"] == "llm_q_001"
         assert converted[0]["status"] == "good"
+        assert converted[0]["quality_score"] == 7.5  # 0.75 -> 7.5
         assert converted[1]["source"] == "ragas"
+        assert converted[1]["quality_score"] == 6.5  # 0.65 -> 6.5
         print("✅ Conversion tests passed")
         
         # Test metrics calculation
         print("📈 Testing metrics calculation...")
         overall = calculate_overall_metrics(converted)
         assert overall["total_questions"] == 2
-        assert overall["avg_similarity"] > 0
+        assert overall["avg_quality_score"] > 0
         print("✅ Overall metrics tests passed")
         
         per_group = calculate_per_group_metrics(converted)

@@ -95,10 +95,6 @@ const ExperimentManagement: React.FC = () => {
   };
 
   const handleDeleteExperiment = async (filename: string) => {
-    if (!window.confirm(`Are you sure you want to delete experiment "${filename}"? This action cannot be undone.`)) {
-      return;
-    }
-
     try {
       logInfo(`Deleting experiment ${filename}`, {
         component: 'Experiments',
@@ -120,7 +116,7 @@ const ExperimentManagement: React.FC = () => {
         if (selectedExperiment === filename) {
           setSelectedExperiment(null);
         }
-        alert(`Successfully deleted experiment: ${filename}`);
+        showHintBalloon(`Successfully deleted experiment: ${filename}`, 'success');
       } else {
         throw new Error(response.message);
       }
@@ -131,7 +127,7 @@ const ExperimentManagement: React.FC = () => {
         action: 'DELETE_EXPERIMENT_ERROR',
         data: { filename, error: err?.message }
       });
-      alert(`${errorMessage}: ${err?.message || 'Unknown error'}`);
+      showHintBalloon(`${errorMessage}: ${err?.message || 'Unknown error'}`, 'error');
     }
   };
 
@@ -307,7 +303,7 @@ const ExperimentManagement: React.FC = () => {
                         <strong>❓ Questions:</strong> {experiment.total_questions}
                       </div>
                       <div>
-                        <strong>📈 Quality Score:</strong> {experiment.avg_quality_score.toFixed(3)}
+                        <strong>📈 Quality Score:</strong> {experiment.avg_quality_score ? experiment.avg_quality_score.toFixed(1) : 'N/A'}
                       </div>
                       <div>
                         <strong>📁 Sources:</strong> {experiment.sources.join(', ')}

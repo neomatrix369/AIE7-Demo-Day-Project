@@ -26,15 +26,15 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
       }}>
         {titleText && <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{titleText}:</span>}
         <span style={{ color: '#28a745', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          🟢 <strong>GOOD</strong> (≥0.70)
+          🟢 <strong>GOOD</strong> (≥7.0)
         </span>
         <span style={{ margin: '0 4px' }}>|</span>
         <span style={{ color: '#ffc107', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          🟡 <strong>WEAK</strong> (0.50-0.69)
+          🟡 <strong>WEAK</strong> (5.0-6.9)
         </span>
         <span style={{ margin: '0 4px' }}>|</span>
         <span style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          🔴 <strong>POOR</strong> (&lt;0.50)
+          🔴 <strong>POOR</strong> (&lt;5.0)
         </span>
       </div>
     );
@@ -70,7 +70,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
           <tbody>
             <tr>
               <td style={{ padding: '6px', fontWeight: 'bold' }}>🟢 GOOD</td>
-              <td style={{ padding: '6px' }}>≥ 0.70</td>
+              <td style={{ padding: '6px' }}>≥ 7.0</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
                 <span style={{ backgroundColor: '#28a745', color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
                   HIGH
@@ -79,7 +79,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
             </tr>
             <tr style={{ backgroundColor: '#fff' }}>
               <td style={{ padding: '6px', fontWeight: 'bold' }}>🟡 WEAK</td>
-              <td style={{ padding: '6px' }}>0.50 - 0.69</td>
+              <td style={{ padding: '6px' }}>5.0 - 6.9</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
                 <span style={{ backgroundColor: '#ffc107', color: '#212529', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
                   MED
@@ -88,7 +88,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
             </tr>
             <tr>
               <td style={{ padding: '6px', fontWeight: 'bold' }}>🔴 POOR</td>
-              <td style={{ padding: '6px' }}>&lt; 0.50</td>
+              <td style={{ padding: '6px' }}>&lt; 5.0</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
                 <span style={{ backgroundColor: '#dc3545', color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
                   LOW
@@ -114,13 +114,13 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
     }}>
       {titleText && <span style={{ fontWeight: 'bold' }}>{titleText}:</span>}
       <span style={{ color: '#28a745', display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <span style={{ fontSize: '1.2em' }}>■</span> <strong>GOOD</strong> (≥0.70)
+        <span style={{ fontSize: '1.2em' }}>■</span> <strong>GOOD</strong> (≥7.0)
       </span>
       <span style={{ color: '#ffc107', display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <span style={{ fontSize: '1.2em' }}>■</span> <strong>WEAK</strong> (0.50-0.69)
+        <span style={{ fontSize: '1.2em' }}>■</span> <strong>WEAK</strong> (5.0-6.9)
       </span>
       <span style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <span style={{ fontSize: '1.2em' }}>■</span> <strong>POOR</strong> (&lt;0.50)
+        <span style={{ fontSize: '1.2em' }}>■</span> <strong>POOR</strong> (&lt;5.0)
       </span>
     </div>
   );

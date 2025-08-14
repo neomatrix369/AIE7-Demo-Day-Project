@@ -257,14 +257,14 @@ const ExperimentConfiguration: React.FC = () => {
   };
 
   const getStatusColor = (qualityScore: number) => {
-    if (qualityScore > 0.7) return '#28a745';
-    if (qualityScore > 0.5) return '#ffc107';
+    if (qualityScore > 7.0) return '#28a745';
+    if (qualityScore > 5.0) return '#ffc107';
     return '#dc3545';
   };
 
   const getStatusText = (qualityScore: number) => {
-    if (qualityScore > 0.7) return 'GOOD';
-    if (qualityScore > 0.5) return 'WEAK';
+    if (qualityScore > 7.0) return 'GOOD';
+    if (qualityScore > 5.0) return 'WEAK';
     return 'POOR';
   };
 
@@ -445,7 +445,7 @@ const ExperimentConfiguration: React.FC = () => {
                       color: getStatusColor(result.avg_quality_score),
                       fontWeight: 'bold'
                     }}>
-                      {result.avg_quality_score.toFixed(2)} ({getStatusText(result.avg_quality_score)})
+                      {result.avg_quality_score ? result.avg_quality_score.toFixed(1) : 'N/A'} ({getStatusText(result.avg_quality_score)})
                     </div>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>

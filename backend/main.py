@@ -33,6 +33,18 @@ documents_loaded = False
 # Store for experiment results
 experiment_results = []
 
+def similarity_to_quality_score(similarity: float) -> float:
+    """
+    Transform similarity score from 0-1 scale to 0-10 quality score scale.
+    
+    Args:
+        similarity: Similarity score between 0 and 1
+        
+    Returns:
+        Quality score between 0 and 10, rounded to 1 decimal place
+    """
+    return round(similarity * 10, 1)
+
 def save_experiment_results(results: List[Dict[str, Any]]) -> str:
     """Save experiment results to a timestamped JSON file in experiments folder."""
     try:
@@ -49,13 +61,17 @@ def save_experiment_results(results: List[Dict[str, Any]]) -> str:
         results_file = os.path.join(experiments_folder, filename)
         
         # Add metadata to results
+        avg_similarity = sum(r["avg_similarity"] for r in results) / len(results) if results else 0
+        avg_quality_score = similarity_to_quality_score(avg_similarity)
+        
         experiment_data = {
             "metadata": {
                 "timestamp": datetime.now().isoformat(),
                 "filename": filename,
                 "total_questions": len(results),
                 "sources": list(set(r["source"] for r in results)),
-                "avg_similarity": sum(r["avg_similarity"] for r in results) / len(results) if results else 0
+                "avg_similarity": avg_similarity,
+                "avg_quality_score": avg_quality_score
             },
             "results": results
         }
@@ -120,22 +136,30 @@ def list_experiment_files() -> List[Dict[str, Any]]:
                     # Extract metadata
                     if isinstance(data, dict) and "metadata" in data:
                         metadata = data["metadata"]
+                        avg_similarity = metadata.get("avg_similarity", 0)
+                        avg_quality_score = metadata.get("avg_quality_score", similarity_to_quality_score(avg_similarity))
+                        
                         experiment_files.append({
                             "filename": filename,
                             "timestamp": metadata.get("timestamp", ""),
                             "total_questions": metadata.get("total_questions", 0),
                             "sources": metadata.get("sources", []),
-                            "avg_similarity": metadata.get("avg_similarity", 0),
+                            "avg_similarity": avg_similarity,
+                            "avg_quality_score": avg_quality_score,
                             "file_size": os.path.getsize(filepath)
                         })
                     else:
                         # Old format file
+                        avg_similarity = sum(r.get("avg_similarity", 0) for r in data) / len(data) if isinstance(data, list) and data else 0
+                        avg_quality_score = similarity_to_quality_score(avg_similarity)
+                        
                         experiment_files.append({
                             "filename": filename,
                             "timestamp": datetime.fromtimestamp(os.path.getmtime(filepath)).isoformat(),
                             "total_questions": len(data) if isinstance(data, list) else 0,
                             "sources": list(set(r.get("source", "") for r in data)) if isinstance(data, list) else [],
-                            "avg_similarity": sum(r.get("avg_similarity", 0) for r in data) / len(data) if isinstance(data, list) and data else 0,
+                            "avg_similarity": avg_similarity,
+                            "avg_quality_score": avg_quality_score,
                             "file_size": os.path.getsize(filepath)
                         })
                 except Exception as e:
@@ -253,13 +277,13 @@ RAGAS_QUESTIONS = load_questions_from_file(
 class ExperimentConfig(BaseModel):
     selected_groups: List[str]
     top_k: int = 5
-    similarity_threshold: float = 0.5
+    similarity_threshold: float = 0.5  # Keep internal processing in 0-1 scale
 
 class QuestionResult(BaseModel):
     question_id: str
     question: str
     source: str
-    avg_similarity: float
+    avg_similarity: float  # Internal processing still uses similarity
     retrieved_docs: List[Dict[str, Any]]
 
 # API Endpoints
@@ -307,7 +331,7 @@ async def get_analysis_results():
         logger.warning("⚠️ No experiment results available, returning empty analysis")
         return {
             "overall": {
-                "avg_similarity": 0.0,
+                "avg_quality_score": 0.0,
                 "success_rate": 0.0,
                 "total_questions": 0,
                 "corpus_health": "no_data",
@@ -353,7 +377,7 @@ async def set_test_results():
     """Set test results for debugging (development only)."""
     global experiment_results
     
-    # Create some test results
+    # Create some test results (keeping similarity format for internal processing)
     test_results = [
         {
             "question_id": "llm_q_001",
@@ -467,28 +491,37 @@ async def delete_experiment(filename: str):
 
 def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Convert experiment results to analysis format.
+    Convert experiment results to analysis format with quality scores.
     
     Args:
         experiment_results: List of experiment results from WebSocket streaming
         
     Returns:
-        List of question results in analysis format
+        List of question results in analysis format with 0-10 quality scores
     """
     per_question_results = []
     
     for result in experiment_results:
-        # Determine status based on similarity
-        status = get_similarity_status(result["avg_similarity"])
+        # Convert similarity to quality score (0-10 scale)
+        quality_score = similarity_to_quality_score(result["avg_similarity"])
         
-        # Convert to analysis format
+        # Determine status based on quality score
+        status = get_quality_status(quality_score)
+        
+        # Convert to analysis format with quality scores
         analysis_result = {
             "id": result["question_id"],
             "text": result["question"],
             "source": result["source"],
-            "similarity": result["avg_similarity"],
+            "quality_score": quality_score,
             "status": status,
-            "retrieved_docs": result["retrieved_docs"]
+            "retrieved_docs": [
+                {
+                    "doc_id": doc["doc_id"],
+                    "similarity": doc["similarity"],
+                    "title": doc["title"]
+                } for doc in result["retrieved_docs"]
+            ]
         }
         
         per_question_results.append(analysis_result)
@@ -498,19 +531,19 @@ def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, An
 
 
 
-def get_similarity_status(similarity: float) -> str:
+def get_quality_status(quality_score: float) -> str:
     """
-    Determine status based on similarity score.
+    Determine status based on quality score.
     
     Args:
-        similarity: Similarity score between 0 and 1
+        quality_score: Quality score between 0 and 10
         
     Returns:
         Status string: 'good', 'weak', or 'poor'
     """
-    if similarity > 0.7:
+    if quality_score > 7.0:
         return "good"
-    elif similarity > 0.5:
+    elif quality_score > 5.0:
         return "weak"
     else:
         return "poor"
@@ -519,49 +552,49 @@ def get_similarity_status(similarity: float) -> str:
 
 def calculate_overall_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Calculate overall analysis metrics.
+    Calculate overall analysis metrics using quality scores.
     
     Args:
-        per_question_results: List of question results
+        per_question_results: List of question results with quality_score field
         
     Returns:
-        Dictionary with overall metrics
+        Dictionary with overall metrics using 0-10 scale
     """
-    all_similarities = [q["similarity"] for q in per_question_results]
-    avg_similarity = round(sum(all_similarities) / len(all_similarities), 2)
-    success_rate = len([s for s in all_similarities if s > 0.7]) / len(all_similarities)
+    all_quality_scores = [q["quality_score"] for q in per_question_results]
+    avg_quality_score = round(sum(all_quality_scores) / len(all_quality_scores), 1)
+    success_rate = len([s for s in all_quality_scores if s > 7.0]) / len(all_quality_scores)
     
-    corpus_health = "excellent" if avg_similarity > 0.8 else "good" if avg_similarity > 0.6 else "needs_work"
+    corpus_health = "excellent" if avg_quality_score > 8.0 else "good" if avg_quality_score > 6.0 else "needs_work"
     
     return {
-        "avg_similarity": avg_similarity,
+        "avg_quality_score": avg_quality_score,
         "success_rate": round(success_rate, 2),
         "total_questions": len(per_question_results),
         "corpus_health": corpus_health,
-        "key_insight": f"{round((1-success_rate)*100)}% of questions scored below 0.7 threshold"
+        "key_insight": f"{round((1-success_rate)*100)}% of questions scored below 7.0 threshold"
     }
 
 def calculate_per_group_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Calculate per-group analysis metrics.
+    Calculate per-group analysis metrics using quality scores.
     
     Args:
-        per_question_results: List of question results
+        per_question_results: List of question results with quality_score field
         
     Returns:
-        Dictionary with per-group metrics
+        Dictionary with per-group metrics using 0-10 scale
     """
-    llm_similarities = [q["similarity"] for q in per_question_results if q["source"] == "llm"]
-    ragas_similarities = [q["similarity"] for q in per_question_results if q["source"] == "ragas"]
+    llm_quality_scores = [q["quality_score"] for q in per_question_results if q["source"] == "llm"]
+    ragas_quality_scores = [q["quality_score"] for q in per_question_results if q["source"] == "ragas"]
     
     return {
         "llm": {
-            "avg_score": round(sum(llm_similarities) / len(llm_similarities), 2),
-            "distribution": llm_similarities
+            "avg_quality_score": round(sum(llm_quality_scores) / len(llm_quality_scores), 1) if llm_quality_scores else 0.0,
+            "distribution": llm_quality_scores
         },
         "ragas": {
-            "avg_score": round(sum(ragas_similarities) / len(ragas_similarities), 2),
-            "distribution": ragas_similarities
+            "avg_quality_score": round(sum(ragas_quality_scores) / len(ragas_quality_scores), 1) if ragas_quality_scores else 0.0,
+            "distribution": ragas_quality_scores
         }
     }
 
@@ -726,10 +759,16 @@ async def stream_question_results(websocket: WebSocket, questions: List[Dict[str
             # Perform real vector search
             result = await process_question_with_search(question, config)
             
+            # Convert similarity to quality score for streaming
+            result_with_quality_score = {
+                **result,
+                "avg_quality_score": similarity_to_quality_score(result["avg_similarity"])
+            }
+            
             # Store the result for analysis
             experiment_results.append(result)
             
-            await websocket.send_json(result)
+            await websocket.send_json(result_with_quality_score)
             
             # Send progress update
             progress = ((i + 1) / len(questions)) * 100

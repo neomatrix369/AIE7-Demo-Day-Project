@@ -4,6 +4,7 @@ import { experimentsApi } from '../services/api';
 import { ExperimentFile } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
+import QualityScoreLegend from '../components/QualityScoreLegend';
 
 const ExperimentManagement: React.FC = () => {
   const [experiments, setExperiments] = useState<ExperimentFile[]>([]);
@@ -250,6 +251,21 @@ const ExperimentManagement: React.FC = () => {
             🔄 Refresh
           </button>
         </div>
+
+        {experiments.length > 0 && (
+          <QualityScoreLegend 
+            format="compact" 
+            showTitle={true}
+            style={{ 
+              marginBottom: '20px',
+              padding: '12px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '6px',
+              border: '1px solid #dee2e6',
+              fontSize: '0.9rem'
+            }}
+          />
+        )}
 
         {experiments.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>

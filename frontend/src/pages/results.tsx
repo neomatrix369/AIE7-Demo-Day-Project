@@ -4,6 +4,7 @@ import { resultsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
+import QualityScoreLegend from '../components/QualityScoreLegend';
 
 const AnalysisResults: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
@@ -363,11 +364,11 @@ const AnalysisResults: React.FC = () => {
                     }}
                   ></div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>
-                  <span style={{ color: '#28a745' }}>■ Good</span>{' '}
-                  <span style={{ color: '#ffc107' }}>■ Weak</span>{' '}
-                  <span style={{ color: '#dc3545' }}>■ Poor</span>
-                </div>
+                <QualityScoreLegend 
+                  format="horizontal" 
+                  showTitle={false}
+                  style={{ marginTop: '5px' }}
+                />
               </div>
             </div>
 
@@ -416,11 +417,11 @@ const AnalysisResults: React.FC = () => {
                     }}
                   ></div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>
-                  <span style={{ color: '#28a745' }}>■ Good</span>{' '}
-                  <span style={{ color: '#ffc107' }}>■ Weak</span>{' '}
-                  <span style={{ color: '#dc3545' }}>■ Poor</span>
-                </div>
+                <QualityScoreLegend 
+                  format="horizontal" 
+                  showTitle={false}
+                  style={{ marginTop: '5px' }}
+                />
               </div>
             </div>
           </div>

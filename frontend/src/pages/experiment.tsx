@@ -4,6 +4,7 @@ import { experimentApi, questionsApi } from '../services/api';
 import { ExperimentConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation, logWebSocketEvent, logProgress } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
+import QualityScoreLegend from '../components/QualityScoreLegend';
 
 interface StreamResult {
   question_id: string;
@@ -412,6 +413,17 @@ const ExperimentConfiguration: React.FC = () => {
         {(isRunning || results.length > 0) && (
           <div className="card" style={{ marginTop: '20px' }}>
             <h3>📊 Live Results Preview</h3>
+            <QualityScoreLegend 
+              format="compact" 
+              showTitle={true}
+              style={{ 
+                marginBottom: '15px',
+                padding: '10px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '4px',
+                border: '1px solid #dee2e6'
+              }}
+            />
             <div className="experiment-stream" ref={resultsRef}>
               {results.map((result, index) => (
                 <div key={index} className="stream-item" style={{ 

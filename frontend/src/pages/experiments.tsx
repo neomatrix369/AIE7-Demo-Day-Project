@@ -11,11 +11,19 @@ const ExperimentManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedExperiment, setSelectedExperiment] = useState<string | null>(null);
   const [loadingExperiment, setLoadingExperiment] = useState(false);
+  const [hintBalloon, setHintBalloon] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     loadExperiments();
   }, []);
+
+  const showHintBalloon = (message: string, type: 'success' | 'error') => {
+    setHintBalloon({ message, type });
+    setTimeout(() => {
+      setHintBalloon(null);
+    }, 3000);
+  };
 
   const loadExperiments = async () => {
     try {
@@ -68,7 +76,7 @@ const ExperimentManagement: React.FC = () => {
           action: 'LOAD_EXPERIMENT_SUCCESS',
           data: { filename, count: response.count }
         });
-        alert(`Successfully loaded experiment: ${filename}\nQuestions: ${response.count}`);
+        showHintBalloon(`Successfully loaded experiment: ${filename} (${response.count} questions)`, 'success');
       } else {
         throw new Error(response.message);
       }
@@ -79,7 +87,7 @@ const ExperimentManagement: React.FC = () => {
         action: 'LOAD_EXPERIMENT_ERROR',
         data: { filename, error: err?.message }
       });
-      alert(`${errorMessage}: ${err?.message || 'Unknown error'}`);
+      showHintBalloon(`${errorMessage}: ${err?.message || 'Unknown error'}`, 'error');
     } finally {
       setLoadingExperiment(false);
     }
@@ -178,6 +186,26 @@ const ExperimentManagement: React.FC = () => {
   return (
     <div>
       <NavigationHeader currentPage="experiments" />
+      
+      {hintBalloon && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1000,
+          padding: '12px 20px',
+          borderRadius: '8px',
+          color: 'white',
+          fontWeight: 'bold',
+          backgroundColor: hintBalloon.type === 'success' ? '#28a745' : '#dc3545',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          maxWidth: '400px',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          {hintBalloon.message}
+        </div>
+      )}
+
       <div className="card">
         <h2>📁 Experiment Management</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>

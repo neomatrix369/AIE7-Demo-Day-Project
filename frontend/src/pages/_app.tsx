@@ -13,7 +13,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </Head>
       <div className="App">
         <header className="App-header">
-          <h1>🔎 RagCheck</h1>
+          <h1>🔍 RagCheck</h1>
           <p style={{ 
             fontSize: '16px', 
             fontStyle: 'italic', 

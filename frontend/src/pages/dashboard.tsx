@@ -116,7 +116,7 @@ const DataLoadingDashboard: React.FC = () => {
     <div>
       <NavigationHeader currentPage="dashboard" />
       <div className="card">
-        <h2>📊 RagCheck - Ready to Analyze</h2>
+        <h2>🔍 RagCheck - Ready to Analyze</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
           Pre-loaded corpus ready for analysis
         </p>

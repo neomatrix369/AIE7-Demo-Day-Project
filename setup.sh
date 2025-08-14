@@ -26,7 +26,7 @@ echo "=================================================="
 echo ""
 
 # Setup frontend
-echo "🎨 Setting up frontend..."
+echo "🔍 Setting up RagCheck Next.js Frontend..."
 cd frontend
 if [ -f "setup.sh" ]; then
     ./setup.sh

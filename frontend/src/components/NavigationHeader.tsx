@@ -27,7 +27,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({ currentPage }) => {
       backgroundColor: '#f8f9fa',
       borderBottom: '1px solid #dee2e6',
       padding: '10px 0',
-      marginBottom: '20px'
+      marginBottom: '10px'
     }}>
       <div style={{
         maxWidth: '1200px',
@@ -38,7 +38,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({ currentPage }) => {
         padding: '0 20px'
       }}>
         <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333' }}>
-          🧪 RagCheck
+          🔍 RagCheck
         </div>
         
         <nav style={{ display: 'flex', gap: '15px' }}>

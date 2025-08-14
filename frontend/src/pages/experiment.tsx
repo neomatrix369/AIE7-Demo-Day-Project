@@ -446,7 +446,7 @@ const ExperimentConfiguration: React.FC = () => {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
           <button 
             className="button button-secondary" 
             onClick={handleBackToQuestions}

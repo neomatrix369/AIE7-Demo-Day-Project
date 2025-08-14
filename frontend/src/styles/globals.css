@@ -316,3 +316,21 @@ body {
     opacity: 1;
   }
 }
+
+.questions-scroll-container {
+  scroll-behavior: smooth;
+}
+
+.questions-scroll-container .table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.questions-scroll-container .table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
+  z-index: 10;
+  border-bottom: 2px solid #dee2e6;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}

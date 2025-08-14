@@ -43,7 +43,7 @@ const ExperimentManagement: React.FC = () => {
           data: { count: response.experiments.length }
         });
       } else {
-        throw new Error(response.message || 'Failed to load experiments');
+        throw new Error('Failed to load experiments');
       }
     } catch (err: any) {
       const errorMessage = 'Failed to load experiments';

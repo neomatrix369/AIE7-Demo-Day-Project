@@ -12,6 +12,7 @@ const AnalysisResults: React.FC = () => {
   const [sortField, setSortField] = useState<'similarity' | 'source' | 'status'>('similarity');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filterStatus, setFilterStatus] = useState<'all' | 'good' | 'weak' | 'poor'>('all');
+  const [searchText, setSearchText] = useState<string>('');
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const router = useRouter();
 
@@ -95,8 +96,27 @@ const AnalysisResults: React.FC = () => {
     if (!results) return [];
 
     let filtered = results.per_question;
+    
+    // Filter by status
     if (filterStatus !== 'all') {
       filtered = filtered.filter(q => q.status === filterStatus);
+    }
+    
+    // Filter by search text
+    if (searchText.trim()) {
+      const searchLower = searchText.toLowerCase().trim();
+      filtered = filtered.filter(q => {
+        // Search in question text
+        const questionMatch = q.text.toLowerCase().includes(searchLower);
+        
+        // Search in document titles
+        const docMatch = q.retrieved_docs.some(doc => 
+          doc.title.toLowerCase().includes(searchLower) ||
+          doc.doc_id.toLowerCase().includes(searchLower)
+        );
+        
+        return questionMatch || docMatch;
+      });
     }
 
     return filtered.sort((a, b) => {
@@ -123,7 +143,7 @@ const AnalysisResults: React.FC = () => {
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [results, sortField, sortDirection, filterStatus]);
+  }, [results, sortField, sortDirection, filterStatus, searchText]);
 
   const handleBackToExperiment = () => {
     logNavigation('Results', 'Experiment', {
@@ -410,6 +430,63 @@ const AnalysisResults: React.FC = () => {
           <h3>🔍 Per Question Analysis</h3>
           
           <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <strong>🔍 Search:</strong>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Search questions, documents..."
+                  value={searchText}
+                  onChange={(e) => {
+                    const newSearch = e.target.value;
+                    logInfo(`Searching for: "${newSearch}"`, {
+                      component: 'Results',
+                      action: 'SEARCH_QUESTIONS',
+                      data: { search_term: newSearch, previous_term: searchText }
+                    });
+                    setSearchText(newSearch);
+                  }}
+                  className="form-control"
+                  style={{ 
+                    width: '280px', 
+                    paddingRight: searchText ? '35px' : '10px'
+                  }}
+                />
+                {searchText && (
+                  <button
+                    onClick={() => {
+                      logInfo('Clearing search', {
+                        component: 'Results',
+                        action: 'CLEAR_SEARCH',
+                        data: { previous_term: searchText }
+                      });
+                      setSearchText('');
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      color: '#6c757d',
+                      padding: '0',
+                      width: '20px',
+                      height: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+            
             <div>
               <strong>Filter by Status:</strong>
               <select 
@@ -432,12 +509,31 @@ const AnalysisResults: React.FC = () => {
                 <option value="poor">Poor</option>
               </select>
             </div>
-            <div>
-              <strong>Showing {filteredAndSortedQuestions.length} of {results.per_question.length} questions</strong>
+            
+            <div style={{ 
+              backgroundColor: '#f8f9fa', 
+              padding: '8px 16px', 
+              borderRadius: '6px', 
+              border: '1px solid #dee2e6',
+              fontWeight: 'bold'
+            }}>
+              📋 Showing {filteredAndSortedQuestions.length} of {results.per_question.length} questions
+              {searchText && (
+                <span style={{ color: '#007bff', marginLeft: '8px' }}>
+                  (filtered by: &quot;{searchText}&quot;)
+                </span>
+              )}
             </div>
           </div>
 
-          <table className="table">
+          <div className="questions-scroll-container" style={{
+            maxHeight: '400px',
+            overflowY: 'auto',
+            border: '1px solid #dee2e6',
+            borderRadius: '4px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            <table className="table" style={{ margin: 0 }}>
             <thead>
               <tr>
                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('source')}>
@@ -558,6 +654,7 @@ const AnalysisResults: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '30px' }}>

@@ -624,29 +624,37 @@ const AnalysisResults: React.FC = () => {
                           <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: 'white', borderRadius: '4px' }}>
                             {question.text}
                           </div>
-                          <strong>Retrieved Documents:</strong>
-                          <div style={{ marginTop: '10px' }}>
-                            {question.retrieved_docs.map((doc, idx) => (
-                              <div key={idx} style={{ 
-                                padding: '8px',
-                                backgroundColor: 'white',
-                                marginBottom: '5px',
-                                borderRadius: '4px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                              }}>
-                                <span><strong>{doc.title}</strong> (ID: {doc.doc_id})</span>
-                                <span style={{ 
-                                  color: getQualityScoreBarClass(doc.similarity).includes('good') ? '#28a745' :
-                                        getQualityScoreBarClass(doc.similarity).includes('weak') ? '#ffc107' : '#dc3545',
-                                  fontWeight: 'bold'
-                                }}>
-                                  {doc.similarity.toFixed(3)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
+                          <table className="table" style={{ marginTop: '10px', backgroundColor: 'white' }}>
+                            <thead>
+                              <tr>
+                                <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold' }}>
+                                  Retrieved Documents
+                                </th>
+                                <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold', textAlign: 'center', width: '200px' }}>
+                                  Semantic Similarity Score
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {question.retrieved_docs.map((doc, idx) => (
+                                <tr key={idx} style={{ borderBottom: idx < question.retrieved_docs.length - 1 ? '1px solid #dee2e6' : 'none' }}>
+                                  <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                                    {doc.doc_id}
+                                  </td>
+                                  <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                    <span style={{ 
+                                      color: getQualityScoreBarClass(doc.similarity).includes('good') ? '#28a745' :
+                                            getQualityScoreBarClass(doc.similarity).includes('weak') ? '#ffc107' : '#dc3545',
+                                      fontWeight: 'bold',
+                                      fontSize: '0.9rem'
+                                    }}>
+                                      {doc.similarity.toFixed(3)}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </td>
                     </tr>

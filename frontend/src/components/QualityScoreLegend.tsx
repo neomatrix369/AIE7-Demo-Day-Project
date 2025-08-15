@@ -21,18 +21,16 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
         display: 'flex', 
         alignItems: 'center', 
         flexWrap: 'wrap',
-        gap: '8px',
+        gap: '24px',
         ...style 
       }}>
         {titleText && <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{titleText}:</span>}
         <span style={{ color: '#28a745', display: 'flex', alignItems: 'center', gap: '4px' }}>
           🟢 <strong>GOOD</strong> (≥7.0)
-        </span>
-        <span style={{ margin: '0 4px' }}>|</span>
-        <span style={{ color: '#ffc107', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        </span> | 
+        <span style={{ color: '#e67e22', display: 'flex', alignItems: 'center', gap: '4px' }}>
           🟡 <strong>WEAK</strong> (&#8805;5.0 &amp; &lt;7.0)
-        </span>
-        <span style={{ margin: '0 4px' }}>|</span>
+        </span> | 
         <span style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '4px' }}>
           🔴 <strong>POOR</strong> (&lt;5.0)
         </span>
@@ -81,7 +79,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
               <td style={{ padding: '6px', fontWeight: 'bold' }}>🟡 WEAK</td>
               <td style={{ padding: '6px' }}>≥ 5.0 and &lt; 7.0</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
-                <span style={{ backgroundColor: '#ffc107', color: '#212529', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
+                <span style={{ backgroundColor: '#e67e22', color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
                   MED
                 </span>
               </td>
@@ -108,7 +106,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
       color: '#666', 
       display: 'flex !important', 
       alignItems: 'center', 
-      gap: '12px',
+      gap: '30px',
       flexWrap: 'wrap',
       flexDirection: 'row',
       justifyContent: 'flex-start',
@@ -126,7 +124,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
         <span style={{ fontSize: '1.2em' }}>■</span> <strong>GOOD</strong> (≥7.0)
       </span>
       <span style={{ 
-        color: '#ffc107', 
+        color: '#e67e22', 
         display: 'inline-flex', 
         alignItems: 'center', 
         gap: '4px',

@@ -81,7 +81,7 @@ const AnalysisResults: React.FC = () => {
 
   const getStatusColor = (qualityScore: number) => {
     if (qualityScore >= 7.0) return '#28a745';
-    if (qualityScore >= 5.0) return '#ffc107';
+    if (qualityScore >= 5.0) return '#e67e22';
     return '#dc3545'; // For poor quality
   };
 
@@ -382,7 +382,7 @@ const AnalysisResults: React.FC = () => {
                   ></div>
                   <div 
                     style={{ 
-                      backgroundColor: '#ffc107',
+                      backgroundColor: '#e67e22',
                       width: `${(results.per_group.llm.distribution.filter(s => s >= 5.0 && s < 7.0).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
@@ -441,7 +441,7 @@ const AnalysisResults: React.FC = () => {
                   ></div>
                   <div 
                     style={{ 
-                      backgroundColor: '#ffc107',
+                      backgroundColor: '#e67e22',
                       width: `${(results.per_group.ragas.distribution.filter(s => s >= 5.0 && s < 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
@@ -706,7 +706,7 @@ const AnalysisResults: React.FC = () => {
                                   <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span style={{ 
                                       color: getQualityScoreBarClass(doc.similarity).includes('good') ? '#28a745' :
-                                            getQualityScoreBarClass(doc.similarity).includes('weak') ? '#ffc107' : '#dc3545',
+                                            getQualityScoreBarClass(doc.similarity).includes('weak') ? '#e67e22' : '#dc3545',
                                       fontWeight: 'bold',
                                       fontSize: '0.9rem'
                                     }}>

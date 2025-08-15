@@ -171,7 +171,7 @@ const ExperimentManagement: React.FC = () => {
 
   const getStatusColor = (qualityScore: number) => {
     if (qualityScore >= 7.0) return '#28a745';
-    if (qualityScore >= 5.0) return '#ffc107';
+    if (qualityScore >= 5.0) return '#e67e22';
     return '#dc3545';
   };
 

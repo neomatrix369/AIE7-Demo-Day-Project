@@ -78,6 +78,14 @@ api.interceptors.response.use(
 export const corpusApi = {
   getStatus: (): Promise<CorpusStatus> =>
     api.get('/corpus/status').then(res => res.data),
+  
+  getAllChunks: (): Promise<{chunks: Array<{
+    chunk_id: string;
+    doc_id: string;
+    title: string;
+    content: string;
+  }>, total_count: number}> =>
+    api.get('/corpus/chunks').then(res => res.data),
 };
 
 export const questionsApi = {

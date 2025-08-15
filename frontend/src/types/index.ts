@@ -75,3 +75,31 @@ export interface ExperimentFile {
   avg_quality_score: number;
   file_size: number;
 }
+
+// Heatmap-specific interfaces
+export type HeatmapPerspective = 'questions-to-chunks' | 'chunks-to-questions';
+
+export interface HeatmapConfig {
+  perspective: HeatmapPerspective;
+  qualityFilter: 'all' | 'good' | 'weak' | 'poor';
+  showTooltips: boolean;
+  pointSize: 'small' | 'medium' | 'large';
+  colorIntensity: number; // 0.5 - 1.5 multiplier
+}
+
+export interface HeatmapDimensions {
+  width: number;
+  height: number;
+  margin: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+}
+
+export interface TooltipPosition {
+  x: number;
+  y: number;
+  visible: boolean;
+}

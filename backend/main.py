@@ -298,6 +298,71 @@ async def get_corpus_status():
         logger.info("📝 Returning mock corpus status (no real documents loaded)")
         return MOCK_CORPUS_STATUS
 
+@app.get("/api/corpus/chunks")
+async def get_all_chunks():
+    """Get all chunks from the vector database for heatmap visualization."""
+    try:
+        if not documents_loaded:
+            # Return mock chunk data for development
+            logger.info("📝 Returning mock chunk data (no real documents loaded)")
+            return {
+                "chunks": [
+                    {"chunk_id": f"mock_chunk_{i:04d}", "doc_id": f"doc_{i//10}", "title": f"Mock Document {i//10}", "content": f"Mock chunk content {i}"}
+                    for i in range(50)  # Mock 50 chunks
+                ],
+                "total_count": 50
+            }
+        
+        # Get all points from Qdrant collection
+        collection_info = qdrant_manager.client.get_collection(qdrant_manager.collection_name)
+        total_points = collection_info.points_count
+        
+        if total_points == 0:
+            logger.warning("⚠️ No chunks found in vector database")
+            return {"chunks": [], "total_count": 0}
+        
+        # Scroll through all points in the collection
+        all_chunks = []
+        offset = None
+        batch_size = 100
+        
+        while True:
+            scroll_result = qdrant_manager.client.scroll(
+                collection_name=qdrant_manager.collection_name,
+                limit=batch_size,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False  # Don't need vectors for metadata
+            )
+            
+            points, next_offset = scroll_result
+            if not points:
+                break
+                
+            for point in points:
+                chunk_data = {
+                    "chunk_id": str(point.id),
+                    "doc_id": point.payload.get("source", "unknown"),
+                    "title": point.payload.get("title", "Unknown Document"),
+                    "content": point.payload.get("page_content", "")[:200] + "..." if len(point.payload.get("page_content", "")) > 200 else point.payload.get("page_content", "")
+                }
+                all_chunks.append(chunk_data)
+            
+            if next_offset is None:
+                break
+            offset = next_offset
+        
+        logger.info(f"📊 Retrieved {len(all_chunks)} chunks from vector database")
+        return {
+            "chunks": all_chunks,
+            "total_count": len(all_chunks)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get chunks: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {"chunks": [], "total_count": 0, "error": str(e)}
+
 @app.get("/api/questions/llm")
 async def get_llm_questions():
     return LLM_QUESTIONS["questions"]

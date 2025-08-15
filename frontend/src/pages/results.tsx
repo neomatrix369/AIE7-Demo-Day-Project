@@ -219,6 +219,18 @@ const AnalysisResults: React.FC = () => {
     }
   };
 
+  const handleViewHeatmap = () => {
+    logNavigation('Results', 'Heatmap', {
+      component: 'Results',
+      action: 'NAVIGATE_TO_HEATMAP',
+      data: {
+        total_questions: results?.overall.total_questions,
+        avg_quality_score: results?.overall.avg_quality_score
+      }
+    });
+    router.push('/heatmap');
+  };
+
   if (loading) {
     return (
       <div className="card">
@@ -489,6 +501,67 @@ const AnalysisResults: React.FC = () => {
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="analysis-section">
+          <h3>🗺️ Advanced Visualization</h3>
+          <div className="card" style={{ 
+            backgroundColor: '#f0f8ff', 
+            border: '2px solid #007bff',
+            padding: '20px',
+            textAlign: 'center'
+          }}>
+            <h4 style={{ margin: '0 0 15px 0', color: '#0056b3' }}>
+              Interactive Data Visualization
+            </h4>
+            <p style={{ 
+              color: '#495057', 
+              fontSize: '16px', 
+              marginBottom: '20px',
+              lineHeight: '1.5'
+            }}>
+              Explore question-chunk relationships through interactive scatter plot heatmaps with dual perspectives. 
+              Analyze patterns, clusters, and outliers in your RAG system's performance.
+            </p>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+              gap: '15px', 
+              marginBottom: '20px',
+              fontSize: '0.9rem',
+              color: '#666'
+            }}>
+              <div>
+                <strong style={{ color: '#007bff' }}>📊 Questions View</strong><br/>
+                See how questions map to chunks
+              </div>
+              <div>
+                <strong style={{ color: '#007bff' }}>📄 Chunks View</strong><br/>
+                See how chunks are retrieved
+              </div>
+              <div>
+                <strong style={{ color: '#007bff' }}>🎯 Interactive</strong><br/>
+                Click points for drill-down
+              </div>
+              <div>
+                <strong style={{ color: '#007bff' }}>🔍 Filters</strong><br/>
+                Filter by quality scores
+              </div>
+            </div>
+            
+            <button 
+              className="button"
+              onClick={handleViewHeatmap}
+              style={{ 
+                fontSize: '16px', 
+                padding: '12px 24px',
+                backgroundColor: '#007bff'
+              }}
+            >
+              🗺️ Open Interactive Heatmap Visualization →
+            </button>
           </div>
         </div>
 

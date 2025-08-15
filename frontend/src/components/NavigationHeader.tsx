@@ -116,6 +116,21 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({ currentPage }) => {
           >
             📊 Last Experiment Results
           </button>
+          
+          <button
+            onClick={() => handleNavigation('heatmap')}
+            style={{
+              padding: '8px 16px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              backgroundColor: isActive('heatmap') ? '#28a745' : 'transparent',
+              color: isActive('heatmap') ? 'white' : '#28a745',
+              fontWeight: isActive('heatmap') ? 'bold' : 'normal'
+            }}
+          >
+            🗺️ Heatmap
+          </button>
         </nav>
       </div>
     </div>

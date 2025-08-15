@@ -80,14 +80,14 @@ const AnalysisResults: React.FC = () => {
   };
 
   const getStatusColor = (qualityScore: number) => {
-    if (qualityScore > 7.0) return '#28a745';
-    if (qualityScore > 5.0) return '#ffc107';
-    return '#dc3545';
+    if (qualityScore >= 7.0) return '#28a745';
+    if (qualityScore >= 5.0) return '#ffc107';
+    return '#dc3545'; // For poor quality
   };
 
   const getStatusText = (qualityScore: number) => {
-    if (qualityScore > 7.0) return 'GOOD';
-    if (qualityScore > 5.0) return 'WEAK';
+    if (qualityScore >= 7.0) return 'GOOD';
+    if (qualityScore >= 5.0) return 'WEAK';
     return 'POOR';
   };
 
@@ -294,13 +294,14 @@ const AnalysisResults: React.FC = () => {
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
                   {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
-                  <span style={{
-                    fontSize: '1.5rem',
-                    color: getStatusColor(results.overall.avg_quality_score),
-                    marginLeft: '10px'
-                  }}>
-                    ({getStatusText(results.overall.avg_quality_score)})
-                  </span>
+                </div>
+                <div style={{
+                  fontSize: '1.5rem',
+                  color: getStatusColor(results.overall.avg_quality_score),
+                  fontWeight: 'bold',
+                  marginBottom: '5px'
+                }}>
+                  {getStatusText(results.overall.avg_quality_score)}
                 </div>
                 <div style={{ fontSize: '1rem', opacity: 0.9 }}>Quality Score</div>
               </div>
@@ -346,14 +347,14 @@ const AnalysisResults: React.FC = () => {
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#007bff' }}>
                     {results.per_group.llm.avg_quality_score ? results.per_group.llm.avg_quality_score.toFixed(1) : 0}
-                    <span style={{
-                      fontSize: '1.5rem',
-                      color: getStatusColor(results.per_group.llm.avg_quality_score),
-                      marginLeft: '10px'
-                    }}>
-                      ({getStatusText(results.per_group.llm.avg_quality_score)})
-                    </span>
                   </span>
+                  <div style={{
+                    fontSize: '1.2rem',
+                    color: getStatusColor(results.per_group.llm.avg_quality_score),
+                    fontWeight: 'bold'
+                  }}>
+                    {getStatusText(results.per_group.llm.avg_quality_score)}
+                  </div>
                   <div className="stat-label">Quality Score</div>
                 </div>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>

@@ -541,9 +541,9 @@ def get_quality_status(quality_score: float) -> str:
     Returns:
         Status string: 'good', 'weak', or 'poor'
     """
-    if quality_score > 7.0:
+    if quality_score >= 7.0:
         return "good"
-    elif quality_score > 5.0:
+    elif quality_score >= 5.0:
         return "weak"
     else:
         return "poor"

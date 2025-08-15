@@ -106,20 +106,41 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
     <div style={{ 
       fontSize: '0.8rem', 
       color: '#666', 
-      display: 'flex', 
+      display: 'flex !important', 
       alignItems: 'center', 
       gap: '12px',
       flexWrap: 'wrap',
+      flexDirection: 'row',
+      justifyContent: 'flex-start',
+      width: '100%',
       ...style 
     }}>
       {titleText && <span style={{ fontWeight: 'bold' }}>{titleText}:</span>}
-      <span style={{ color: '#28a745', display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <span style={{ 
+        color: '#28a745', 
+        display: 'inline-flex', 
+        alignItems: 'center', 
+        gap: '4px',
+        whiteSpace: 'nowrap'
+      }}>
         <span style={{ fontSize: '1.2em' }}>■</span> <strong>GOOD</strong> (≥7.0)
       </span>
-      <span style={{ color: '#ffc107', display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <span style={{ 
+        color: '#ffc107', 
+        display: 'inline-flex', 
+        alignItems: 'center', 
+        gap: '4px',
+        whiteSpace: 'nowrap'
+      }}>
         <span style={{ fontSize: '1.2em' }}>■</span> <strong>WEAK</strong> (≥ 5.0 and &lt; 7.0)
       </span>
-      <span style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <span style={{ 
+        color: '#dc3545', 
+        display: 'inline-flex', 
+        alignItems: 'center', 
+        gap: '4px',
+        whiteSpace: 'nowrap'
+      }}>
         <span style={{ fontSize: '1.2em' }}>■</span> <strong>POOR</strong> (&lt;5.0)
       </span>
     </div>

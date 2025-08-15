@@ -100,8 +100,8 @@ const AnalysisResults: React.FC = () => {
   };
 
   const getQualityScoreBarClass = (qualityScore: number) => {
-    if (qualityScore > 7.0) return 'quality-score-good';
-    if (qualityScore > 5.0) return 'quality-score-weak';
+    if (qualityScore >= 7.0) return 'quality-score-good';
+    if (qualityScore >= 5.0) return 'quality-score-weak';
     return 'quality-score-poor';
   };
 
@@ -309,7 +309,7 @@ const AnalysisResults: React.FC = () => {
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
                   {Math.round(results.overall.success_rate * 100)}%
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>High Quality Rate (&gt;7.0)</div>
+                <div style={{ fontSize: '1rem', opacity: 0.9 }}>High Quality Rate (≥7.0)</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
@@ -359,9 +359,9 @@ const AnalysisResults: React.FC = () => {
                 </div>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#007bff' }}>
-                    {results.per_group.llm.distribution.filter(s => s > 7.0).length}
+                    {results.per_group.llm.distribution.filter(s => s >= 7.0).length}
                   </span>
-                  <div className="stat-label">High Quality Scores (&gt;7.0)</div>
+                  <div className="stat-label">High Quality Scores (≥7.0)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>
@@ -377,19 +377,19 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#28a745',
-                      width: `${(results.per_group.llm.distribution.filter(s => s > 7.0).length / results.per_group.llm.distribution.length) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s >= 7.0).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#ffc107',
-                      width: `${(results.per_group.llm.distribution.filter(s => s > 5.0 && s <= 7.0).length / results.per_group.llm.distribution.length) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s >= 5.0 && s < 7.0).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
                     style={{ 
                       backgroundColor: '#dc3545',
-                      width: `${(results.per_group.llm.distribution.filter(s => s <= 5.0).length / results.per_group.llm.distribution.length) * 100}%`
+                      width: `${(results.per_group.llm.distribution.filter(s => s < 5.0).length / results.per_group.llm.distribution.length) * 100}%`
                     }}
                   ></div>
                 </div>
@@ -418,9 +418,9 @@ const AnalysisResults: React.FC = () => {
                 </div>
                 <div className="stat-item" style={{ backgroundColor: 'white' }}>
                   <span className="stat-value" style={{ color: '#28a745' }}>
-                    {results.per_group.ragas.distribution.filter(s => s > 7.0).length}
+                    {results.per_group.ragas.distribution.filter(s => s >= 7.0).length}
                   </span>
-                  <div className="stat-label">High Quality Scores (&gt;7.0)</div>
+                  <div className="stat-label">High Quality Scores (≥7.0)</div>
                 </div>
               </div>
               <div style={{ marginTop: '15px' }}>
@@ -436,7 +436,7 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#28a745',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s > 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s >= 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                   <div 
@@ -448,7 +448,7 @@ const AnalysisResults: React.FC = () => {
                   <div 
                     style={{ 
                       backgroundColor: '#dc3545',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s <= 5.0).length / results.per_group.ragas.distribution.length) * 100}%`
+                      width: `${(results.per_group.ragas.distribution.filter(s => s < 5.0).length / results.per_group.ragas.distribution.length) * 100}%`
                     }}
                   ></div>
                 </div>

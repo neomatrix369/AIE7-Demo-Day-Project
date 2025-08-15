@@ -385,8 +385,8 @@ async def set_test_results():
             "source": "llm",
             "avg_similarity": 0.75,
             "retrieved_docs": [
-                {"doc_id": "doc_1", "similarity": 0.8, "title": "Student Loan Limits"},
-                {"doc_id": "doc_2", "similarity": 0.7, "title": "Borrowing Guidelines"}
+                {"doc_id": "doc_1", "chunk_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "similarity": 0.8, "title": "Student Loan Limits"},
+                {"doc_id": "doc_2", "chunk_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901", "similarity": 0.7, "title": "Borrowing Guidelines"}
             ]
         },
         {
@@ -395,8 +395,8 @@ async def set_test_results():
             "source": "ragas",
             "avg_similarity": 0.65,
             "retrieved_docs": [
-                {"doc_id": "doc_3", "similarity": 0.7, "title": "Servicer Complaints"},
-                {"doc_id": "doc_4", "similarity": 0.6, "title": "Aidvantage Issues"}
+                {"doc_id": "doc_3", "chunk_id": "c3d4e5f6-a7b8-9012-cdef-123456789012", "similarity": 0.7, "title": "Servicer Complaints"},
+                {"doc_id": "doc_4", "chunk_id": "d4e5f6a7-b8c9-0123-def1-234567890123", "similarity": 0.6, "title": "Aidvantage Issues"}
             ]
         },
         {
@@ -405,8 +405,8 @@ async def set_test_results():
             "source": "llm",
             "avg_similarity": 0.85,
             "retrieved_docs": [
-                {"doc_id": "doc_5", "similarity": 0.9, "title": "Repayment Plans"},
-                {"doc_id": "doc_6", "similarity": 0.8, "title": "Graduation Options"}
+                {"doc_id": "doc_5", "chunk_id": "e5f6a7b8-c9d0-1234-ef12-345678901234", "similarity": 0.9, "title": "Repayment Plans"},
+                {"doc_id": "doc_6", "chunk_id": "f6a7b8c9-d0e1-2345-f123-456789012345", "similarity": 0.8, "title": "Graduation Options"}
             ]
         }
     ]
@@ -518,6 +518,7 @@ def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, An
             "retrieved_docs": [
                 {
                     "doc_id": doc["doc_id"],
+                    "chunk_id": doc.get("chunk_id", "unknown"),
                     "similarity": doc["similarity"],
                     "title": doc["title"]
                 } for doc in result["retrieved_docs"]
@@ -822,6 +823,7 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
         for result in search_results:
             retrieved_docs.append({
                 "doc_id": result["doc_id"],
+                "chunk_id": result.get("chunk_id", "unknown"),
                 "similarity": result["similarity"],
                 "title": result["title"]
             })

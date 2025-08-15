@@ -40,7 +40,7 @@ class SearchManager:
 
     def vector_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
-        Perform vector similarity search using Qdrant.
+        Perform vector similarity search using Qdrant with chunk UUID capture.
         """
         try:
             vector_store = self.get_vector_store()
@@ -50,24 +50,60 @@ class SearchManager:
             
             logger.info(f"🔍 Performing vector search for: {query[:100]}...")
             
-            # Perform similarity search
+            # Perform similarity search with LangChain
             docs_and_scores = vector_store.similarity_search_with_score(query, k=top_k)
             
+            # Also get raw Qdrant results to capture chunk UUIDs
+            raw_qdrant_results = self._get_raw_qdrant_results(query, top_k)
+            
             results = []
-            for doc, score in docs_and_scores:
+            for i, (doc, score) in enumerate(docs_and_scores):
+                # Try to match with raw Qdrant result to get chunk UUID
+                chunk_id = "unknown"
+                if i < len(raw_qdrant_results):
+                    chunk_id = str(raw_qdrant_results[i].id)
+                
                 results.append({
                     "content": doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content,
                     "similarity": round(score, 3),
                     "metadata": doc.metadata,
                     "doc_id": doc.metadata.get("source", "unknown"),
+                    "chunk_id": chunk_id,
                     "title": doc.metadata.get("title", "Document")
                 })
             
-            logger.info(f"📚 Vector search found {len(results)} results")
+            logger.info(f"📚 Vector search found {len(results)} results with chunk IDs")
             return results
             
         except Exception as e:
             logger.error(f"❌ Vector search failed: {e}")
+            return []
+
+    def _get_raw_qdrant_results(self, query: str, top_k: int = 5) -> List[Any]:
+        """
+        Get raw Qdrant search results to capture chunk UUIDs.
+        """
+        try:
+            if not self.qdrant_manager:
+                return []
+            
+            # Get query embedding
+            query_vector = self.embedding.embed_query(query)
+            
+            # Direct Qdrant search to get UUIDs
+            from qdrant_client.http.models import SearchRequest
+            search_result = self.qdrant_manager.client.search(
+                collection_name=self.qdrant_manager.collection_name,
+                query_vector=query_vector,
+                limit=top_k,
+                with_payload=False,  # We don't need payload, just IDs
+                with_vectors=False   # We don't need vectors either
+            )
+            
+            return search_result
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get raw Qdrant results for chunk IDs: {e}")
             return []
 
     def search_with_similarity_threshold(self, query: str, top_k: int = 5, threshold: float = 0.5) -> List[Dict[str, Any]]:

@@ -40,6 +40,7 @@ export interface QuestionResult {
   status: 'good' | 'weak' | 'poor';
   retrieved_docs: Array<{
     doc_id: string;
+    chunk_id?: string;
     similarity: number;
     title: string;
   }>;

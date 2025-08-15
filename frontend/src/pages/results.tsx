@@ -675,7 +675,10 @@ const AnalysisResults: React.FC = () => {
                                 <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold' }}>
                                   Retrieved Documents
                                 </th>
-                                <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold', textAlign: 'center', width: '200px' }}>
+                                <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold', textAlign: 'center', width: '140px' }}>
+                                  Chunk ID
+                                </th>
+                                <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold', textAlign: 'center', width: '160px' }}>
                                   Semantic Similarity Score
                                 </th>
                               </tr>
@@ -685,6 +688,20 @@ const AnalysisResults: React.FC = () => {
                                 <tr key={idx} style={{ borderBottom: idx < question.retrieved_docs.length - 1 ? '1px solid #dee2e6' : 'none' }}>
                                   <td style={{ padding: '8px', verticalAlign: 'middle' }}>
                                     {doc.doc_id}
+                                  </td>
+                                  <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                    <span 
+                                      style={{ 
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.75rem',
+                                        color: '#6c757d',
+                                        cursor: 'pointer'
+                                      }}
+                                      title={`Full chunk ID: ${doc.chunk_id || 'unknown'}`}
+                                      onClick={() => navigator.clipboard?.writeText(doc.chunk_id || 'unknown')}
+                                    >
+                                      {doc.chunk_id && doc.chunk_id.length > 8 ? `${doc.chunk_id.substring(0, 8)}...` : (doc.chunk_id || 'unknown')}
+                                    </span>
                                   </td>
                                   <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span style={{ 

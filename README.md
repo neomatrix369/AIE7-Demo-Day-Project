@@ -2,6 +2,10 @@
 
 A 4-screen wizard application for corpus/data quality assessment using AI-generated and RAGAS-generated questions with real document processing and vector similarity search.
 
+## Visuals
+
+*Screenshots of the 4-screen wizard application will be added here soon.*
+
 ## Project Structure
 
 ```
@@ -36,12 +40,14 @@ A 4-screen wizard application for corpus/data quality assessment using AI-genera
 1. **📊 Data Loading Dashboard**: Real-time corpus overview with document statistics, health metrics, and vector database status
 2. **❓ Question Groups Overview**: Side-by-side comparison of LLM-generated vs RAGAS-generated questions with category breakdown
 3. **⚙️ Experiment Configuration**: Interactive experiment setup with real-time WebSocket streaming and progress tracking
-4. **📈 Analysis Results Dashboard**: 3-level analysis (Overall → Group → Individual) with sorting, filtering, and detailed question inspection
+4. **📈 Analysis Results Dashboard**: 3-level analysis (Overall → Group → Individual) with sorting, filtering, detailed question inspection, and Qdrant chunk ID traceability
 
 ### 🏗️ Technical Architecture
-- **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking
+- **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking (750 chars, 100 overlap)
 - **🗃️ Persistent Vector Storage**: Qdrant database with cosine similarity search, automatic collection management, and health monitoring
-- **⚡ Performance Optimization**: Caching prevents expensive document reprocessing
+- **📏 Quality Score System**: Normalized 0-10 scale with consistent thresholds (GOOD ≥7.0, WEAK ≥5.0, POOR <5.0) and color-coded indicators
+- **🆔 Chunk Traceability**: Qdrant UUID capture for enhanced debugging and search result analysis with clickable chunk IDs
+- **⚡ Performance Optimization**: Caching prevents expensive document reprocessing and vector store reuses existing collections
 - **📡 Real-time Communication**: WebSocket streaming for live experiment progress updates
 - **📋 Comprehensive Logging**: User-friendly logging system with development/production modes
 - **🎨 Responsive Design**: Mobile-friendly interface with CSS Grid and Flexbox layouts

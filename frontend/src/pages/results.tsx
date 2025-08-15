@@ -289,51 +289,81 @@ const AnalysisResults: React.FC = () => {
 
         <div className="analysis-section">
           <h3>📊 Overall Analysis</h3>
-          <div className="metric-card">
-            <div className="stats-grid">
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-                  {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
+          <div className="card" style={{ backgroundColor: '#f8f9fa', border: '2px solid #dee2e6', padding: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+              
+              {/* Quality Score Card */}
+              <div style={{ backgroundColor: '#e8f5e8', border: '2px solid #1e7e34', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#0a3d0f', fontSize: '0.9rem' }}>🎯 Overall Quality Score</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#1e7e34', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
+                    {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
+                  </span>
+                  <div style={{
+                    fontSize: '1.1rem',
+                    color: getStatusColor(results.overall.avg_quality_score),
+                    fontWeight: 'bold',
+                    marginTop: '3px'
+                  }}>
+                    {getStatusText(results.overall.avg_quality_score)}
+                  </div>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Quality Score</div>
                 </div>
-                <div style={{
-                  fontSize: '1.5rem',
-                  color: getStatusColor(results.overall.avg_quality_score),
-                  fontWeight: 'bold',
-                  marginBottom: '5px'
-                }}>
-                  {getStatusText(results.overall.avg_quality_score)}
-                </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>Quality Score</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-                  {Math.round(results.overall.success_rate * 100)}%
+
+              {/* Success Rate Card */}
+              <div style={{ backgroundColor: '#fff2e6', border: '2px solid #d63384', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#6a1a3a', fontSize: '0.9rem' }}>📈 Success Rate</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#d63384', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
+                    {Math.round(results.overall.success_rate * 100)}%
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>High Quality Rate (≥7.0)</div>
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>High Quality Rate (≥7.0)</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-                  {results.overall.total_questions}
+
+              {/* Questions Processed Card */}
+              <div style={{ backgroundColor: '#e6e6ff', border: '2px solid #5a3bb0', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#3a1d66', fontSize: '0.9rem' }}>📊 Processing Volume</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#5a3bb0', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
+                    {results.overall.total_questions}
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Questions Processed</div>
                 </div>
-                <div style={{ fontSize: '1rem', opacity: 0.9 }}>Questions Processed</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <span className={`health-indicator ${getHealthColor(results.overall.corpus_health)}`}>
-                  {results.overall.corpus_health.replace('_', ' ')}
-                </span>
-                <div style={{ fontSize: '1rem', opacity: 0.9, marginTop: '10px', color: 'white' }}>
-                  Corpus Health
+
+              {/* Corpus Health Card */}
+              <div style={{ backgroundColor: '#e6f7ff', border: '2px solid #0c7cd5', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem' }}>🏥 Corpus Health</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span className={`health-indicator ${getHealthColor(results.overall.corpus_health)}`} style={{ fontSize: '0.9rem' }}>
+                    {results.overall.corpus_health.replace('_', ' ')}
+                  </span>
+                  <div style={{ color: '#666', marginTop: '6px', fontSize: '0.8rem' }}>System Status</div>
                 </div>
               </div>
             </div>
+
+            {/* Key Insight Section */}
             <div style={{ 
-              textAlign: 'center', 
-              marginTop: '20px', 
-              fontSize: '1.1rem', 
-              fontStyle: 'italic',
-              opacity: 0.9 
+              backgroundColor: '#fff8dc', 
+              border: '2px solid #b8860b', 
+              borderRadius: '6px',
+              padding: '10px',
+              textAlign: 'center'
             }}>
-              Key Insight: {results.overall.key_insight}
+              <h4 style={{ margin: '0 0 6px 0', color: '#5c4b00', fontSize: '0.9rem' }}>💡 Key Insight</h4>
+              <div style={{ 
+                fontSize: '0.9rem', 
+                color: '#5c4b00',
+                padding: '8px',
+                backgroundColor: 'white',
+                borderRadius: '4px',
+                border: '1px solid #b8860b'
+              }}>
+                {results.overall.key_insight}
+              </div>
             </div>
           </div>
         </div>

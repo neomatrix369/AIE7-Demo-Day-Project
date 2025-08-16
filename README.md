@@ -1,10 +1,10 @@
 # RagCheck
 
-A 4-screen wizard application for corpus/data quality assessment using AI-generated and RAGAS-generated questions with real document processing and vector similarity search.
+A 5-screen wizard application for comprehensive RAG system quality assessment using AI-generated and RAGAS-generated questions with real document processing, vector similarity search, and interactive data visualization.
 
 ## Visuals
 
-*Screenshots of the 4-screen wizard application will be added here soon.*
+*Screenshots of the 5-screen wizard application will be added here soon.*
 
 ## Project Structure
 
@@ -22,9 +22,11 @@ A 4-screen wizard application for corpus/data quality assessment using AI-genera
 │   ├── logging_config.py      # Centralized logging configuration
 │   └── requirements.txt       # Python dependencies
 ├── frontend/                   # Next.js frontend with comprehensive logging
-│   ├── src/pages/             # 4-screen wizard application
+│   ├── src/pages/             # 5-screen wizard application
+│   ├── src/components/heatmap/ # Interactive visualization components
 │   ├── src/services/api.ts    # API client with logging interceptors
 │   ├── src/utils/logger.ts    # User-friendly logging system
+│   ├── src/utils/heatmapData.ts # Data processing for visualizations
 │   └── src/types/index.ts     # TypeScript interfaces
 ├── scripts/                    # Setup and utility scripts
 │   └── setup_qdrant.sh        # Qdrant startup and health check
@@ -36,21 +38,26 @@ A 4-screen wizard application for corpus/data quality assessment using AI-genera
 
 ## Features
 
-### 🎯 4-Screen Wizard Application
+### 🎯 5-Screen Wizard Application
 1. **📊 Data Loading Dashboard**: Real-time corpus overview with document statistics, health metrics, and vector database status
 2. **❓ Question Groups Overview**: Side-by-side comparison of LLM-generated vs RAGAS-generated questions with role breakdown
 3. **⚙️ Experiment Configuration**: Interactive experiment setup with real-time WebSocket streaming and progress tracking
-4. **📈 Analysis Results Dashboard**: 3-level analysis (Overall → Group → Individual) with sorting, filtering, detailed question inspection, and Qdrant chunk ID traceability
+4. **📈 Analysis Results Dashboard**: Enhanced 3-level analysis with collapsible sections, quick actions, role-based insights, and comprehensive filtering
+5. **🗺️ Interactive Data Visualization**: Multi-perspective scatter plot heatmaps with coverage analytics, orphaned chunk detection, and smart performance insights
 
 ### 🏗️ Technical Architecture
 - **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking (750 chars, 100 overlap)
 - **🗃️ Persistent Vector Storage**: Qdrant database with cosine similarity search, automatic collection management, and health monitoring
 - **📏 Quality Score System**: Normalized 0-10 scale with consistent thresholds (GOOD ≥7.0, WEAK ≥5.0, POOR <5.0) and color-coded indicators
 - **🆔 Chunk Traceability**: Qdrant UUID capture for enhanced debugging and search result analysis with clickable chunk IDs
-- **⚡ Performance Optimization**: Caching prevents expensive document reprocessing and vector store reuses existing collections
+- **🗺️ Interactive Visualization**: D3.js-powered scatter plot heatmaps with multiple perspectives and advanced analytics
+- **📊 Coverage Analytics**: Comprehensive chunk utilization tracking with orphaned chunk detection
+- **👥 Role-Based Analysis**: Complete role integration across visualization and analysis workflows
+- **⚡ Performance Optimization**: Caching, memoization, and optimized rendering for smooth user experience
 - **📡 Real-time Communication**: WebSocket streaming for live experiment progress updates
 - **📋 Comprehensive Logging**: User-friendly logging system with development/production modes
-- **🎨 Responsive Design**: Mobile-friendly interface with CSS Grid and Flexbox layouts
+- **🎨 Enhanced UX**: Collapsible sections, quick actions, smart insights, and context-aware statistics
+- **🎯 Responsive Design**: Mobile-friendly interface with CSS Grid and Flexbox layouts
 
 
 ## Setup
@@ -148,6 +155,7 @@ npm run dev
 
 ### Frontend  
 - **Next.js** - React framework with TypeScript
+- **D3.js** - Interactive data visualization and scatter plots
 - **Axios** - HTTP client with logging interceptors
 - **WebSocket** - Real-time experiment streaming
 - **Custom Logging** - User-friendly logging system

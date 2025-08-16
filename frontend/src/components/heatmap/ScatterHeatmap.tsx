@@ -184,15 +184,25 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         .style('stroke', '#ccc');
     }
 
-    // Add scatter points with optimized event handlers
-    const circles = g.selectAll('.scatter-point')
+    // Helper function to generate hexagon coordinates
+    const generateHexagon = (cx: number, cy: number, radius: number): string => {
+      const points = [];
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i; // 60 degrees apart
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        points.push(`${x},${y}`);
+      }
+      return points.join(' ');
+    };
+
+    // Add scatter points as hexagons with optimized event handlers
+    const hexagons = g.selectAll('.scatter-point')
       .data(positionPoints)
       .enter()
-      .append('circle')
+      .append('polygon')
       .attr('class', 'scatter-point')
-      .attr('cx', d => d.screenX)
-      .attr('cy', d => d.screenY)
-      .attr('r', d => getScaledSize(d.size, 6, 20))
+      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)))
       .attr('fill', d => getHeatmapColor(
         d.color, 
         d.data.type === 'chunk' && d.data.isUnretrieved,
@@ -204,17 +214,18 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .style('cursor', 'pointer');
 
     // Add event listeners that only modify styles, not the entire DOM
-    circles
+    hexagons
       .on('mouseover', function(event, d) {
         // Hide any existing tooltip first
         setTooltipPosition(prev => ({ ...prev, visible: false }));
         setTooltipData(null);
         
-        // Only modify the specific circle's styles
+        // Only modify the specific hexagon's styles
+        const currentRadius = getScaledSize(d.size, 6, 20);
         d3.select(this)
           .attr('stroke-width', 3)
           .attr('stroke', '#333')
-          .attr('r', getScaledSize(d.size, 6, 20) + 2);
+          .attr('points', generateHexagon(d.screenX, d.screenY, currentRadius + 2));
         
         // Show tooltip without triggering re-render
         const rect = svgRef.current!.getBoundingClientRect();
@@ -233,11 +244,12 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         });
       })
       .on('mouseout', function(event, d) {
-        // Only modify the specific circle's styles
+        // Only modify the specific hexagon's styles
+        const currentRadius = getScaledSize(d.size, 6, 20);
         d3.select(this)
           .attr('stroke-width', 2)
           .attr('stroke', '#fff')
-          .attr('r', getScaledSize(d.size, 6, 20));
+          .attr('points', generateHexagon(d.screenX, d.screenY, currentRadius));
       })
       .on('click', function(event, d) {
         // Hide tooltip on click
@@ -249,13 +261,13 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         }
       });
 
-    // Add entrance animation only on initial render
-    circles
-      .attr('r', 0)
+    // Add entrance animation only on initial render - start with zero size hexagons
+    hexagons
+      .attr('points', d => generateHexagon(d.screenX, d.screenY, 0))
       .transition()
       .duration(800)
       .delay((d, i) => i * 30)
-      .attr('r', d => getScaledSize(d.size, 6, 20));
+      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)));
 
   }, [renderKey, positionPoints, dimensions]);
 
@@ -266,6 +278,10 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     const svg = d3.select(svgRef.current);
     svg.selectAll('.scatter-point')
       .on('click', function(event, d) {
+        // Hide tooltip on click
+        setTooltipPosition(prev => ({ ...prev, visible: false }));
+        setTooltipData(null);
+        
         if (onPointClick) {
           onPointClick(d as HeatmapPoint);
         }

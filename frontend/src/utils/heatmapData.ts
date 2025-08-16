@@ -308,65 +308,66 @@ export function processChunksToQuestions(
     }
   });
 
-  // Position retrieved chunks in the center area (natural cluster with more spread)
-  const centerRadius = 30; // Increased radius for the center cluster
-  retrievedChunkPoints.forEach((point, index) => {
-    if (retrievedChunkPoints.length === 1) {
-      // Single point in exact center
-      point.x = 50;
-      point.y = 50;
-    } else {
-      // Create organic scatter in center using deterministic pseudo-random positioning
-      const seed = point.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const pseudoRandX = ((seed * 9301 + 49297) % 233280) / 233280 - 0.5; // -0.5 to 0.5
-      const pseudoRandY = ((seed * 7927 + 12345) % 217728) / 217728 - 0.5; // Different sequence
+  // Create rectangular grid positions to fill container efficiently
+  const allPointsToPosition = [...UnretrievedChunkPoints, ...retrievedChunkPoints];
+  const totalPoints = allPointsToPosition.length;
+  
+  if (totalPoints === 0) return [];
+  
+  // Calculate optimal grid dimensions for rectangular layout
+  const containerAspectRatio = 1.2; // Slightly wider than tall
+  const cols = Math.ceil(Math.sqrt(totalPoints * containerAspectRatio));
+  const rows = Math.ceil(totalPoints / cols);
+  
+  // Calculate spacing to fill container efficiently
+  const xSpacing = 90 / (cols - 1 || 1); // Use 90% of width (5% margin on each side)
+  const ySpacing = 90 / (rows - 1 || 1); // Use 90% of height (5% margin on each side)
+  
+  // Generate grid positions from outside-in flow
+  const gridPositions: Array<{x: number, y: number, distanceFromCenter: number}> = [];
+  
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (gridPositions.length >= totalPoints) break;
       
-      // Position in center with more generous spread
-      const spreadRadius = Math.min(centerRadius, centerRadius * (index / retrievedChunkPoints.length + 0.5)); // Increased spread factor
-      point.x = 50 + pseudoRandX * spreadRadius;
-      point.y = 50 + pseudoRandY * spreadRadius;
+      const x = 5 + (col * xSpacing); // Start at 5% margin
+      const y = 5 + (row * ySpacing); // Start at 5% margin
+      
+      // Calculate distance from center for outside-in sorting
+      const centerX = 50;
+      const centerY = 50;
+      const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      
+      gridPositions.push({ x, y, distanceFromCenter });
+    }
+  }
+  
+  // Sort positions from outside-in (largest distance first)
+  gridPositions.sort((a, b) => b.distanceFromCenter - a.distanceFromCenter);
+  
+  // Assign positions: unassociated chunks get outer positions first
+  UnretrievedChunkPoints.forEach((point, index) => {
+    if (index < gridPositions.length) {
+      const pos = gridPositions[index];
+      point.x = pos.x;
+      point.y = pos.y;
     }
   });
-
-  // Position Unretrieved chunks in scattered formation around the edges
-  UnretrievedChunkPoints.forEach((point, index) => {
-    if (UnretrievedChunkPoints.length === 0) return;
-    
-    // Create organic scatter around the edges using deterministic positioning
-    const seed = point.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const pseudoRandX = ((seed * 12345 + 67890) % 233280) / 233280; // 0 to 1
-    const pseudoRandY = ((seed * 54321 + 98765) % 217728) / 217728; // Different sequence
-    const pseudoRandAngle = ((seed * 11111 + 22222) % 144000) / 144000 * 2 * Math.PI; // Random angle
-    
-    // Choose edge regions (corners and sides) with some randomness
-    const edgeChoice = seed % 4;
-    let x = 0, y = 0;
-    
-    switch (edgeChoice) {
-      case 0: // Top edge area
-        x = pseudoRandX * 80 + 10; // 10-90 range
-        y = pseudoRandY * 20 + 5;  // 5-25 range (top area)
-        break;
-      case 1: // Right edge area  
-        x = pseudoRandX * 20 + 75; // 75-95 range (right area)
-        y = pseudoRandY * 80 + 10; // 10-90 range
-        break;
-      case 2: // Bottom edge area
-        x = pseudoRandX * 80 + 10; // 10-90 range  
-        y = pseudoRandY * 20 + 75; // 75-95 range (bottom area)
-        break;
-      case 3: // Left edge area
-        x = pseudoRandX * 20 + 5;  // 5-25 range (left area)
-        y = pseudoRandY * 80 + 10; // 10-90 range
-        break;
+  
+  // Then assign inner positions to associated chunks (sorted by frequency for better central placement)
+  retrievedChunkPoints.sort((a, b) => {
+    const freqA = a.data.type === 'chunk' ? a.data.retrievalFrequency : 0;
+    const freqB = b.data.type === 'chunk' ? b.data.retrievalFrequency : 0;
+    return freqB - freqA; // Higher frequency first (more central)
+  });
+  
+  retrievedChunkPoints.forEach((point, index) => {
+    const positionIndex = UnretrievedChunkPoints.length + index;
+    if (positionIndex < gridPositions.length) {
+      const pos = gridPositions[positionIndex];
+      point.x = pos.x;
+      point.y = pos.y;
     }
-    
-    // Add some additional randomness for more organic feel
-    const jitterX = ((seed * 3333 + 4444) % 144000) / 144000 - 0.5; // -0.5 to 0.5
-    const jitterY = ((seed * 5555 + 6666) % 144000) / 144000 - 0.5;
-    
-    point.x = Math.max(2, Math.min(98, x + jitterX * 8)); // Add jitter but keep in bounds
-    point.y = Math.max(2, Math.min(98, y + jitterY * 8));
   });
 
   // Combine all points for collision detection
@@ -379,32 +380,32 @@ export function processChunksToQuestions(
 }
 
 /**
- * Optimize point spacing to prevent overlaps using force-based collision detection
+ * Optimize point spacing to prevent overlaps using size-aware collision detection
  */
 function optimizePointSpacing(points: HeatmapPoint[]): void {
   if (points.length <= 1) return;
   
-  const minDistance = 6.0; // Increased minimum distance between point centers (in coordinate units)
-  const maxIterations = 80; // Increased iterations for better spacing
-  const dampening = 0.7; // Reduces force over time for stability
-  const repulsionStrength = 0.8; // Increased repulsion strength for better spacing
+  const minDistance = 3.5; // Reduced for grid-based layout
+  const maxIterations = 50; // Reduced since grid provides good starting positions
+  const dampening = 0.5; // More aggressive dampening for grid stability
+  const repulsionStrength = 0.4; // Reduced repulsion for grid layout
   
-  // Calculate minimum distance based on point sizes
+  // Calculate minimum distance based on point sizes and neighbor awareness
   const getMinDistance = (point1: HeatmapPoint, point2: HeatmapPoint): number => {
-    // Convert normalized sizes to coordinate space (approximate)
-    const radius1 = point1.size * 4.0; // Increased visual radius in coordinate space
-    const radius2 = point2.size * 4.0;
-    const basePadding = (radius1 + radius2) * 1.6; // Increased to 60% padding around circles
+    // Convert normalized sizes to coordinate space
+    const radius1 = point1.size * 3.0; // Reduced radius calculation
+    const radius2 = point2.size * 3.0;
+    const basePadding = (radius1 + radius2) * 1.2; // Reduced padding for tighter grid
     
-    // Ensure generous minimum spacing even for tiny Unretrieved chunks
-    return Math.max(minDistance, basePadding, 4.0); // Increased minimum to 4.0 units
+    // Consider neighbor sizes for dynamic spacing
+    return Math.max(minDistance, basePadding, 2.5);
   };
   
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     let totalMovement = 0;
     const forces: Array<{x: number, y: number}> = points.map(() => ({x: 0, y: 0}));
     
-    // Calculate repulsion forces between all point pairs
+    // Calculate repulsion forces between nearby points only (optimization)
     for (let i = 0; i < points.length; i++) {
       for (let j = i + 1; j < points.length; j++) {
         const point1 = points[i];
@@ -413,6 +414,10 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
         const dx = point2.x - point1.x;
         const dy = point2.y - point1.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Only process nearby points for efficiency
+        if (distance > 15) continue;
+        
         const requiredDistance = getMinDistance(point1, point2);
         
         if (distance < requiredDistance && distance > 0) {
@@ -433,7 +438,7 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
       }
     }
     
-    // Apply forces with boundary constraints
+    // Apply forces with minimal constraints to maintain grid structure
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
       const force = forces[i];
@@ -442,43 +447,13 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
       const dampenedForceX = force.x * dampening;
       const dampenedForceY = force.y * dampening;
       
-      // Calculate new position
+      // Calculate new position with reduced movement
       let newX = point.x + dampenedForceX;
       let newY = point.y + dampenedForceY;
       
-      // Determine constraints based on chunk type
-      const isUnretrieved = point.data.type === 'chunk' && point.data.isUnretrieved;
-      
-      if (isUnretrieved) {
-        // Keep Unretrieved chunks near edges but within viewport with padding
-        newX = Math.max(3, Math.min(97, newX));
-        newY = Math.max(3, Math.min(97, newY));
-        
-        // If pushed too far from edges, gently guide back toward edge regions
-        const centerDistance = Math.sqrt((newX - 50) ** 2 + (newY - 50) ** 2);
-        if (centerDistance < 28) { // Reduced from 32 to give more space
-          // Push gently toward nearest edge
-          const angle = Math.atan2(newY - 50, newX - 50);
-          const pushDistance = 0.5; // Increased push strength
-          newX += Math.cos(angle) * pushDistance;
-          newY += Math.sin(angle) * pushDistance;
-        }
-      } else {
-        // Keep retrieved chunks in center area but allow more spread
-        const maxCenterRadius = 35; // Increased from 32 to allow more spread
-        const centerDistance = Math.sqrt((newX - 50) ** 2 + (newY - 50) ** 2);
-        
-        if (centerDistance > maxCenterRadius) {
-          // Pull back toward center
-          const angle = Math.atan2(newY - 50, newX - 50);
-          newX = 50 + Math.cos(angle) * maxCenterRadius;
-          newY = 50 + Math.sin(angle) * maxCenterRadius;
-        }
-        
-        // Ensure within viewport with adequate padding
-        newX = Math.max(8, Math.min(92, newX));
-        newY = Math.max(8, Math.min(92, newY));
-      }
+      // Keep all points within viewport bounds with padding
+      newX = Math.max(2, Math.min(98, newX));
+      newY = Math.max(2, Math.min(98, newY));
       
       // Track total movement for convergence detection
       const movement = Math.abs(newX - point.x) + Math.abs(newY - point.y);
@@ -489,8 +464,8 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
       point.y = newY;
     }
     
-    // Check for convergence (minimal movement) - stricter threshold for better spacing
-    if (totalMovement < 0.05) {
+    // Check for convergence with relaxed threshold for grid layout
+    if (totalMovement < 0.1) {
       break;
     }
   }

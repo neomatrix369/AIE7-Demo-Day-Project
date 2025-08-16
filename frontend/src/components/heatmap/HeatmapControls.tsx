@@ -8,7 +8,7 @@ interface HeatmapControlsProps {
   totalChunks: number;
 }
 
-const HeatmapControls: React.FC<HeatmapControlsProps> = ({
+const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
   config,
   onConfigChange,
   totalQuestions,
@@ -185,6 +185,8 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = ({
       </div>
     </div>
   );
-};
+});
+
+HeatmapControls.displayName = 'HeatmapControls';
 
 export default HeatmapControls;

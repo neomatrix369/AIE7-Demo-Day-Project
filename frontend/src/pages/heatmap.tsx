@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { resultsApi, corpusApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType, HeatmapPerspective, HeatmapConfig } from '../types';
@@ -25,40 +25,39 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [drillDownData, setDrillDownData] = useState<string>('');
   const router = useRouter();
 
-  // Fetch all chunks when perspective changes to chunks-to-questions
+  // Load all chunks once (static data used for chunks-to-questions perspective)
   useEffect(() => {
     const fetchAllChunks = async () => {
-      if (heatmapConfig.perspective === 'chunks-to-questions' && !allChunks) {
-        try {
-          logInfo('Loading all chunks for orphaned chunk visualization', {
-            component: 'Heatmap',
-            action: 'CHUNKS_LOAD_START'
-          });
-          
-          const chunksData = await corpusApi.getAllChunks();
-          setAllChunks(chunksData.chunks);
-          
-          logSuccess(`All chunks loaded: ${chunksData.total_count} chunks`, {
-            component: 'Heatmap',
-            action: 'CHUNKS_LOAD_SUCCESS',
-            data: {
-              total_chunks: chunksData.total_count
-            }
-          });
-        } catch (err: any) {
-          logError('Failed to load all chunks', {
-            component: 'Heatmap',
-            action: 'CHUNKS_LOAD_ERROR',
-            data: {
-              error: err.message
-            }
-          });
-        }
+      try {
+        logInfo('Loading all chunks for heatmap visualization', {
+          component: 'Heatmap',
+          action: 'CHUNKS_LOAD_START'
+        });
+        
+        const chunksData = await corpusApi.getAllChunks();
+        setAllChunks(chunksData.chunks);
+        
+        logSuccess(`All chunks loaded: ${chunksData.total_count} chunks`, {
+          component: 'Heatmap',
+          action: 'CHUNKS_LOAD_SUCCESS',
+          data: {
+            total_chunks: chunksData.total_count
+          }
+        });
+      } catch (err: any) {
+        logError('Failed to load all chunks', {
+          component: 'Heatmap',
+          action: 'CHUNKS_LOAD_ERROR',
+          data: {
+            error: err.message
+          }
+        });
       }
     };
 
+    // Only fetch once on mount - allChunks is static data
     fetchAllChunks();
-  }, [heatmapConfig.perspective, allChunks]);
+  }, []); // Empty dependency array - only fetch once
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -103,16 +102,16 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     fetchResults();
   }, []);
 
-  const handleHeatmapConfigChange = (newConfig: Partial<HeatmapConfig>) => {
+  const handleHeatmapConfigChange = useCallback((newConfig: Partial<HeatmapConfig>) => {
     setHeatmapConfig(prev => ({ ...prev, ...newConfig }));
     logInfo('Heatmap configuration changed', {
       component: 'Heatmap',
       action: 'HEATMAP_CONFIG_CHANGE',
       data: newConfig
     });
-  };
+  }, []);
 
-  const handleHeatmapPointClick = (point: HeatmapPoint) => {
+  const handleHeatmapPointClick = useCallback((point: HeatmapPoint) => {
     setSelectedHeatmapPoint(point);
     logInfo('Heatmap point clicked', {
       component: 'Heatmap',
@@ -130,7 +129,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     } else {
       setDrillDownData(`Chunk: ${point.data.chunkId} from ${point.data.docId}`);
     }
-  };
+  }, [heatmapConfig.perspective]);
 
   const handleBackToResults = () => {
     logNavigation('Heatmap', 'Results', {

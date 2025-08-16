@@ -22,7 +22,7 @@ interface ScatterHeatmapProps {
   allChunks?: Array<{chunk_id: string; doc_id: string; title: string; content: string}>;
 }
 
-const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
+const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
   questionResults,
   perspective,
   qualityFilter,
@@ -51,6 +51,9 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
     innerHeight: dimensions.height - dimensions.margin.top - dimensions.margin.bottom
   }), [dimensions]);
 
+  // Memoize allChunks to prevent unnecessary re-renders when array content is the same
+  const memoizedAllChunks = useMemo(() => allChunks, [allChunks?.length]);
+
   // Process data based on perspective
   const heatmapPoints = useMemo(() => {
     if (questionResults.length === 0) return [];
@@ -60,14 +63,14 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
     if (perspective === 'questions-to-chunks') {
       points = processQuestionsToChunks(questionResults);
     } else {
-      points = processChunksToQuestions(questionResults, allChunks || undefined);
+      points = processChunksToQuestions(questionResults, memoizedAllChunks || undefined);
     }
     
     // Filter by quality
     points = filterPointsByQuality(points, qualityFilter);
     
     return points;
-  }, [questionResults, perspective, qualityFilter, allChunks]);
+  }, [questionResults, perspective, qualityFilter, memoizedAllChunks]);
 
   // Position points using coordinates from heatmap data processing
   const positionPoints = useMemo(() => {
@@ -235,7 +238,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
       .delay((d, i) => i * 30)
       .attr('r', d => getScaledSize(d.size, 6, 20));
 
-  }, [renderKey, positionPoints, dimensions, onPointClick, tooltipData]);
+  }, [renderKey, positionPoints, dimensions]);
 
   // Separate effect for click handler updates (doesn't trigger full redraw)
   useEffect(() => {
@@ -302,6 +305,8 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
       </div>
     </div>
   );
-};
+});
+
+ScatterHeatmap.displayName = 'ScatterHeatmap';
 
 export default ScatterHeatmap;

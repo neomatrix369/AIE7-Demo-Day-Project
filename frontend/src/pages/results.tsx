@@ -15,6 +15,8 @@ const AnalysisResults: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'good' | 'weak' | 'poor'>('all');
   const [searchText, setSearchText] = useState<string>('');
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const [isRoleAnalysisExpanded, setIsRoleAnalysisExpanded] = useState(false);
+  const [isAdvancedVisualizationExpanded, setIsAdvancedVisualizationExpanded] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -449,8 +451,24 @@ const AnalysisResults: React.FC = () => {
         </div>
 
         <div className="analysis-section">
-          <h3>🗂️ Per Group Role Analysis</h3>
-          {Object.entries(results.per_group).map(([groupName, groupData]) => (
+          <h3 
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              padding: '10px 0',
+              borderBottom: '1px solid #dee2e6',
+              marginBottom: '15px'
+            }}
+            onClick={() => setIsRoleAnalysisExpanded(!isRoleAnalysisExpanded)}
+          >
+            <span>🗂️ Per Group Role Analysis</span>
+            <span style={{ fontSize: '0.8em', color: '#666' }}>
+              {isRoleAnalysisExpanded ? '▼ Collapse' : '▶ Expand'}
+            </span>
+          </h3>
+          {isRoleAnalysisExpanded && Object.entries(results.per_group).map(([groupName, groupData]) => (
             <div key={groupName} className="card" style={{ marginBottom: '20px' }}>
               <h4>{groupName.toUpperCase()} - Role Breakdown</h4>
               <table className="table">
@@ -514,7 +532,24 @@ const AnalysisResults: React.FC = () => {
         </div>
 
         <div className="analysis-section">
-          <h3>🗺️ Advanced Visualization</h3>
+          <h3 
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              padding: '10px 0',
+              borderBottom: '1px solid #dee2e6',
+              marginBottom: '15px'
+            }}
+            onClick={() => setIsAdvancedVisualizationExpanded(!isAdvancedVisualizationExpanded)}
+          >
+            <span>🗺️ Advanced Visualization</span>
+            <span style={{ fontSize: '0.8em', color: '#666' }}>
+              {isAdvancedVisualizationExpanded ? '▼ Collapse' : '▶ Expand'}
+            </span>
+          </h3>
+          {isAdvancedVisualizationExpanded && (
           <div className="card" style={{ 
             backgroundColor: '#f0f8ff', 
             border: '2px solid #007bff',
@@ -572,6 +607,7 @@ const AnalysisResults: React.FC = () => {
               🗺️ Open Interactive Heatmap Visualization →
             </button>
           </div>
+          )}
         </div>
 
         <div className="analysis-section">

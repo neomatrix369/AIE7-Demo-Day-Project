@@ -173,6 +173,47 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     return uniqueRoles.size;
   }, [results]);
 
+  // Calculate orphan chunk statistics
+  const chunkCoverageStats = React.useMemo(() => {
+    if (!results || !allChunks) return { 
+      totalChunks: 0, 
+      retrievedChunks: 0, 
+      orphanedChunks: 0, 
+      coveragePercentage: 0,
+      orphanPercentage: 0
+    };
+
+    const retrievedChunkIds = new Set();
+    results.per_question.forEach(question => {
+      question.retrieved_docs.forEach(doc => {
+        if (doc.chunk_id) {
+          retrievedChunkIds.add(doc.chunk_id);
+        }
+      });
+    });
+
+    const totalChunks = allChunks.length;
+    const retrievedChunks = retrievedChunkIds.size;
+    const orphanedChunks = totalChunks - retrievedChunks;
+    const coveragePercentage = totalChunks > 0 ? Math.round((retrievedChunks / totalChunks) * 100) : 0;
+    const orphanPercentage = totalChunks > 0 ? Math.round((orphanedChunks / totalChunks) * 100) : 0;
+
+    return {
+      totalChunks,
+      retrievedChunks,
+      orphanedChunks,
+      coveragePercentage,
+      orphanPercentage
+    };
+  }, [results, allChunks]);
+
+  // Helper function to get quality score status
+  const getStatusText = (score: number) => {
+    if (score >= 7.0) return 'GOOD';
+    if (score >= 5.0) return 'WEAK';
+    return 'POOR';
+  };
+
   if (loading) {
     return (
       <div>
@@ -243,40 +284,116 @@ const InteractiveHeatmapVisualization: React.FC = () => {
         </p>
         
         {/* Summary Statistics */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: '15px', 
-          marginBottom: '30px',
-          padding: '15px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '6px',
-          border: '1px solid #dee2e6'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#007bff' }}>
-              {results.overall.total_questions}
+        <div style={{ marginBottom: '30px' }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+            gap: '15px', 
+            marginBottom: '20px'
+          }}>
+            {/* Average Quality Score Card */}
+            <div style={{ backgroundColor: '#e6f7e6', border: '2px solid #28a745', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#155724', fontSize: '0.9rem' }}>🎯 Quality Score</h4>
+              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                <span style={{ color: '#28a745', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
+                  {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
+                </span>
+                <div style={{ 
+                  backgroundColor: results.overall.avg_quality_score >= 7.0 ? '#28a745' : results.overall.avg_quality_score >= 5.0 ? '#e67e22' : '#dc3545',
+                  color: 'white',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  fontSize: '0.7rem',
+                  marginTop: '3px',
+                  display: 'inline-block'
+                }}>
+                  {getStatusText(results.overall.avg_quality_score)}
+                </div>
+                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Quality Score</div>
+              </div>
             </div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Total Questions</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#28a745' }}>
-              {totalChunks}
+
+            {/* Success Rate Card */}
+            <div style={{ backgroundColor: '#fff2e6', border: '2px solid #d63384', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#6a1a3a', fontSize: '0.9rem' }}>📈 Success Rate</h4>
+              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                <span style={{ color: '#d63384', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
+                  {Math.round(results.overall.success_rate * 100)}%
+                </span>
+                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>High Quality Rate (≥7.0)</div>
+              </div>
             </div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Unique Chunks</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#6f42c1' }}>
-              {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
+
+            {/* Questions Processed Card */}
+            <div style={{ backgroundColor: '#e6e6ff', border: '2px solid #5a3bb0', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#3a1d66', fontSize: '0.9rem' }}>📊 Processing Volume</h4>
+              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                <span style={{ color: '#5a3bb0', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
+                  {results.overall.total_questions}
+                </span>
+                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Questions Processed</div>
+              </div>
             </div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Average Quality Score</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#e67e22' }}>
-              {Math.round(results.overall.success_rate * 100)}%
+
+            {/* Total Chunks Card */}
+            <div style={{ backgroundColor: '#e6f7ff', border: '2px solid #0c7cd5', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem' }}>📄 Total Chunks</h4>
+              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                <span style={{ color: '#0c7cd5', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
+                  {chunkCoverageStats.totalChunks}
+                </span>
+                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Document Chunks Available</div>
+              </div>
             </div>
-            <div style={{ color: '#666', fontSize: '0.9rem' }}>Success Rate</div>
           </div>
+
+          {/* Perspective-specific Coverage Statistics */}
+          {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'chunks-to-roles') && (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '15px'
+            }}>
+              {/* Coverage Percentage Card */}
+              <div style={{ backgroundColor: '#f0f8ff', border: '2px solid #007bff', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#0056b3', fontSize: '0.9rem' }}>📊 Chunk Coverage</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#007bff', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                    {chunkCoverageStats.coveragePercentage}%
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                    {chunkCoverageStats.retrievedChunks} of {chunkCoverageStats.totalChunks} Chunks Retrieved
+                  </div>
+                </div>
+              </div>
+
+              {/* Orphaned Chunks Card */}
+              <div style={{ backgroundColor: '#f8f9fa', border: '2px solid #6c757d', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '0.9rem' }}>🔍 Orphaned Chunks</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#6c757d', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                    {chunkCoverageStats.orphanPercentage}%
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                    {chunkCoverageStats.orphanedChunks} Chunks Never Retrieved
+                  </div>
+                </div>
+              </div>
+
+              {/* Unique Roles Card (only for chunks-to-roles) */}
+              {heatmapConfig.perspective === 'chunks-to-roles' && (
+                <div style={{ backgroundColor: '#fff8dc', border: '2px solid #b8860b', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#5c4b00', fontSize: '0.9rem' }}>👥 User Roles</h4>
+                  <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                    <span style={{ color: '#b8860b', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                      {totalRoles}
+                    </span>
+                    <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Distinct User Roles</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Heatmap Controls */}

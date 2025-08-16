@@ -22,6 +22,7 @@ interface ScatterHeatmapProps {
   width?: number;
   height?: number;
   allChunks?: Array<{chunk_id: string; doc_id: string; title: string; content: string}>;
+  totalChunks?: number;
 }
 
 const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
@@ -31,7 +32,8 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
   onPointClick,
   width = 800,
   height = 400,
-  allChunks
+  allChunks,
+  totalChunks
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltipData, setTooltipData] = useState<HeatmapPoint | null>(null);
@@ -193,7 +195,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .attr('r', d => getScaledSize(d.size, 6, 20))
       .attr('fill', d => getHeatmapColor(
         d.color, 
-        d.data.type === 'chunk' && d.data.isOrphaned,
+        d.data.type === 'chunk' && d.data.isUnretrieved,
         true // Both questions and chunks now use 0-10 scale (quality/similarity scores)
       ))
       .attr('opacity', d => d.opacity)
@@ -317,7 +319,9 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         color: '#666',
         textAlign: 'center'
       }}>
-        {heatmapPoints.length} {perspective === 'questions-to-chunks' ? 'questions' : 'chunks'} shown
+        {perspective === 'questions-to-chunks' 
+          ? `${heatmapPoints.length} questions shown`
+          : `${totalChunks || heatmapPoints.length} chunks shown`}
         {qualityFilter !== 'all' && ` (${qualityFilter} quality only)`}
       </div>
     </div>

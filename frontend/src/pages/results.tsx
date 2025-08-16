@@ -625,7 +625,7 @@ const AnalysisResults: React.FC = () => {
             }}>
               <div>
                 <strong style={{ color: '#007bff' }}>📄 Chunks → Questions</strong><br/>
-                See how chunks are retrieved with orphaned chunk detection
+                See how chunks are retrieved with Unretrieved chunk detection
               </div>
               <div>
                 <strong style={{ color: '#007bff' }}>📄 Chunks → Roles</strong><br/>

@@ -173,14 +173,14 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     return uniqueRoles.size;
   }, [results]);
 
-  // Calculate orphan chunk statistics
+  // Calculate Unretrieved chunk statistics
   const chunkCoverageStats = React.useMemo(() => {
     if (!results || !allChunks) return { 
       totalChunks: 0, 
       retrievedChunks: 0, 
-      orphanedChunks: 0, 
+      UnretrievedChunks: 0, 
       coveragePercentage: 0,
-      orphanPercentage: 0
+      UnretrievedPercentage: 0
     };
 
     const retrievedChunkIds = new Set();
@@ -194,16 +194,16 @@ const InteractiveHeatmapVisualization: React.FC = () => {
 
     const totalChunks = allChunks.length;
     const retrievedChunks = retrievedChunkIds.size;
-    const orphanedChunks = totalChunks - retrievedChunks;
+    const UnretrievedChunks = totalChunks - retrievedChunks;
     const coveragePercentage = totalChunks > 0 ? Math.round((retrievedChunks / totalChunks) * 100) : 0;
-    const orphanPercentage = totalChunks > 0 ? Math.round((orphanedChunks / totalChunks) * 100) : 0;
+    const UnretrievedPercentage = totalChunks > 0 ? Math.round((UnretrievedChunks / totalChunks) * 100) : 0;
 
     return {
       totalChunks,
       retrievedChunks,
-      orphanedChunks,
+      UnretrievedChunks,
       coveragePercentage,
-      orphanPercentage
+      UnretrievedPercentage
     };
   }, [results, allChunks]);
 
@@ -396,15 +396,15 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 </div>
               </div>
 
-              {/* Orphaned Chunks Card */}
+              {/* Unretrieved Chunks Card */}
               <div style={{ backgroundColor: '#f8f9fa', border: '2px solid #6c757d', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '0.9rem' }}>🔍 Orphaned Chunks</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '0.9rem' }}>🔍 Unretrieved Chunks</h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span style={{ color: '#6c757d', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {chunkCoverageStats.orphanPercentage}%
+                    {chunkCoverageStats.UnretrievedPercentage}%
                   </span>
                   <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                    {chunkCoverageStats.orphanedChunks} Chunks Never Retrieved
+                    {chunkCoverageStats.UnretrievedChunks} Chunks Never Retrieved
                   </div>
                 </div>
               </div>
@@ -508,6 +508,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
               width={780}
               height={460}
               allChunks={allChunks || undefined}
+              totalChunks={chunkCoverageStats.totalChunks}
             />
           </div>
           

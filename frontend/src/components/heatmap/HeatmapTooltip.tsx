@@ -118,8 +118,8 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
   );
 
   const renderChunkTooltip = (data: ChunkHeatmapData) => {
-    if (data.isOrphaned) {
-      // Minimal tooltip for orphaned chunks
+    if (data.isUnretrieved) {
+      // Minimal tooltip for Unretrieved chunks
       return (
         <div>
           <div style={{ 
@@ -130,7 +130,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
             borderBottom: '1px solid #eee',
             paddingBottom: '5px'
           }}>
-            🔍 Orphaned Chunk
+            🔍 Unretrieved Chunk
           </div>
           
           <div style={{ marginBottom: '6px' }}>
@@ -414,7 +414,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
         📄 {data.title.length > 40 ? `${data.title.substring(0, 40)}...` : data.title}
       </div>
 
-      {data.isOrphaned ? (
+      {data.isUnretrieved ? (
         <div style={{ 
           color: '#6c757d',
           fontSize: '0.8rem',

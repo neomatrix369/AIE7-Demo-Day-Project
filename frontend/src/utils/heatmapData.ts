@@ -47,7 +47,7 @@ export interface ChunkHeatmapData {
     similarity: number;
     roleName?: string;
   }>;
-  isOrphaned?: boolean; // True if this chunk has never been retrieved by any question
+  isUnretrieved?: boolean; // True if this chunk has never been retrieved by any question
 }
 
 export interface RoleHeatmapData {
@@ -95,7 +95,7 @@ export interface ChunkToRoleHeatmapData {
     accessCount: number;
     percentage: number; // Percentage of total retrievals from this role
   };
-  isOrphaned?: boolean; // True if this chunk has never been retrieved by any question
+  isUnretrieved?: boolean; // True if this chunk has never been retrieved by any question
 }
 
 /**
@@ -142,7 +142,7 @@ export function processQuestionsToChunks(questionResults: QuestionResult[]): Hea
 
 /**
  * Process questions data for Chunks-to-Questions perspective
- * Includes both retrieved chunks and orphaned chunks (never retrieved)
+ * Includes both retrieved chunks and Unretrieved chunks (never retrieved)
  */
 export function processChunksToQuestions(
   questionResults: QuestionResult[],
@@ -192,14 +192,14 @@ export function processChunksToQuestions(
 
   const retrievedChunks = Array.from(chunkMap.values());
   
-  // Add orphaned chunks if allChunks data is provided
-  const orphanedChunks: Array<{
+  // Add Unretrieved chunks if allChunks data is provided
+  const UnretrievedChunks: Array<{
     chunkId: string;
     docId: string;
     title: string;
     questions: Array<any>;
     totalSimilarity: number;
-    isOrphaned: boolean;
+    isUnretrieved: boolean;
   }> = [];
   
   if (allChunks) {
@@ -207,22 +207,22 @@ export function processChunksToQuestions(
     
     allChunks.forEach(chunk => {
       if (!retrievedChunkIds.has(chunk.chunk_id)) {
-        orphanedChunks.push({
+        UnretrievedChunks.push({
           chunkId: chunk.chunk_id,
           docId: chunk.doc_id,
           title: chunk.title,
           questions: [],
           totalSimilarity: 0,
-          isOrphaned: true
+          isUnretrieved: true
         });
       }
     });
   }
   
-  // Combine retrieved and orphaned chunks
+  // Combine retrieved and Unretrieved chunks
   const allProcessedChunks = [
-    ...retrievedChunks.map(c => ({ ...c, isOrphaned: false })),
-    ...orphanedChunks
+    ...retrievedChunks.map(c => ({ ...c, isUnretrieved: false })),
+    ...UnretrievedChunks
   ];
   
   // Handle case where no chunks are found
@@ -233,20 +233,20 @@ export function processChunksToQuestions(
   const maxRetrievalFrequency = Math.max(...retrievedChunks.map(c => c.questions.length), 1);
   const maxAvgSimilarity = Math.max(...retrievedChunks.map(c => c.totalSimilarity / c.questions.length), 1);
 
-  // Sort chunks: retrieved chunks first (by frequency), then orphaned chunks
+  // Sort chunks: retrieved chunks first (by frequency), then Unretrieved chunks
   allProcessedChunks.sort((a, b) => {
-    if (a.isOrphaned && !b.isOrphaned) return 1;
-    if (!a.isOrphaned && b.isOrphaned) return -1;
+    if (a.isUnretrieved && !b.isUnretrieved) return 1;
+    if (!a.isUnretrieved && b.isUnretrieved) return -1;
     return b.questions.length - a.questions.length;
   });
 
-  // Separate retrieved and orphaned chunks for different positioning strategies
+  // Separate retrieved and Unretrieved chunks for different positioning strategies
   const retrievedChunkPoints: HeatmapPoint[] = [];
-  const orphanedChunkPoints: HeatmapPoint[] = [];
+  const UnretrievedChunkPoints: HeatmapPoint[] = [];
   
   allProcessedChunks.forEach((chunk, index) => {
-    if (chunk.isOrphaned) {
-      // Handle orphaned chunks with minimal data
+    if (chunk.isUnretrieved) {
+      // Handle Unretrieved chunks with minimal data
       const chunkData: ChunkHeatmapData = {
         type: 'chunk',
         chunkId: chunk.chunkId,
@@ -260,16 +260,16 @@ export function processChunksToQuestions(
           similarity: 0
         },
         retrievingQuestions: [],
-        isOrphaned: true
+        isUnretrieved: true
       };
 
-      orphanedChunkPoints.push({
+      UnretrievedChunkPoints.push({
         id: chunk.chunkId,
         x: 0, // Will be calculated later
         y: 0, // Will be calculated later
-        size: 0.15, // Much smaller size for orphaned chunks
+        size: 0.15, // Much smaller size for Unretrieved chunks
         color: 0, // Grey color (will be handled in getHeatmapColor)
-        opacity: 0.3, // Lower opacity for orphaned chunks
+        opacity: 0.3, // Lower opacity for Unretrieved chunks
         data: chunkData
       });
     } else {
@@ -293,7 +293,7 @@ export function processChunksToQuestions(
           roleName: bestQuestion.roleName
         },
         retrievingQuestions: chunk.questions,
-        isOrphaned: false
+        isUnretrieved: false
       };
 
       retrievedChunkPoints.push({
@@ -328,9 +328,9 @@ export function processChunksToQuestions(
     }
   });
 
-  // Position orphaned chunks in scattered formation around the edges
-  orphanedChunkPoints.forEach((point, index) => {
-    if (orphanedChunkPoints.length === 0) return;
+  // Position Unretrieved chunks in scattered formation around the edges
+  UnretrievedChunkPoints.forEach((point, index) => {
+    if (UnretrievedChunkPoints.length === 0) return;
     
     // Create organic scatter around the edges using deterministic positioning
     const seed = point.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -370,7 +370,7 @@ export function processChunksToQuestions(
   });
 
   // Combine all points for collision detection
-  const allPoints = [...retrievedChunkPoints, ...orphanedChunkPoints];
+  const allPoints = [...retrievedChunkPoints, ...UnretrievedChunkPoints];
   
   // Apply collision detection and spacing optimization
   optimizePointSpacing(allPoints);
@@ -396,7 +396,7 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
     const radius2 = point2.size * 4.0;
     const basePadding = (radius1 + radius2) * 1.6; // Increased to 60% padding around circles
     
-    // Ensure generous minimum spacing even for tiny orphaned chunks
+    // Ensure generous minimum spacing even for tiny Unretrieved chunks
     return Math.max(minDistance, basePadding, 4.0); // Increased minimum to 4.0 units
   };
   
@@ -447,10 +447,10 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
       let newY = point.y + dampenedForceY;
       
       // Determine constraints based on chunk type
-      const isOrphaned = point.data.type === 'chunk' && point.data.isOrphaned;
+      const isUnretrieved = point.data.type === 'chunk' && point.data.isUnretrieved;
       
-      if (isOrphaned) {
-        // Keep orphaned chunks near edges but within viewport with padding
+      if (isUnretrieved) {
+        // Keep Unretrieved chunks near edges but within viewport with padding
         newX = Math.max(3, Math.min(97, newX));
         newY = Math.max(3, Math.min(97, newY));
         
@@ -499,9 +499,9 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
 /**
  * Get color based on quality score (0-10 scale) or intensity (0-1 scale)
  */
-export function getHeatmapColor(value: number, isOrphaned: boolean = false, isQualityScore: boolean = false): string {
-  // Special color for orphaned chunks
-  if (isOrphaned || value === 0) return '#6c757d'; // Grey for orphaned chunks
+export function getHeatmapColor(value: number, isUnretrieved: boolean = false, isQualityScore: boolean = false): string {
+  // Special color for Unretrieved chunks
+  if (isUnretrieved || value === 0) return '#6c757d'; // Grey for Unretrieved chunks
   
   if (isQualityScore) {
     // Quality score scale (0-10): use actual thresholds
@@ -744,14 +744,14 @@ export function processChunksToRoles(
     });
   });
 
-  // Add orphaned chunks if allChunks is provided
+  // Add Unretrieved chunks if allChunks is provided
   const processedChunks = Array.from(chunkAccessMap.values());
-  const orphanedChunks: typeof processedChunks = [];
+  const UnretrievedChunks: typeof processedChunks = [];
   
   if (allChunks) {
     allChunks.forEach(chunk => {
       if (!chunkAccessMap.has(chunk.chunk_id)) {
-        orphanedChunks.push({
+        UnretrievedChunks.push({
           chunkId: chunk.chunk_id,
           docId: chunk.doc_id,
           title: chunk.title,
@@ -763,12 +763,12 @@ export function processChunksToRoles(
     });
   }
 
-  const allProcessedChunks = [...processedChunks, ...orphanedChunks];
+  const allProcessedChunks = [...processedChunks, ...UnretrievedChunks];
   const chunkPoints: HeatmapPoint[] = [];
 
   allProcessedChunks.forEach((chunk, index) => {
     if (chunk.totalRetrievals === 0) {
-      // Handle orphaned chunks
+      // Handle Unretrieved chunks
       const chunkData: ChunkToRoleHeatmapData = {
         type: 'chunk-to-role',
         chunkId: chunk.chunkId,
@@ -782,14 +782,14 @@ export function processChunksToRoles(
           accessCount: 0,
           percentage: 0
         },
-        isOrphaned: true
+        isUnretrieved: true
       };
 
       chunkPoints.push({
         id: `chunk_${chunk.chunkId}`,
         x: 0, // Will be positioned later
         y: 0,
-        size: 0.15, // Small size for orphaned chunks
+        size: 0.15, // Small size for Unretrieved chunks
         color: 0, // Grey color
         opacity: 0.3,
         data: chunkData
@@ -823,7 +823,7 @@ export function processChunksToRoles(
           accessCount: dominantRoleEntry.accessCount,
           percentage: Math.round((dominantRoleEntry.accessCount / chunk.totalRetrievals) * 100)
         },
-        isOrphaned: false
+        isUnretrieved: false
       };
 
       chunkPoints.push({
@@ -839,9 +839,9 @@ export function processChunksToRoles(
   });
 
   // Apply center-perimeter positioning similar to chunks-to-questions
-  // Separate retrieved and orphaned chunks
-  const retrievedChunkPoints = chunkPoints.filter(p => !p.data.isOrphaned);
-  const orphanedChunkPoints = chunkPoints.filter(p => p.data.isOrphaned);
+  // Separate retrieved and Unretrieved chunks
+  const retrievedChunkPoints = chunkPoints.filter(p => !p.data.isUnretrieved);
+  const UnretrievedChunkPoints = chunkPoints.filter(p => p.data.isUnretrieved);
 
   // Position retrieved chunks in center
   const centerX = 50;
@@ -855,15 +855,15 @@ export function processChunksToRoles(
     point.y = centerY + radius * Math.sin(angle);
   });
 
-  // Position orphaned chunks around perimeter
-  orphanedChunkPoints.forEach((point, index) => {
-    const angle = (index / orphanedChunkPoints.length) * 2 * Math.PI;
+  // Position Unretrieved chunks around perimeter
+  UnretrievedChunkPoints.forEach((point, index) => {
+    const angle = (index / UnretrievedChunkPoints.length) * 2 * Math.PI;
     const radius = 35 + Math.random() * 15; // Outer ring
     point.x = centerX + radius * Math.cos(angle);
     point.y = centerY + radius * Math.sin(angle);
   });
 
-  const finalPoints = [...retrievedChunkPoints, ...orphanedChunkPoints];
+  const finalPoints = [...retrievedChunkPoints, ...UnretrievedChunkPoints];
   
   // Apply spacing optimization
   optimizePointSpacing(finalPoints);

@@ -43,7 +43,7 @@ A 5-screen wizard application for comprehensive RAG system quality assessment us
 2. **❓ Question Groups Overview**: Side-by-side comparison of LLM-generated vs RAGAS-generated questions with role breakdown
 3. **⚙️ Experiment Configuration**: Interactive experiment setup with real-time WebSocket streaming and progress tracking
 4. **📈 Analysis Results Dashboard**: Enhanced 3-level analysis with collapsible sections, quick actions, role-based insights, and comprehensive filtering
-5. **🗺️ Interactive Data Visualization**: Multi-perspective scatter plot heatmaps with coverage analytics, orphaned chunk detection, and smart performance insights
+5. **🗺️ Interactive Data Visualization**: Multi-perspective scatter plot heatmaps with coverage analytics, Unretrieved chunk detection, and smart performance insights
 
 ### 🏗️ Technical Architecture
 - **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking (750 chars, 100 overlap)
@@ -51,7 +51,7 @@ A 5-screen wizard application for comprehensive RAG system quality assessment us
 - **📏 Quality Score System**: Normalized 0-10 scale with consistent thresholds (GOOD ≥7.0, WEAK ≥5.0, POOR <5.0) and color-coded indicators
 - **🆔 Chunk Traceability**: Qdrant UUID capture for enhanced debugging and search result analysis with clickable chunk IDs
 - **🗺️ Interactive Visualization**: D3.js-powered scatter plot heatmaps with multiple perspectives and advanced analytics
-- **📊 Coverage Analytics**: Comprehensive chunk utilization tracking with orphaned chunk detection
+- **📊 Coverage Analytics**: Comprehensive chunk utilization tracking with Unretrieved chunk detection
 - **👥 Role-Based Analysis**: Complete role integration across visualization and analysis workflows
 - **⚡ Performance Optimization**: Caching, memoization, and optimized rendering for smooth user experience
 - **📡 Real-time Communication**: WebSocket streaming for live experiment progress updates

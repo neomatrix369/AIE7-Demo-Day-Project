@@ -100,7 +100,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
         </div>
         <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '8px' }}>
           {config.perspective === 'chunks-to-questions'
-            ? 'View how document chunks are retrieved by different questions (includes orphaned chunks that were never retrieved)'
+            ? 'View how document chunks are retrieved by different questions (includes Unretrieved chunks that were never retrieved)'
             : config.perspective === 'chunks-to-roles'
             ? 'View how document chunks are accessed by different user roles and analyze role-based usage patterns'
             : config.perspective === 'roles-to-chunks'
@@ -194,15 +194,15 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
         {config.perspective === 'chunks-to-questions' ? (
           <>
             <strong>📊 Data Points:</strong> Each point represents a document chunk with optimized spacing. 
-            <strong> Size</strong> = retrieval frequency (smaller for orphaned), <strong>Color</strong> = average similarity (grey for orphaned), 
-            <strong> Position</strong> = center cluster (retrieved) vs edge scatter (orphaned). 
+            <strong> Size</strong> = retrieval frequency (smaller for Unretrieved), <strong>Color</strong> = average similarity (grey for Unretrieved), 
+            <strong> Position</strong> = center cluster (retrieved) vs edge scatter (Unretrieved). 
             <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Auto-spaced to prevent overlaps while maintaining center/edge distribution.</span>
           </>
         ) : config.perspective === 'chunks-to-roles' ? (
           <>
             <strong>📊 Data Points:</strong> Each point represents a document chunk analyzed by role usage. 
-            <strong> Size</strong> = total retrievals across roles (smaller for orphaned), <strong>Color</strong> = average similarity, 
-            <strong> Position</strong> = center cluster (accessed) vs edge scatter (orphaned). 
+            <strong> Size</strong> = total retrievals across roles (smaller for Unretrieved), <strong>Color</strong> = average similarity, 
+            <strong> Position</strong> = center cluster (accessed) vs edge scatter (Unretrieved). 
             <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows which roles access which chunks and dominant usage patterns.</span>
           </>
         ) : config.perspective === 'roles-to-chunks' ? (

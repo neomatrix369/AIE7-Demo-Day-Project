@@ -15,7 +15,7 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
     { value: 0.9, label: 'Excellent (≥7.0)', color: '#28a745' },
     { value: 0.6, label: 'Weak (5.0-7.0)', color: '#e67e22' },
     { value: 0.3, label: 'Poor (<5.0)', color: '#dc3545' },
-    { value: 0.0, label: 'Orphaned (never retrieved)', color: '#6c757d' }
+    { value: 0.0, label: 'Unretrieved (never retrieved)', color: '#6c757d' }
   ] : [
     { value: 0.9, label: 'Excellent (≥7.0)', color: '#28a745' },
     { value: 0.6, label: 'Weak (5.0-7.0)', color: '#e67e22' },
@@ -26,12 +26,12 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
     { size: 1.0, label: 'High retrieval frequency' },
     { size: 0.6, label: 'Medium retrieval frequency' },
     { size: 0.4, label: 'Low retrieval frequency' },
-    { size: 0.15, label: 'Orphaned (no retrieval)' }
+    { size: 0.15, label: 'Unretrieved (no retrieval)' }
   ] : perspective === 'chunks-to-roles' ? [
     { size: 1.0, label: 'High role access' },
     { size: 0.6, label: 'Medium role access' },
     { size: 0.4, label: 'Low role access' },
-    { size: 0.15, label: 'Orphaned (no access)' }
+    { size: 0.15, label: 'Unretrieved (no access)' }
   ] : perspective === 'roles-to-chunks' ? [
     { size: 1.0, label: 'Many questions' },
     { size: 0.6, label: 'Some questions' },
@@ -150,7 +150,7 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
             <>
               <strong>Scatter Space:</strong> Optimized center-edge distribution<br/>
               <strong>Center Cluster:</strong> Retrieved chunks (larger, colored)<br/>
-              <strong>Edge Scatter:</strong> Orphaned chunks (smaller, grey)<br/>
+              <strong>Edge Scatter:</strong> Unretrieved chunks (smaller, grey)<br/>
               <strong>Spacing:</strong> Auto-optimized to prevent overlaps
             </>
           )}

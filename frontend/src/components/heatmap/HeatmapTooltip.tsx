@@ -342,4 +342,6 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
   );
 });
 
+HeatmapTooltip.displayName = 'HeatmapTooltip';
+
 export default HeatmapTooltip;

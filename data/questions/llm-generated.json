@@ -1,7 +1,7 @@
 [
     {
-      "id": "current-student",
-      "name": "Current Student",
+      "role-id": "current-student",
+      "role": "Current Student",
       "description": "Currently enrolled in school, exploring loan options",
       "questions": [
         { "text": "How much can I borrow for my degree program?", "focus": "General" },
@@ -14,8 +14,8 @@
       ]
     },
     {
-      "id": "recent-graduate",
-      "name": "Recent Graduate",
+      "role-id": "recent-graduate",
+      "role": "Recent Graduate",
       "description": "Recently graduated, entering repayment phase",
       "questions": [
         { "text": "What are my repayment options after graduation?", "focus": "General" },
@@ -28,8 +28,8 @@
       ]
     },
     {
-      "id": "parent-family",
-      "name": "Parent/Family",
+      "role-id": "parent-family",
+      "role": "Parent/Family",
       "description": "Parent or family member helping with education financing",
       "questions": [
         { "text": "Should I take a PLUS loan or help my child borrow?", "focus": "General" },
@@ -42,8 +42,8 @@
       ]
     },
     {
-      "id": "active-borrower",
-      "name": "Active Borrower",
+      "role-id": "active-borrower",
+      "role": "Active Borrower",
       "description": "Currently repaying loans, managing payments",
       "questions": [
         { "text": "Can I lower my monthly payment amount?", "focus": "General" },
@@ -56,8 +56,8 @@
       ]
     },
     {
-      "id": "public-service",
-      "name": "Public Service Worker",
+      "role-id": "public-service",
+      "role": "Public Service Worker",
       "description": "Working in public service, eligible for PSLF",
       "questions": [
         { "text": "Do I qualify for Public Service Loan Forgiveness?", "focus": "General" },
@@ -70,8 +70,8 @@
       ]
     },
     {
-      "id": "financial-difficulty",
-      "name": "Financial Difficulty",
+      "role-id": "financial-difficulty",
+      "role": "Financial Difficulty",
       "description": "Experiencing financial hardship with loan payments",
       "questions": [
         { "text": "I can't make my loan payments, what are my options?", "focus": "General" },
@@ -84,8 +84,8 @@
       ]
     },
     {
-      "id": "general-user",
-      "name": "General User",
+      "role-id": "general-user",
+      "role": "General User",
       "description": "Seeking quick answers and general information",
       "questions": [
         { "text": "What types of federal student loans are available?", "focus": "Basic Info" },
@@ -98,8 +98,8 @@
       ]
     },
     {
-      "id": "disabled-student",
-      "name": "Disabled Student",
+      "role-id": "disabled-student",
+      "role": "Disabled Student",
       "description": "Seeking accessible information and support options",
       "questions": [
         { "text": "What loan discharge options are available for students with disabilities?", "focus": "Disability Discharge" },

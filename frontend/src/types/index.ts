@@ -16,11 +16,10 @@ export interface Question {
 }
 
 export interface QuestionCategory {
-  id: string;
-  name: string;
+  role_id: string;
+  role: string;
   emoji: string;
   description: string;
-  color: string;
   questions: Question[];
 }
 
@@ -55,13 +54,15 @@ export interface AnalysisResults {
     key_insight: string;
   };
   per_group: {
-    llm: {
+    [group_name: string]: {
       avg_quality_score: number;
       distribution: number[];
-    };
-    ragas: {
-      avg_quality_score: number;
-      distribution: number[];
+      roles: {
+        [role_name: string]: {
+          avg_quality_score: number;
+          distribution: number[];
+        };
+      };
     };
   };
   per_question: QuestionResult[];

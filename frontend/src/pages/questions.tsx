@@ -29,8 +29,8 @@ const QuestionGroupsOverview: React.FC = () => {
         setLlmQuestions(llmQuestionsData);
         setRagasQuestions(ragasQuestionsData);
         
-        const totalLlmQuestions = llmQuestionsData.reduce((acc, category) => acc + category.questions.length, 0);
-        const totalRagasQuestions = ragasQuestionsData.reduce((acc, category) => acc + category.questions.length, 0);
+        const totalLlmQuestions = llmQuestionsData.reduce((acc, role) => acc + role.questions.length, 0);
+        const totalRagasQuestions = ragasQuestionsData.reduce((acc, role) => acc + role.questions.length, 0);
 
         logSuccess(`Questions loaded: ${totalLlmQuestions} LLM + ${totalRagasQuestions} RAGAS`, {
           component: 'Questions',
@@ -38,8 +38,8 @@ const QuestionGroupsOverview: React.FC = () => {
           data: {
             llm_count: llmQuestionsData.length,
             ragas_count: ragasQuestionsData.length,
-            llm_categories: llmQuestionsData.length,
-            ragas_categories: ragasQuestionsData.length
+            llm_roles: llmQuestionsData.length,
+            ragas_roles: ragasQuestionsData.length
           }
         });
         
@@ -111,8 +111,8 @@ const QuestionGroupsOverview: React.FC = () => {
     );
   }
 
-  const totalLlmQuestions = llmQuestions.reduce((acc, category) => acc + category.questions.length, 0);
-  const totalRagasQuestions = ragasQuestions.reduce((acc, category) => acc + category.questions.length, 0);
+  const totalLlmQuestions = llmQuestions.reduce((acc, role) => acc + role.questions.length, 0);
+  const totalRagasQuestions = ragasQuestions.reduce((acc, role) => acc + role.questions.length, 0);
 
   return (
     <div>
@@ -138,9 +138,9 @@ const QuestionGroupsOverview: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <h4>Question Categories:</h4>
+              <h4>Question Roles:</h4>
               <div style={{ padding: '10px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '4px' }}>
-                {llmQuestions.map((category, index) => (
+                {llmQuestions.map((role, index) => (
                   <span
                     key={index}
                     style={{
@@ -154,7 +154,7 @@ const QuestionGroupsOverview: React.FC = () => {
                       textTransform: 'capitalize'
                     }}
                   >
-                    {category.name.replace('_', ' ')}
+                    {category.role.replace('_', ' ')}
                   </span>
                 ))}
               </div>
@@ -163,10 +163,10 @@ const QuestionGroupsOverview: React.FC = () => {
             <div>
               <h4>Sample Questions:</h4>
               <div className="question-list">
-                {llmQuestions.slice(0, 5).map((category) => (
-                  category.questions.slice(0, 1).map((question, index) => (
-                    <div key={`${category.id}-${index}`} className="question-item">
-                      <span style={{ color: '#666', fontSize: '0.9rem' }}>{category.emoji}</span> {question.text}
+                {llmQuestions.slice(0, 5).map((role) => (
+                  role.questions.slice(0, 1).map((question, index) => (
+                    <div key={`${category.role_id}-${index}`} className="question-item">
+                      <span style={{ color: '#666', fontSize: '0.9rem' }}>{role.emoji}</span> {question.text}
                     </div>
                   ))
                 ))}
@@ -188,9 +188,9 @@ const QuestionGroupsOverview: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <h4>Question Categories:</h4>
+              <h4>Question Roles:</h4>
               <div style={{ padding: '10px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '4px' }}>
-                {ragasQuestions.map((category, index) => (
+                {ragasQuestions.map((role, index) => (
                   <span
                     key={index}
                     style={{
@@ -204,7 +204,7 @@ const QuestionGroupsOverview: React.FC = () => {
                       textTransform: 'capitalize'
                     }}
                   >
-                    {category.name.replace('_', ' ')}
+                    {category.role.replace('_', ' ')}
                   </span>
                 ))}
               </div>
@@ -213,10 +213,10 @@ const QuestionGroupsOverview: React.FC = () => {
             <div>
               <h4>Sample Questions:</h4>
               <div className="question-list">
-                {ragasQuestions.slice(0, 5).map((category) => (
-                  category.questions.slice(0, 1).map((question, index) => (
-                    <div key={`${category.id}-${index}`} className="question-item">
-                      <span style={{ color: '#666', fontSize: '0.9rem' }}></span> {question.text}
+                {ragasQuestions.slice(0, 5).map((role) => (
+                  role.questions.slice(0, 1).map((question, index) => (
+                    <div key={`${category.role_id}-${index}`} className="question-item">
+                      <span style={{ color: '#666', fontSize: '0.9rem' }}>{role.emoji}</span> {question.text}
                     </div>
                   ))
                 ))}

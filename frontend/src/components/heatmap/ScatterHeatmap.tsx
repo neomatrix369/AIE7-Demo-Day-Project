@@ -67,7 +67,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
     points = filterPointsByQuality(points, qualityFilter);
     
     return points;
-  }, [questionResults, perspective, qualityFilter]);
+  }, [questionResults, perspective, qualityFilter, allChunks]);
 
   // Position points using coordinates from heatmap data processing
   const positionPoints = useMemo(() => {
@@ -205,8 +205,8 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
         // Use requestAnimationFrame to batch DOM updates
         requestAnimationFrame(() => {
           setTooltipPosition(newPosition);
-          if (tooltipData?.id !== d.id) { // Only update data if different point
-            setTooltipData(d);
+          if (tooltipData?.id !== (d as HeatmapPoint).id) { // Only update data if different point
+            setTooltipData(d as HeatmapPoint);
           }
         });
       })
@@ -235,7 +235,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
       .delay((d, i) => i * 30)
       .attr('r', d => getScaledSize(d.size, 6, 20));
 
-  }, [renderKey, positionPoints, dimensions]);
+  }, [renderKey, positionPoints, dimensions, onPointClick, tooltipData]);
 
   // Separate effect for click handler updates (doesn't trigger full redraw)
   useEffect(() => {
@@ -245,7 +245,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = ({
     svg.selectAll('.scatter-point')
       .on('click', function(event, d) {
         if (onPointClick) {
-          onPointClick(d);
+          onPointClick(d as HeatmapPoint);
         }
       });
   }, [onPointClick]);

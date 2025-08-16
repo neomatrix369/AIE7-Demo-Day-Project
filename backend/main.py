@@ -234,7 +234,7 @@ def load_questions_from_file(filename: str) -> Dict[str, Any]:
         filename: The path to the JSON file
         
     Returns:
-        A dictionary containing the questions, count, and categories
+        A dictionary containing the questions, count, and roles
     """
     try:
         with open(filename, 'r', encoding='utf-8-sig') as f:
@@ -242,16 +242,16 @@ def load_questions_from_file(filename: str) -> Dict[str, Any]:
         
         # Restructure the data to match the original format
         all_questions = []
-        categories = []
-        for category in questions_data:
-            categories.append(category["name"])
-            for question in category["questions"]:
+        roles = []
+        for role_item in questions_data:
+            roles.append(role_item["role"])
+            for question in role_item["questions"]:
                 all_questions.append(question["text"])
 
         return {
             "count": len(all_questions),
             "sample": random.sample(all_questions, min(len(all_questions), 3)),
-            "categories": categories,
+            "roles": roles,
             "questions": questions_data
         }
     except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -259,7 +259,7 @@ def load_questions_from_file(filename: str) -> Dict[str, Any]:
         return {
             "count": 0,
             "sample": [],
-            "categories": [],
+            "roles": [],
             "questions": []
         }
 
@@ -580,6 +580,7 @@ def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, An
             "source": result["source"],
             "quality_score": quality_score,
             "status": status,
+            "group_name": result.get("group_name", "Unknown"),
             "retrieved_docs": [
                 {
                     "doc_id": doc["doc_id"],
@@ -594,6 +595,111 @@ def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, An
     
     logger.info(f"✅ Converted {len(per_question_results)} experiment results to analysis format")
     return per_question_results
+
+
+def get_quality_status(quality_score: float) -> str:
+    """
+    Determine status based on quality score.
+    
+    Args:
+        quality_score: Quality score between 0 and 10
+        
+    Returns:
+        Status string: 'good', 'weak', or 'poor'
+    """
+    if quality_score >= 7.0:
+        return "good"
+    elif quality_score >= 5.0:
+        return "weak"
+    else:
+        return "poor"
+
+
+def calculate_overall_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Calculate overall analysis metrics using quality scores.
+    
+    Args:
+        per_question_results: List of question results with quality_score field
+        
+    Returns:
+        Dictionary with overall metrics using 0-10 scale
+    """
+    all_quality_scores = [q["quality_score"] for q in per_question_results]
+    avg_quality_score = round(sum(all_quality_scores) / len(all_quality_scores), 1)
+    success_rate = len([s for s in all_quality_scores if s >= 7.0]) / len(all_quality_scores)
+    
+    corpus_health = "excellent" if avg_quality_score >= 8.0 else "good" if avg_quality_score >= 6.0 else "needs_work"
+    
+    return {
+        "avg_quality_score": avg_quality_score,
+        "success_rate": round(success_rate, 2),
+        "total_questions": len(per_question_results),
+        "corpus_health": corpus_health,
+        "key_insight": f"{round((1-success_rate)*100)}% of questions scored below 7.0 threshold"
+    }
+
+def calculate_per_group_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Calculate per-group analysis metrics using quality scores.
+    
+    Args:
+        per_question_results: List of question results with quality_score field
+        
+    Returns:
+        Dictionary with per-group metrics using 0-10 scale
+    """
+    groups = {}
+    
+    for q in per_question_results:
+        source = q["source"]
+        group_name = q.get("group_name", "Unknown")
+        
+        if source not in groups:
+            groups[source] = {
+                "avg_quality_score": 0,
+                "distribution": [],
+                "roles": {}
+            }
+        
+        groups[source]["distribution"].append(q["quality_score"])
+        
+        if group_name not in groups[source]["roles"]:
+            groups[source]["roles"][group_name] = {
+                "avg_quality_score": 0,
+                "distribution": []
+            }
+            
+        groups[source]["roles"][group_name]["distribution"].append(q["quality_score"])
+
+    for source, data in groups.items():
+        if data["distribution"]:
+            data["avg_quality_score"] = round(sum(data["distribution"]) / len(data["distribution"]), 1)
+        
+        for role_name, role_data in data["roles"].items():
+            if cat_data["distribution"]:
+                cat_data["avg_quality_score"] = round(sum(cat_data["distribution"]) / len(cat_data["distribution"]), 1)
+                
+    return groups
+
+def build_analysis_response(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Build the complete analysis response.
+    
+    Args:
+        per_question_results: List of question results
+        
+    Returns:
+        Complete analysis response dictionary
+    """
+    overall_metrics = calculate_overall_metrics(per_question_results)
+    per_group_metrics = calculate_per_group_metrics(per_question_results)
+    
+    return {
+        "overall": overall_metrics,
+        "per_group": per_group_metrics,
+        "per_question": per_question_results
+    }
 
 
 
@@ -787,7 +893,7 @@ def generate_real_experiment_questions(selected_groups: List[str]) -> List[Dict[
                     "question": question["text"],
                     "source": "llm",
                     "focus": question.get("focus", "General"),
-                    "group_name": group["name"]
+                    "group_name": group["role"]
                 })
                 question_counter += 1
     
@@ -802,7 +908,7 @@ def generate_real_experiment_questions(selected_groups: List[str]) -> List[Dict[
                     "question": question["text"],
                     "source": "ragas",
                     "focus": question.get("focus", "General"),
-                    "group_name": group["name"]
+                    "group_name": group["role"]
                 })
                 question_counter += 1
     

@@ -189,8 +189,8 @@ export function processChunksToQuestions(
   });
 
   // Separate retrieved and orphaned chunks for different positioning strategies
-  const retrievedChunkPoints = [];
-  const orphanedChunkPoints = [];
+  const retrievedChunkPoints: HeatmapPoint[] = [];
+  const orphanedChunkPoints: HeatmapPoint[] = [];
   
   allProcessedChunks.forEach((chunk, index) => {
     if (chunk.isOrphaned) {
@@ -287,7 +287,7 @@ export function processChunksToQuestions(
     
     // Choose edge regions (corners and sides) with some randomness
     const edgeChoice = seed % 4;
-    let x, y;
+    let x = 0, y = 0;
     
     switch (edgeChoice) {
       case 0: // Top edge area

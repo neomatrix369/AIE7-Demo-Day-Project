@@ -38,7 +38,7 @@ A 4-screen wizard application for corpus/data quality assessment using AI-genera
 
 ### 🎯 4-Screen Wizard Application
 1. **📊 Data Loading Dashboard**: Real-time corpus overview with document statistics, health metrics, and vector database status
-2. **❓ Question Groups Overview**: Side-by-side comparison of LLM-generated vs RAGAS-generated questions with category breakdown
+2. **❓ Question Groups Overview**: Side-by-side comparison of LLM-generated vs RAGAS-generated questions with role breakdown
 3. **⚙️ Experiment Configuration**: Interactive experiment setup with real-time WebSocket streaming and progress tracking
 4. **📈 Analysis Results Dashboard**: 3-level analysis (Overall → Group → Individual) with sorting, filtering, detailed question inspection, and Qdrant chunk ID traceability
 

@@ -1,7 +1,7 @@
 [
   {
-    "id": "general-user",
-    "name": "General User",
+    "role-id": "general-user",
+    "role": "General User",
     "description": "A general user seeking basic information about federal student aid processes. This person is likely researching financial aid options or trying to understand how different academic calendar types affect their aid eligibility. They ask straightforward, well-formatted questions and are looking for clear, official information.",
     "questions": [
       {
@@ -27,8 +27,8 @@
     ]
   },
   {
-    "id": "current-student",
-    "name": "Current Student",
+    "role-id": "current-student",
+    "role": "Current Student",
     "description": "A current student actively navigating the financial aid system. This person uses informal language and may have spelling or grammar issues typical of quick text communication. They're asking practical questions about their current situation and how various policies affect their aid eligibility and disbursement.",
     "questions": [
       {
@@ -54,8 +54,8 @@
     ]
   },
   {
-    "id": "recent-graduate",
-    "name": "Recent Graduate",
+    "role-id": "recent-graduate",
+    "role": "Recent Graduate",
     "description": "A recent graduate who has experience with the financial aid system and is asking detailed, technical questions. This person uses formal language and seeks comprehensive understanding of complex regulations, possibly for professional, academic, or research purposes.",
     "questions": [
       {
@@ -105,8 +105,8 @@
     ]
   },
   {
-    "id": "public-service-worker",
-    "name": "Public Service Worker",
+    "role-id": "public-service-worker",
+    "role": "Public Service Worker",
     "description": "A public service worker or advocate who helps others navigate financial aid issues. This person is knowledgeable about borrower rights and systemic issues, and asks questions from a professional perspective to better assist their clients or constituents.",
     "questions": [
       {

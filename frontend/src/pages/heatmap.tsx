@@ -294,7 +294,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
               onPointClick={heatmapConfig.showTooltips ? handleHeatmapPointClick : undefined}
               width={900}
               height={500}
-              allChunks={allChunks}
+              allChunks={allChunks || undefined}
             />
           </div>
           

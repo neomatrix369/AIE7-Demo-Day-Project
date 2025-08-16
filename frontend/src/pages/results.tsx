@@ -31,14 +31,14 @@ const AnalysisResults: React.FC = () => {
         
         logSuccess(`Results loaded: ${data.overall.total_questions} questions analyzed`, {
           component: 'Results', 
-          action: 'RESULTS_LOAD_SUCCESS',
+                    action: 'RESULTS_LOAD_SUCCESS',
           data: {
             total_questions: data.overall.total_questions,
             avg_quality_score: data.overall.avg_quality_score,
             success_rate: data.overall.success_rate,
             corpus_health: data.overall.corpus_health,
-            llm_avg_quality_score: data.per_group.llm.avg_quality_score,
-            ragas_avg_quality_score: data.per_group.ragas.avg_quality_score
+            llm_avg_quality_score: data.per_group.llm?.avg_quality_score ?? 0,
+            ragas_avg_quality_score: data.per_group.ragas?.avg_quality_score ?? 0
           }
         });
         
@@ -186,7 +186,7 @@ const AnalysisResults: React.FC = () => {
   };
 
   const handleClearResults = async () => {
-    if (!window.confirm('Are you sure you want to clear all experiment results? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to clear all experiment results? This action can&apos;t be undone.')) {
       return;
     }
 
@@ -383,125 +383,134 @@ const AnalysisResults: React.FC = () => {
         <div className="analysis-section">
           <h3>📈 Per Group Analysis</h3>
           <div className="two-column">
-            <div className="card" style={{ backgroundColor: '#f0f8ff', border: '2px solid #007bff' }}>
-              <h4>🤖 LLM Questions Performance</h4>
-              <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                  <span className="stat-value" style={{ color: '#007bff' }}>
-                    {results.per_group.llm.avg_quality_score ? results.per_group.llm.avg_quality_score.toFixed(1) : 0}
-                  </span>
-                  <div style={{
-                    fontSize: '1.2rem',
-                    color: getStatusColor(results.per_group.llm.avg_quality_score),
-                    fontWeight: 'bold'
-                  }}>
-                    {getStatusText(results.per_group.llm.avg_quality_score)}
-                  </div>
-                  <div className="stat-label">Quality Score</div>
-                </div>
-                <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                  <span className="stat-value" style={{ color: '#007bff' }}>
-                    {results.per_group.llm.distribution.filter(s => s >= 7.0).length}
-                  </span>
-                  <div className="stat-label">High Quality Scores (≥7.0)</div>
-                </div>
-              </div>
-              <div style={{ marginTop: '15px' }}>
-                <strong>Score Distribution:</strong>
-                <div style={{ 
-                  display: 'flex', 
-                  height: '20px', 
-                  backgroundColor: '#e9ecef', 
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  marginTop: '8px'
-                }}>
-                  <div 
-                    style={{ 
-                      backgroundColor: '#28a745',
-                      width: `${(results.per_group.llm.distribution.filter(s => s >= 7.0).length / results.per_group.llm.distribution.length) * 100}%`
-                    }}
-                  ></div>
-                  <div 
-                    style={{ 
-                      backgroundColor: '#e67e22',
-                      width: `${(results.per_group.llm.distribution.filter(s => s >= 5.0 && s < 7.0).length / results.per_group.llm.distribution.length) * 100}%`
-                    }}
-                  ></div>
-                  <div 
-                    style={{ 
-                      backgroundColor: '#dc3545',
-                      width: `${(results.per_group.llm.distribution.filter(s => s < 5.0).length / results.per_group.llm.distribution.length) * 100}%`
-                    }}
-                  ></div>
-                </div>
-                <QualityScoreLegend 
-                  format="horizontal" 
-                  showTitle={false}
-                  style={{ marginTop: '5px' }}
-                />
-              </div>
-            </div>
-
-            <div className="card" style={{ backgroundColor: '#f8fff8', border: '2px solid #28a745' }}>
-              <h4>📊 RAGAS Questions Performance</h4>
-              <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                  <span className="stat-value" style={{ color: '#28a745' }}>
-                    {results.per_group.ragas.avg_quality_score ? results.per_group.ragas.avg_quality_score.toFixed(1) : 0}
+            {Object.entries(results.per_group).map(([groupName, groupData]) => (
+              <div key={groupName} className="card" style={{ backgroundColor: '#f0f8ff', border: '2px solid #007bff' }}>
+                <h4>{groupName.toUpperCase()} Questions Performance</h4>
+                <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                  <div className="stat-item" style={{ backgroundColor: 'white' }}>
+                    <span className="stat-value" style={{ color: '#007bff' }}>
+                      {groupData.avg_quality_score ? groupData.avg_quality_score.toFixed(1) : 0}
+                    </span>
                     <div style={{
-                      fontSize: '1.5rem',
-                      color: getStatusColor(results.per_group.ragas.avg_quality_score),
+                      fontSize: '1.2rem',
+                      color: getStatusColor(groupData.avg_quality_score),
+                      fontWeight: 'bold',
+                      marginTop: '3px'
                     }}>
-                      {getStatusText(results.per_group.ragas.avg_quality_score)}
+                      {getStatusText(groupData.avg_quality_score)}
                     </div>
-                  </span>
-                  <div className="stat-label">Quality Score</div>
+                    <div className="stat-label">Quality Score</div>
+                  </div>
+                  <div className="stat-item" style={{ backgroundColor: 'white' }}>
+                    <span className="stat-value" style={{ color: '#007bff' }}>
+                      {groupData.distribution.filter(s => s >= 7.0).length}
+                    </span>
+                    <div className="stat-label">High Quality Scores (≥7.0)</div>
+                  </div>
                 </div>
-                <div className="stat-item" style={{ backgroundColor: 'white' }}>
-                  <span className="stat-value" style={{ color: '#28a745' }}>
-                    {results.per_group.ragas.distribution.filter(s => s >= 7.0).length}
-                  </span>
-                  <div className="stat-label">High Quality Scores (≥7.0)</div>
+                <div style={{ marginTop: '15px' }}>
+                  <strong>Score Distribution:</strong>
+                  <div style={{
+                    display: 'flex',
+                    height: '20px',
+                    backgroundColor: '#e9ecef',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    marginTop: '8px'
+                  }}>
+                    <div
+                      style={{
+                        backgroundColor: '#28a745',
+                        width: `${(groupData.distribution.filter(s => s >= 7.0).length / groupData.distribution.length) * 100}%`
+                      }}
+                    ></div>
+                    <div
+                      style={{
+                        backgroundColor: '#e67e22',
+                        width: `${(groupData.distribution.filter(s => s >= 5.0 && s < 7.0).length / groupData.distribution.length) * 100}%`
+                      }}
+                    ></div>
+                    <div
+                      style={{
+                        backgroundColor: '#dc3545',
+                        width: `${(groupData.distribution.filter(s => s < 5.0).length / groupData.distribution.length) * 100}%`
+                      }}
+                    ></div>
+                  </div>
+                  <QualityScoreLegend
+                    format="horizontal"
+                    showTitle={false}
+                    style={{ marginTop: '5px' }}
+                  />
                 </div>
               </div>
-              <div style={{ marginTop: '15px' }}>
-                <strong>Score Distribution:</strong>
-                <div style={{ 
-                  display: 'flex', 
-                  height: '20px', 
-                  backgroundColor: '#e9ecef', 
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  marginTop: '8px'
-                }}>
-                  <div 
-                    style={{ 
-                      backgroundColor: '#28a745',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s >= 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
-                    }}
-                  ></div>
-                  <div 
-                    style={{ 
-                      backgroundColor: '#e67e22',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s >= 5.0 && s < 7.0).length / results.per_group.ragas.distribution.length) * 100}%`
-                    }}
-                  ></div>
-                  <div 
-                    style={{ 
-                      backgroundColor: '#dc3545',
-                      width: `${(results.per_group.ragas.distribution.filter(s => s < 5.0).length / results.per_group.ragas.distribution.length) * 100}%`
-                    }}
-                  ></div>
-                </div>
-                <QualityScoreLegend 
-                  format="horizontal" 
-                  showTitle={false}
-                  style={{ marginTop: '5px' }}
-                />
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
+
+        <div className="analysis-section">
+          <h3>🗂️ Per Group Role Analysis</h3>
+          {Object.entries(results.per_group).map(([groupName, groupData]) => (
+            <div key={groupName} className="card" style={{ marginBottom: '20px' }}>
+              <h4>{groupName.toUpperCase()} - Role Breakdown</h4>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Role</th>
+                    <th>Avg Quality Score</th>
+                    <th>High Quality Scores (≥7.0)</th>
+                    <th>Score Distribution</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupData.roles && Object.entries(groupData.roles).length > 0 ? (
+                    Object.entries(groupData.roles).map(([roleName, roleData]) => (
+                      <tr key={roleName}>
+                        <td>{roleName}</td>
+                        <td>{roleData.avg_quality_score.toFixed(1)}</td>
+                        <td>{roleData.distribution.filter(s => s >= 7.0).length}</td>
+                        <td>
+                          <div style={{
+                            display: 'flex',
+                            height: '20px',
+                            backgroundColor: '#e9ecef',
+                            borderRadius: '10px',
+                            overflow: 'hidden',
+                            marginTop: '8px'
+                          }}>
+                            <div
+                              style={{
+                                backgroundColor: '#28a745',
+                                width: `${(roleData.distribution.filter(s => s >= 7.0).length / roleData.distribution.length) * 100}%`
+                              }}
+                            ></div>
+                            <div
+                              style={{
+                                backgroundColor: '#e67e22',
+                                width: `${(roleData.distribution.filter(s => s >= 5.0 && s < 7.0).length / roleData.distribution.length) * 100}%`
+                              }}
+                            ></div>
+                            <div
+                              style={{
+                                backgroundColor: '#dc3545',
+                                width: `${(roleData.distribution.filter(s => s < 5.0).length / roleData.distribution.length) * 100}%`
+                              }}
+                            ></div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                        No role data available for this group.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
 
         <div className="analysis-section">
@@ -522,7 +531,7 @@ const AnalysisResults: React.FC = () => {
               lineHeight: '1.5'
             }}>
               Explore question-chunk relationships through interactive scatter plot heatmaps with dual perspectives. 
-              Analyze patterns, clusters, and outliers in your RAG system's performance.
+              Analyze patterns, clusters, and outliers in your RAG system&apos;s performance.
             </p>
             
             <div style={{ 

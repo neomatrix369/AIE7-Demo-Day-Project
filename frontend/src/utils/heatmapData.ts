@@ -308,70 +308,103 @@ export function processChunksToQuestions(
     }
   });
 
-  // Create rectangular grid positions to fill container efficiently
-  const allPointsToPosition = [...UnretrievedChunkPoints, ...retrievedChunkPoints];
-  const totalPoints = allPointsToPosition.length;
-  
-  if (totalPoints === 0) return [];
-  
-  // Calculate optimal grid dimensions for rectangular layout
-  const containerAspectRatio = 1.2; // Slightly wider than tall
-  const cols = Math.ceil(Math.sqrt(totalPoints * containerAspectRatio));
-  const rows = Math.ceil(totalPoints / cols);
-  
-  // Calculate spacing to fill container efficiently
-  const xSpacing = 90 / (cols - 1 || 1); // Use 90% of width (5% margin on each side)
-  const ySpacing = 90 / (rows - 1 || 1); // Use 90% of height (5% margin on each side)
-  
-  // Generate grid positions from outside-in flow
-  const gridPositions: Array<{x: number, y: number, distanceFromCenter: number}> = [];
-  
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      if (gridPositions.length >= totalPoints) break;
-      
-      const x = 5 + (col * xSpacing); // Start at 5% margin
-      const y = 5 + (row * ySpacing); // Start at 5% margin
-      
-      // Calculate distance from center for outside-in sorting
-      const centerX = 50;
-      const centerY = 50;
-      const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-      
-      gridPositions.push({ x, y, distanceFromCenter });
+  // Phase 1: Position unassociated chunks first with wide spacing around perimeter
+  if (UnretrievedChunkPoints.length > 0) {
+    // Calculate grid for unassociated chunks with 3x wider spacing
+    const unassociatedAspectRatio = 1.3;
+    const unassociatedCols = Math.ceil(Math.sqrt(UnretrievedChunkPoints.length * unassociatedAspectRatio));
+    const unassociatedRows = Math.ceil(UnretrievedChunkPoints.length / unassociatedCols);
+    
+    // Use 3x wider spacing for unassociated chunks - covering more of the perimeter area
+    const unassociatedXSpacing = 85 / (unassociatedCols - 1 || 1); // Wider coverage (85% instead of 90%)
+    const unassociatedYSpacing = 85 / (unassociatedRows - 1 || 1);
+    
+    // Generate sparse grid positions for unassociated chunks
+    const unassociatedPositions: Array<{x: number, y: number, distanceFromCenter: number}> = [];
+    
+    for (let row = 0; row < unassociatedRows; row++) {
+      for (let col = 0; col < unassociatedCols; col++) {
+        if (unassociatedPositions.length >= UnretrievedChunkPoints.length) break;
+        
+        const x = 7.5 + (col * unassociatedXSpacing); // Start at 7.5% margin for wider boundary
+        const y = 7.5 + (row * unassociatedYSpacing);
+        
+        const centerX = 50;
+        const centerY = 50;
+        const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+        
+        unassociatedPositions.push({ x, y, distanceFromCenter });
+      }
     }
+    
+    // Sort unassociated positions from outside-in (perimeter first)
+    unassociatedPositions.sort((a, b) => b.distanceFromCenter - a.distanceFromCenter);
+    
+    // Assign perimeter positions to unassociated chunks
+    UnretrievedChunkPoints.forEach((point, index) => {
+      if (index < unassociatedPositions.length) {
+        const pos = unassociatedPositions[index];
+        point.x = pos.x;
+        point.y = pos.y;
+      }
+    });
   }
   
-  // Sort positions from outside-in (largest distance first)
-  gridPositions.sort((a, b) => b.distanceFromCenter - a.distanceFromCenter);
-  
-  // Assign positions: unassociated chunks get outer positions first
-  UnretrievedChunkPoints.forEach((point, index) => {
-    if (index < gridPositions.length) {
-      const pos = gridPositions[index];
-      point.x = pos.x;
-      point.y = pos.y;
+  // Phase 2: Position associated chunks with wide spacing, filling from where unassociated ended
+  if (retrievedChunkPoints.length > 0) {
+    // Sort associated chunks by frequency for better central placement (highest frequency most central)
+    retrievedChunkPoints.sort((a, b) => {
+      const freqA = a.data.type === 'chunk' ? a.data.retrievalFrequency : 0;
+      const freqB = b.data.type === 'chunk' ? b.data.retrievalFrequency : 0;
+      return freqB - freqA;
+    });
+    
+    // Calculate grid for associated chunks with 2x wider spacing than original
+    const associatedAspectRatio = 1.1;
+    const associatedCols = Math.ceil(Math.sqrt(retrievedChunkPoints.length * associatedAspectRatio));
+    const associatedRows = Math.ceil(retrievedChunkPoints.length / associatedCols);
+    
+    // Use 2x wider spacing for associated chunks, focusing on inner area
+    const innerAreaSize = 60; // Use 60% of container for inner area
+    const associatedXSpacing = innerAreaSize / (associatedCols - 1 || 1);
+    const associatedYSpacing = innerAreaSize / (associatedRows - 1 || 1);
+    
+    // Generate inner grid positions for associated chunks
+    const associatedPositions: Array<{x: number, y: number, distanceFromCenter: number}> = [];
+    
+    for (let row = 0; row < associatedRows; row++) {
+      for (let col = 0; col < associatedCols; col++) {
+        if (associatedPositions.length >= retrievedChunkPoints.length) break;
+        
+        // Center the inner grid within the container
+        const innerStartX = 20; // Start inner area at 20% from edge
+        const innerStartY = 20;
+        const x = innerStartX + (col * associatedXSpacing);
+        const y = innerStartY + (row * associatedYSpacing);
+        
+        const centerX = 50;
+        const centerY = 50;
+        const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+        
+        associatedPositions.push({ x, y, distanceFromCenter });
+      }
     }
-  });
-  
-  // Then assign inner positions to associated chunks (sorted by frequency for better central placement)
-  retrievedChunkPoints.sort((a, b) => {
-    const freqA = a.data.type === 'chunk' ? a.data.retrievalFrequency : 0;
-    const freqB = b.data.type === 'chunk' ? b.data.retrievalFrequency : 0;
-    return freqB - freqA; // Higher frequency first (more central)
-  });
-  
-  retrievedChunkPoints.forEach((point, index) => {
-    const positionIndex = UnretrievedChunkPoints.length + index;
-    if (positionIndex < gridPositions.length) {
-      const pos = gridPositions[positionIndex];
-      point.x = pos.x;
-      point.y = pos.y;
-    }
-  });
+    
+    // Sort associated positions from inside-out (center first for high-frequency chunks)
+    associatedPositions.sort((a, b) => a.distanceFromCenter - b.distanceFromCenter);
+    
+    // Assign inner positions to associated chunks
+    retrievedChunkPoints.forEach((point, index) => {
+      if (index < associatedPositions.length) {
+        const pos = associatedPositions[index];
+        point.x = pos.x;
+        point.y = pos.y;
+      }
+    });
+  }
 
-  // Combine all points for collision detection
-  const allPoints = [...retrievedChunkPoints, ...UnretrievedChunkPoints];
+  // Combine all points for collision detection - unassociated chunks first (background layer)
+  const allPoints = [...UnretrievedChunkPoints, ...retrievedChunkPoints];
   
   // Apply collision detection and spacing optimization
   optimizePointSpacing(allPoints);
@@ -380,25 +413,25 @@ export function processChunksToQuestions(
 }
 
 /**
- * Optimize point spacing to prevent overlaps using size-aware collision detection
+ * Optimize point spacing to prevent overlaps using size-aware collision detection with double gaps
  */
 function optimizePointSpacing(points: HeatmapPoint[]): void {
   if (points.length <= 1) return;
   
-  const minDistance = 3.5; // Reduced for grid-based layout
-  const maxIterations = 50; // Reduced since grid provides good starting positions
-  const dampening = 0.5; // More aggressive dampening for grid stability
-  const repulsionStrength = 0.4; // Reduced repulsion for grid layout
+  const minDistance = 7.0; // Doubled from 3.5 for wider hexagon gaps
+  const maxIterations = 60; // Slightly increased for better spacing with larger gaps
+  const dampening = 0.6; // Adjusted dampening for wider spacing stability
+  const repulsionStrength = 0.5; // Slightly increased for better gap maintenance
   
-  // Calculate minimum distance based on point sizes and neighbor awareness
+  // Calculate minimum distance based on point sizes and neighbor awareness with double gaps
   const getMinDistance = (point1: HeatmapPoint, point2: HeatmapPoint): number => {
-    // Convert normalized sizes to coordinate space
-    const radius1 = point1.size * 3.0; // Reduced radius calculation
-    const radius2 = point2.size * 3.0;
-    const basePadding = (radius1 + radius2) * 1.2; // Reduced padding for tighter grid
+    // Convert normalized sizes to coordinate space with larger radius calculation
+    const radius1 = point1.size * 4.0; // Increased from 3.0 for bigger hexagon representation
+    const radius2 = point2.size * 4.0;
+    const basePadding = (radius1 + radius2) * 2.0; // Doubled padding from 1.2 to 2.0 for wider gaps
     
-    // Consider neighbor sizes for dynamic spacing
-    return Math.max(minDistance, basePadding, 2.5);
+    // Consider neighbor sizes for dynamic spacing with doubled minimum
+    return Math.max(minDistance, basePadding, 5.0); // Doubled from 2.5 to 5.0
   };
   
   for (let iteration = 0; iteration < maxIterations; iteration++) {
@@ -415,8 +448,8 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
         const dy = point2.y - point1.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Only process nearby points for efficiency
-        if (distance > 15) continue;
+        // Only process nearby points for efficiency - increased threshold for wider gaps
+        if (distance > 25) continue;
         
         const requiredDistance = getMinDistance(point1, point2);
         
@@ -838,7 +871,7 @@ export function processChunksToRoles(
     point.y = centerY + radius * Math.sin(angle);
   });
 
-  const finalPoints = [...retrievedChunkPoints, ...UnretrievedChunkPoints];
+  const finalPoints = [...UnretrievedChunkPoints, ...retrievedChunkPoints];
   
   // Apply spacing optimization
   optimizePointSpacing(finalPoints);

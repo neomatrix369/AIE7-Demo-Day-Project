@@ -196,25 +196,49 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       return points.join(' ');
     };
 
-    // Add scatter points as hexagons with optimized event handlers
-    const hexagons = g.selectAll('.scatter-point')
-      .data(positionPoints)
+    // Separate points by type for sequential rendering
+    const unassociatedPoints = positionPoints.filter(p => p.data.type === 'chunk' && p.data.isUnretrieved);
+    const associatedPoints = positionPoints.filter(p => !(p.data.type === 'chunk' && p.data.isUnretrieved));
+
+    // Phase 1: Render unassociated chunks first (background layer)
+    const unassociatedHexagons = g.selectAll('.unassociated-point')
+      .data(unassociatedPoints)
       .enter()
       .append('polygon')
-      .attr('class', 'scatter-point')
+      .attr('class', 'scatter-point unassociated-point')
       .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)))
       .attr('fill', d => getHeatmapColor(
         d.color, 
-        d.data.type === 'chunk' && d.data.isUnretrieved,
-        true // Both questions and chunks now use 0-10 scale (quality/similarity scores)
+        true, // These are unassociated chunks
+        true
       ))
       .attr('opacity', d => d.opacity)
       .attr('stroke', '#fff')
       .attr('stroke-width', 2)
       .style('cursor', 'pointer');
 
+    // Phase 2: Render associated chunks second (foreground layer)
+    const associatedHexagons = g.selectAll('.associated-point')
+      .data(associatedPoints)
+      .enter()
+      .append('polygon')
+      .attr('class', 'scatter-point associated-point')
+      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)))
+      .attr('fill', d => getHeatmapColor(
+        d.color, 
+        false, // These are associated chunks
+        true
+      ))
+      .attr('opacity', d => d.opacity)
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 2)
+      .style('cursor', 'pointer');
+
+    // Combine both groups for event handling
+    const allHexagons = g.selectAll('.scatter-point');
+
     // Add event listeners that only modify styles, not the entire DOM
-    hexagons
+    allHexagons
       .on('mouseover', function(event, d) {
         // Hide any existing tooltip first
         setTooltipPosition(prev => ({ ...prev, visible: false }));
@@ -261,12 +285,21 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         }
       });
 
-    // Add entrance animation only on initial render - start with zero size hexagons
-    hexagons
+    // Add entrance animation - unassociated chunks first, then associated chunks
+    // Phase 1 animation: Unassociated chunks (background layer)
+    unassociatedHexagons
+      .attr('points', d => generateHexagon(d.screenX, d.screenY, 0))
+      .transition()
+      .duration(600)
+      .delay((d, i) => i * 20) // Faster animation for background
+      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)));
+
+    // Phase 2 animation: Associated chunks (foreground layer) - start after unassociated
+    associatedHexagons
       .attr('points', d => generateHexagon(d.screenX, d.screenY, 0))
       .transition()
       .duration(800)
-      .delay((d, i) => i * 30)
+      .delay((d, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
       .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)));
 
   }, [renderKey, positionPoints, dimensions]);

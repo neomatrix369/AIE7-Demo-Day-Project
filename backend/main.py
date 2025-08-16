@@ -449,12 +449,13 @@ async def set_test_results():
     """Set test results for debugging (development only)."""
     global experiment_results
     
-    # Create some test results (keeping similarity format for internal processing)
+    # Create some test results with role data (keeping similarity format for internal processing)
     test_results = [
         {
             "question_id": "llm_q_001",
             "question": "How much can I borrow for my degree program?",
             "source": "llm",
+            "role_name": "Current Student",
             "avg_similarity": 0.75,
             "retrieved_docs": [
                 {"doc_id": "doc_1", "chunk_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "similarity": 0.8, "title": "Student Loan Limits"},
@@ -465,6 +466,7 @@ async def set_test_results():
             "question_id": "ragas_q_001", 
             "question": "What is the issue with Aidvantage in the borrower's complaint?",
             "source": "ragas",
+            "role_name": "Borrower in Repayment",
             "avg_similarity": 0.65,
             "retrieved_docs": [
                 {"doc_id": "doc_3", "chunk_id": "c3d4e5f6-a7b8-9012-cdef-123456789012", "similarity": 0.7, "title": "Servicer Complaints"},
@@ -475,10 +477,22 @@ async def set_test_results():
             "question_id": "llm_q_002",
             "question": "What are my repayment options after graduation?",
             "source": "llm",
+            "role_name": "Recent Graduate",
             "avg_similarity": 0.85,
             "retrieved_docs": [
                 {"doc_id": "doc_5", "chunk_id": "e5f6a7b8-c9d0-1234-ef12-345678901234", "similarity": 0.9, "title": "Repayment Plans"},
                 {"doc_id": "doc_6", "chunk_id": "f6a7b8c9-d0e1-2345-f123-456789012345", "similarity": 0.8, "title": "Graduation Options"}
+            ]
+        },
+        {
+            "question_id": "ragas_q_002",
+            "question": "What happens if I default on my student loans?",
+            "source": "ragas",
+            "role_name": "Borrower in Default",
+            "avg_similarity": 0.72,
+            "retrieved_docs": [
+                {"doc_id": "doc_7", "chunk_id": "g7h8i9j0-k1l2-3456-mno7-890123456789", "similarity": 0.75, "title": "Default Consequences"},
+                {"doc_id": "doc_8", "chunk_id": "h8i9j0k1-l2m3-4567-nop8-901234567890", "similarity": 0.69, "title": "Recovery Options"}
             ]
         }
     ]
@@ -587,7 +601,7 @@ def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, An
             "source": result["source"],
             "quality_score": quality_score,
             "status": status,
-            "group_name": result.get("group_name", "Unknown"),
+            "role_name": result.get("role_name", "Unknown"),
             "retrieved_docs": [
                 {
                     "doc_id": doc["doc_id"],
@@ -646,7 +660,7 @@ def calculate_overall_metrics(per_question_results: List[Dict[str, Any]]) -> Dic
         "key_insight": f"{round((1-success_rate)*100)}% of questions scored below 7.0 threshold"
     }
 
-def calculate_per_group_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+def calculate_per_role_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Calculate per-group analysis metrics using quality scores.
     
@@ -660,7 +674,7 @@ def calculate_per_group_metrics(per_question_results: List[Dict[str, Any]]) -> D
     
     for q in per_question_results:
         source = q["source"]
-        group_name = q.get("group_name", "Unknown")
+        role_name = q.get("role_name", "Unknown")
         
         if source not in groups:
             groups[source] = {
@@ -671,21 +685,22 @@ def calculate_per_group_metrics(per_question_results: List[Dict[str, Any]]) -> D
         
         groups[source]["distribution"].append(q["quality_score"])
         
-        if group_name not in groups[source]["roles"]:
-            groups[source]["roles"][group_name] = {
+        if role_name not in groups[source]["roles"]:
+            groups[source]["roles"][role_name] = {
                 "avg_quality_score": 0,
                 "distribution": []
             }
             
-        groups[source]["roles"][group_name]["distribution"].append(q["quality_score"])
+        groups[source]["roles"][role_name]["distribution"].append(q["quality_score"])
+        logger.debug(f"Added {source} question with role '{role_name}' to groups")
 
     for source, data in groups.items():
         if data["distribution"]:
             data["avg_quality_score"] = round(sum(data["distribution"]) / len(data["distribution"]), 1)
         
         for role_name, role_data in data["roles"].items():
-            if cat_data["distribution"]:
-                cat_data["avg_quality_score"] = round(sum(cat_data["distribution"]) / len(cat_data["distribution"]), 1)
+            if role_data["distribution"]:
+                role_data["avg_quality_score"] = round(sum(role_data["distribution"]) / len(role_data["distribution"]), 1)
                 
     return groups
 
@@ -700,11 +715,11 @@ def build_analysis_response(per_question_results: List[Dict[str, Any]]) -> Dict[
         Complete analysis response dictionary
     """
     overall_metrics = calculate_overall_metrics(per_question_results)
-    per_group_metrics = calculate_per_group_metrics(per_question_results)
+    per_role_metrics = calculate_per_role_metrics(per_question_results)
     
     return {
         "overall": overall_metrics,
-        "per_group": per_group_metrics,
+        "per_group": per_role_metrics,
         "per_question": per_question_results
     }
 
@@ -728,73 +743,6 @@ def get_quality_status(quality_score: float) -> str:
         return "poor"
 
 
-
-def calculate_overall_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Calculate overall analysis metrics using quality scores.
-    
-    Args:
-        per_question_results: List of question results with quality_score field
-        
-    Returns:
-        Dictionary with overall metrics using 0-10 scale
-    """
-    all_quality_scores = [q["quality_score"] for q in per_question_results]
-    avg_quality_score = round(sum(all_quality_scores) / len(all_quality_scores), 1)
-    success_rate = len([s for s in all_quality_scores if s >= 7.0]) / len(all_quality_scores)
-    
-    corpus_health = "excellent" if avg_quality_score >= 8.0 else "good" if avg_quality_score >= 6.0 else "needs_work"
-    
-    return {
-        "avg_quality_score": avg_quality_score,
-        "success_rate": round(success_rate, 2),
-        "total_questions": len(per_question_results),
-        "corpus_health": corpus_health,
-        "key_insight": f"{round((1-success_rate)*100)}% of questions scored below 7.0 threshold"
-    }
-
-def calculate_per_group_metrics(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Calculate per-group analysis metrics using quality scores.
-    
-    Args:
-        per_question_results: List of question results with quality_score field
-        
-    Returns:
-        Dictionary with per-group metrics using 0-10 scale
-    """
-    llm_quality_scores = [q["quality_score"] for q in per_question_results if q["source"] == "llm"]
-    ragas_quality_scores = [q["quality_score"] for q in per_question_results if q["source"] == "ragas"]
-    
-    return {
-        "llm": {
-            "avg_quality_score": round(sum(llm_quality_scores) / len(llm_quality_scores), 1) if llm_quality_scores else 0.0,
-            "distribution": llm_quality_scores
-        },
-        "ragas": {
-            "avg_quality_score": round(sum(ragas_quality_scores) / len(ragas_quality_scores), 1) if ragas_quality_scores else 0.0,
-            "distribution": ragas_quality_scores
-        }
-    }
-
-def build_analysis_response(per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Build the complete analysis response.
-    
-    Args:
-        per_question_results: List of question results
-        
-    Returns:
-        Complete analysis response dictionary
-    """
-    overall_metrics = calculate_overall_metrics(per_question_results)
-    per_group_metrics = calculate_per_group_metrics(per_question_results)
-    
-    return {
-        "overall": overall_metrics,
-        "per_group": per_group_metrics,
-        "per_question": per_question_results
-    }
 
 @app.websocket("/ws/experiment/stream")
 async def websocket_experiment_stream(websocket: WebSocket):
@@ -900,7 +848,7 @@ def generate_real_experiment_questions(selected_groups: List[str]) -> List[Dict[
                     "question": question["text"],
                     "source": "llm",
                     "focus": question.get("focus", "General"),
-                    "group_name": group["role"]
+                    "role_name": group["role"]
                 })
                 question_counter += 1
     
@@ -915,7 +863,7 @@ def generate_real_experiment_questions(selected_groups: List[str]) -> List[Dict[
                     "question": question["text"],
                     "source": "ragas",
                     "focus": question.get("focus", "General"),
-                    "group_name": group["role"]
+                    "role_name": group["role"]
                 })
                 question_counter += 1
     

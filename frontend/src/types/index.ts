@@ -35,6 +35,7 @@ export interface QuestionResult {
   id: string;
   text: string;
   source: string;
+  role_name?: string;
   quality_score: number;
   status: 'good' | 'weak' | 'poor';
   retrieved_docs: Array<{

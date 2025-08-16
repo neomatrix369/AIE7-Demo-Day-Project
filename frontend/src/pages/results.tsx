@@ -687,6 +687,7 @@ const AnalysisResults: React.FC = () => {
                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('source')}>
                   Source {sortField === 'source' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
+                <th>Role</th>
                 <th>Question</th>
                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('quality_score')}>
                   Quality Score {sortField === 'quality_score' && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -712,6 +713,18 @@ const AnalysisResults: React.FC = () => {
                         textTransform: 'uppercase'
                       }}>
                         {question.source}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ 
+                        backgroundColor: '#f8f9fa',
+                        color: '#495057',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        fontSize: '0.75rem',
+                        border: '1px solid #dee2e6'
+                      }}>
+                        {question.role_name || 'Unknown'}
                       </span>
                     </td>
                     <td style={{ maxWidth: '300px' }}>

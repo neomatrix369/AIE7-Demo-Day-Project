@@ -112,19 +112,20 @@ export const resultsApi = {
           ...data.overall,
           avg_quality_score: data.overall.avg_quality_score || data.overall.avg_similarity,
         },
-        per_group: {
-          llm: {
-            ...data.per_group.llm,
-            avg_quality_score: data.per_group.llm.avg_quality_score || data.per_group.llm.avg_score,
-          },
-          ragas: {
-            ...data.per_group.ragas,
-            avg_quality_score: data.per_group.ragas.avg_quality_score || data.per_group.ragas.avg_score,
-          },
-        },
+        per_group: Object.fromEntries(
+          Object.entries(data.per_group).map(([groupName, groupData]: [string, any]) => [
+            groupName,
+            {
+              ...groupData,
+              avg_quality_score: groupData.avg_quality_score || groupData.avg_score,
+              roles: groupData.roles || {},
+            }
+          ])
+        ),
         per_question: data.per_question.map((question: any) => ({
           ...question,
           quality_score: question.quality_score || question.similarity,
+          role_name: question.role_name,
         })),
       };
     }),

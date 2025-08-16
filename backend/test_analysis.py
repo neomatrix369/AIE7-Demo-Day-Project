@@ -38,7 +38,7 @@ def test_analysis_functions():
     
     try:
         # Import the functions we need to test
-        from main import convert_experiment_results_to_analysis, get_quality_status, similarity_to_quality_score, calculate_overall_metrics, calculate_per_group_metrics, build_analysis_response
+        from main import convert_experiment_results_to_analysis, get_quality_status, similarity_to_quality_score, calculate_overall_metrics, calculate_per_role_metrics, build_analysis_response
         
         # Test quality score transformation
         print("📊 Testing quality score transformation...")
@@ -72,7 +72,7 @@ def test_analysis_functions():
         assert overall["avg_quality_score"] > 0
         print("✅ Overall metrics tests passed")
         
-        per_group = calculate_per_group_metrics(converted)
+        per_group = calculate_per_role_metrics(converted)
         assert "llm" in per_group
         assert "ragas" in per_group
         print("✅ Per-group metrics tests passed")

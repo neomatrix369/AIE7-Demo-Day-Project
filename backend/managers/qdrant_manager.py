@@ -58,6 +58,33 @@ class QdrantManager:
             logger.error(f"❌ Failed to ensure collection exists: {e}")
             return False
 
+    def delete_collection(self) -> bool:
+        """
+        Delete the collection if it exists.
+        """
+        try:
+            collections = self.client.get_collections()
+            collection_names = [c.name for c in collections.collections]
+            if self.collection_name in collection_names:
+                logger.info(f"🗑️ Deleting existing collection '{self.collection_name}'")
+                self.client.delete_collection(self.collection_name)
+                logger.info(f"✅ Successfully deleted collection '{self.collection_name}'")
+                return True
+            else:
+                logger.info(f"📦 Collection '{self.collection_name}' does not exist, nothing to delete")
+                return True
+        except Exception as e:
+            logger.error(f"❌ Failed to delete collection: {e}")
+            return False
+
+    def recreate_collection(self) -> bool:
+        """
+        Delete and recreate the collection.
+        """
+        if self.delete_collection():
+            return self.initialize_collection()
+        return False
+
     def check_collection_has_documents(self, expected_doc_count: int) -> bool:
         """
         Check if the collection already has the expected number of documents.

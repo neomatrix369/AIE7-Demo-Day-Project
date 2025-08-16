@@ -340,10 +340,17 @@ async def get_all_chunks():
                 break
                 
             for point in points:
+                # Extract metadata from nested structure
+                metadata = point.payload.get("metadata", {})
+                
+                # Use pre-stored processed metadata (doc_id, title) from chunk enhancement
+                doc_id = metadata.get("doc_id", "unknown")
+                title = metadata.get("title", "Unknown Document")
+                
                 chunk_data = {
                     "chunk_id": str(point.id),
-                    "doc_id": point.payload.get("source", "unknown"),
-                    "title": point.payload.get("title", "Unknown Document"),
+                    "doc_id": doc_id,
+                    "title": title,
                     "content": point.payload.get("page_content", "")[:200] + "..." if len(point.payload.get("page_content", "")) > 200 else point.payload.get("page_content", "")
                 }
                 all_chunks.append(chunk_data)
@@ -1095,6 +1102,54 @@ async def reload_corpus():
         return {
             "success": False,
             "message": f"Reload failed: {str(e)}",
+            "documents_loaded": 0,
+            "processor_ready": False
+        }
+
+@app.post("/api/corpus/rebuild")
+async def rebuild_corpus():
+    """Rebuild the corpus with enhanced metadata (for testing enhanced chunking)."""
+    global documents_loaded
+    
+    try:
+        logger.info("🔄 Rebuilding corpus with enhanced metadata...")
+        
+        # Load documents
+        combined_docs = data_manager.load_all_documents()
+        if not combined_docs:
+            return {
+                "success": False,
+                "message": "No documents found to rebuild corpus",
+                "documents_loaded": 0
+            }
+        
+        # Force rebuild with enhanced metadata
+        doc_processor.vector_store_manager.initialize_vector_store_if_needed(
+            combined_docs, 
+            force_rebuild=True
+        )
+        
+        # Update document loaded status
+        documents_loaded = True
+        
+        # Get final stats
+        stats = doc_processor.get_corpus_stats()
+        
+        logger.info("✅ Corpus rebuilt successfully with enhanced metadata")
+        return {
+            "success": True,
+            "message": "Corpus rebuilt successfully with enhanced metadata",
+            "documents_loaded": stats["document_count"],
+            "processor_ready": True,
+            "enhanced_metadata": True
+        }
+            
+    except Exception as e:
+        logger.error(f"❌ Corpus rebuild failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {
+            "success": False,
+            "message": f"Rebuild failed: {str(e)}",
             "documents_loaded": 0,
             "processor_ready": False
         }

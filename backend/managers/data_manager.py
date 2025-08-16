@@ -151,13 +151,61 @@ class DataManager:
     def split_documents(self, documents):
         """
         Split hybrid dataset documents into optimal chunks for vector embedding.
+        Enhanced to add processed metadata (doc_id, title) to each chunk.
         """
         logger.info(f"📄 Splitting {len(documents)} documents into chunks (size=750, overlap=100)")
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=750, chunk_overlap=100)
         logger.info(f"text_splitter: Chunk Size: {text_splitter._chunk_size} | Chunk Overlap: {text_splitter._chunk_overlap}")
         split_docs = text_splitter.split_documents(documents)
-        logger.info(f"✅ Created {len(split_docs)} document chunks")
-        return split_docs
+        
+        # Enhance each chunk with processed metadata
+        enhanced_chunks = []
+        for chunk in split_docs:
+            enhanced_chunk = self._enhance_chunk_metadata(chunk)
+            enhanced_chunks.append(enhanced_chunk)
+        
+        logger.info(f"✅ Created {len(enhanced_chunks)} enhanced document chunks with processed metadata")
+        return enhanced_chunks
+
+    def _enhance_chunk_metadata(self, chunk):
+        """
+        Enhance chunk metadata with processed doc_id and title for better identification.
+        
+        Args:
+            chunk: Document chunk from text splitter
+            
+        Returns:
+            Enhanced chunk with doc_id and title metadata
+        """
+        # Get original source path
+        source = chunk.metadata.get("source", "unknown")
+        
+        # Determine document type and create appropriate title and doc_id
+        if source.endswith(".csv"):
+            # For CSV complaints: use Company + Product + Issue for meaningful title
+            company = chunk.metadata.get("Company", "Unknown Company")
+            product = chunk.metadata.get("Product", "Unknown Product") 
+            issue = chunk.metadata.get("Issue", "Unknown Issue")
+            
+            # Create human-readable title
+            title = f"{company} - {product}: {issue}"
+            doc_id = f"CSV:{os.path.basename(source)}"
+            
+        elif source.endswith(".pdf"):
+            # For PDF documents: use filename as title
+            title = os.path.basename(source)
+            doc_id = f"PDF:{os.path.basename(source)}"
+            
+        else:
+            # Fallback for other document types
+            title = f"Document from {source}" if source != "unknown" else "Unknown Document"
+            doc_id = source
+        
+        # Add the enhanced metadata to the chunk
+        chunk.metadata["doc_id"] = doc_id
+        chunk.metadata["title"] = title
+        
+        return chunk
 
     def load_all_documents(self) -> List[Dict[str, Any]]:
         """

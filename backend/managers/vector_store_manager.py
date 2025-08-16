@@ -76,14 +76,23 @@ class VectorStoreManager:
             return
         self._add_documents_to_collection(client, vector_store, split_documents)
 
-    def initialize_vector_store_if_needed(self, combined_docs: List[Dict[str, Any]]) -> None:
+    def initialize_vector_store_if_needed(self, combined_docs: List[Dict[str, Any]], force_rebuild: bool = False) -> None:
         """
         Initialize vector store if documents haven't been loaded yet.
+        
+        Args:
+            combined_docs: List of documents to process
+            force_rebuild: If True, recreate the collection even if it exists
         """
         try:
             chunks = self.data_manager.split_documents(combined_docs)
             expected_chunk_count = len(chunks)
-            if self.qdrant_manager.check_collection_has_documents(expected_chunk_count):
+            
+            if force_rebuild:
+                logger.info("🔄 Force rebuild requested - recreating collection")
+                self.qdrant_manager.recreate_collection()
+                self._load_documents_to_collection(chunks)
+            elif self.qdrant_manager.check_collection_has_documents(expected_chunk_count):
                 self._connect_to_existing_collection()
             else:
                 self._load_documents_to_collection(chunks)

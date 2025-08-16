@@ -7,7 +7,7 @@ export interface HeatmapPoint {
   size: number;
   color: number;
   opacity: number;
-  data: QuestionHeatmapData | ChunkHeatmapData;
+  data: QuestionHeatmapData | ChunkHeatmapData | RoleHeatmapData | ChunkToRoleHeatmapData;
 }
 
 export interface QuestionHeatmapData {
@@ -38,13 +38,63 @@ export interface ChunkHeatmapData {
     questionId: string;
     questionText: string;
     similarity: number;
+    roleName?: string;
   };
   retrievingQuestions: Array<{
     questionId: string;
     questionText: string;
     source: string;
     similarity: number;
+    roleName?: string;
   }>;
+  isOrphaned?: boolean; // True if this chunk has never been retrieved by any question
+}
+
+export interface RoleHeatmapData {
+  type: 'role';
+  roleName: string;
+  questionCount: number; // How many questions this role has
+  avgQualityScore: number;
+  totalChunksRetrieved: number; // Total unique chunks retrieved by all questions from this role
+  topChunks: Array<{
+    chunkId: string;
+    docId: string;
+    title: string;
+    retrievalCount: number; // How many questions from this role retrieved this chunk
+    avgSimilarity: number;
+  }>;
+  questions: Array<{
+    questionId: string;
+    questionText: string;
+    source: string;
+    qualityScore: number;
+    chunksRetrieved: number;
+  }>;
+}
+
+export interface ChunkToRoleHeatmapData {
+  type: 'chunk-to-role';
+  chunkId: string;
+  docId: string;
+  title: string;
+  totalRetrievals: number; // Total times this chunk was retrieved across all roles
+  roleAccess: Array<{
+    roleName: string;
+    accessCount: number; // How many questions from this role retrieved this chunk
+    avgSimilarity: number;
+    sampleQuestions: Array<{
+      questionId: string;
+      questionText: string;
+      source: string;
+      similarity: number;
+    }>;
+  }>;
+  avgSimilarity: number; // Overall average similarity across all retrievals
+  dominantRole: {
+    roleName: string;
+    accessCount: number;
+    percentage: number; // Percentage of total retrievals from this role
+  };
   isOrphaned?: boolean; // True if this chunk has never been retrieved by any question
 }
 
@@ -108,6 +158,7 @@ export function processChunksToQuestions(
       questionText: string;
       source: string;
       similarity: number;
+      roleName?: string;
     }>;
     totalSimilarity: number;
   }>();
@@ -132,7 +183,8 @@ export function processChunksToQuestions(
         questionId: question.id || 'unknown',
         questionText: question.text || 'Unknown question',
         source: question.source || 'unknown',
-        similarity: (doc.similarity ?? 0) * 10 // Convert 0-1 to 0-10 scale
+        similarity: (doc.similarity ?? 0) * 10, // Convert 0-1 to 0-10 scale
+        roleName: question.role_name || 'Unknown Role'
       });
       chunk.totalSimilarity += (doc.similarity ?? 0) * 10; // Convert to 0-10 scale
     });
@@ -237,7 +289,8 @@ export function processChunksToQuestions(
         bestQuestion: {
           questionId: bestQuestion.questionId,
           questionText: bestQuestion.questionText,
-          similarity: bestQuestion.similarity
+          similarity: bestQuestion.similarity,
+          roleName: bestQuestion.roleName
         },
         retrievingQuestions: chunk.questions,
         isOrphaned: false
@@ -497,11 +550,323 @@ export function filterPointsByQuality(
   return points.filter(point => {
     if (point.data.type === 'question') {
       return point.data.status === threshold;
-    } else {
+    } else if (point.data.type === 'chunk') {
       // For chunks, determine status based on avgSimilarity
+      const similarity = point.data.avgSimilarity;
+      const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'weak' : 'poor';
+      return status === threshold;
+    } else if (point.data.type === 'role') {
+      // For roles, determine status based on avgQualityScore
+      const score = point.data.avgQualityScore;
+      const status = score >= 7.0 ? 'good' : score >= 5.0 ? 'weak' : 'poor';
+      return status === threshold;
+    } else {
+      // For chunk-to-role, determine status based on avgSimilarity
       const similarity = point.data.avgSimilarity;
       const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'weak' : 'poor';
       return status === threshold;
     }
   });
+}
+
+/**
+ * Process questions data for Roles-to-Chunks perspective
+ * Groups questions by their role and analyzes chunk retrieval patterns per role
+ */
+export function processRolesToChunks(questionResults: QuestionResult[]): HeatmapPoint[] {
+  // Group questions by role
+  const roleGroups = new Map<string, QuestionResult[]>();
+  
+  questionResults.forEach(question => {
+    const roleName = question.role_name || 'Unknown Role';
+    if (!roleGroups.has(roleName)) {
+      roleGroups.set(roleName, []);
+    }
+    roleGroups.get(roleName)!.push(question);
+  });
+
+  const rolePoints: HeatmapPoint[] = [];
+  const roleNames = Array.from(roleGroups.keys()).sort();
+  
+  roleNames.forEach((roleName, roleIndex) => {
+    const questions = roleGroups.get(roleName)!;
+    
+    // Calculate role metrics
+    const avgQualityScore = questions.reduce((sum, q) => sum + (q.quality_score || 0), 0) / questions.length;
+    
+    // Analyze chunks retrieved by this role
+    const chunkAnalysis = new Map<string, {
+      chunkId: string;
+      docId: string;
+      title: string;
+      retrievalCount: number;
+      totalSimilarity: number;
+      questions: Array<{questionId: string; questionText: string; source: string; similarity: number}>;
+    }>();
+    
+    questions.forEach(question => {
+      (question.retrieved_docs || []).forEach(doc => {
+        const chunkKey = doc.chunk_id || 'unknown';
+        if (!chunkAnalysis.has(chunkKey)) {
+          chunkAnalysis.set(chunkKey, {
+            chunkId: doc.chunk_id || 'unknown',
+            docId: doc.doc_id || 'unknown',
+            title: doc.title || 'Unknown document',
+            retrievalCount: 0,
+            totalSimilarity: 0,
+            questions: []
+          });
+        }
+        
+        const chunk = chunkAnalysis.get(chunkKey)!;
+        chunk.retrievalCount++;
+        chunk.totalSimilarity += (doc.similarity || 0);
+        chunk.questions.push({
+          questionId: question.id || 'unknown',
+          questionText: question.text || 'Unknown question',
+          source: question.source || 'unknown',
+          similarity: (doc.similarity || 0) * 10 // Convert to 0-10 scale
+        });
+      });
+    });
+    
+    // Prepare top chunks (sorted by retrieval frequency and similarity)
+    const topChunks = Array.from(chunkAnalysis.values())
+      .sort((a, b) => {
+        const aScore = a.retrievalCount * (a.totalSimilarity / a.retrievalCount);
+        const bScore = b.retrievalCount * (b.totalSimilarity / b.retrievalCount);
+        return bScore - aScore;
+      })
+      .slice(0, 10) // Top 10 chunks
+      .map(chunk => ({
+        chunkId: chunk.chunkId,
+        docId: chunk.docId,
+        title: chunk.title,
+        retrievalCount: chunk.retrievalCount,
+        avgSimilarity: (chunk.totalSimilarity / chunk.retrievalCount) * 10 // Convert to 0-10 scale
+      }));
+
+    const roleData: RoleHeatmapData = {
+      type: 'role',
+      roleName: roleName,
+      questionCount: questions.length,
+      avgQualityScore: avgQualityScore,
+      totalChunksRetrieved: chunkAnalysis.size,
+      topChunks: topChunks,
+      questions: questions.map(q => ({
+        questionId: q.id || 'unknown',
+        questionText: q.text || 'Unknown question',
+        source: q.source || 'unknown',
+        qualityScore: q.quality_score || 0,
+        chunksRetrieved: (q.retrieved_docs || []).length
+      }))
+    };
+
+    rolePoints.push({
+      id: `role_${roleName}`,
+      x: roleIndex * 50, // Space roles horizontally
+      y: avgQualityScore * 10, // Position based on average quality score
+      size: Math.max(0.4, Math.min(1.2, questions.length / 10)), // Size based on question count
+      color: avgQualityScore, // Color based on average quality score
+      opacity: Math.max(0.7, avgQualityScore / 10), // Opacity based on quality score
+      data: roleData
+    });
+  });
+
+  // Apply spacing optimization to prevent overlaps
+  optimizePointSpacing(rolePoints);
+  
+  return rolePoints;
+}
+
+/**
+ * Process questions data for Chunks-to-Roles perspective
+ * Shows how chunks are accessed by different user roles
+ */
+export function processChunksToRoles(
+  questionResults: QuestionResult[],
+  allChunks?: Array<{chunk_id: string; doc_id: string; title: string; content: string}>
+): HeatmapPoint[] {
+  // Build chunk access map grouped by chunk ID
+  const chunkAccessMap = new Map<string, {
+    chunkId: string;
+    docId: string;
+    title: string;
+    roleAccess: Map<string, {
+      accessCount: number;
+      totalSimilarity: number;
+      questions: Array<{questionId: string; questionText: string; source: string; similarity: number}>;
+    }>;
+    totalRetrievals: number;
+    totalSimilarity: number;
+  }>();
+
+  // Process all questions to build chunk access patterns
+  questionResults.forEach(question => {
+    const roleName = question.role_name || 'Unknown Role';
+    
+    (question.retrieved_docs || []).forEach(doc => {
+      const chunkKey = doc.chunk_id || 'unknown';
+      
+      if (!chunkAccessMap.has(chunkKey)) {
+        chunkAccessMap.set(chunkKey, {
+          chunkId: doc.chunk_id || 'unknown',
+          docId: doc.doc_id || 'unknown',
+          title: doc.title || 'Unknown document',
+          roleAccess: new Map(),
+          totalRetrievals: 0,
+          totalSimilarity: 0
+        });
+      }
+      
+      const chunk = chunkAccessMap.get(chunkKey)!;
+      
+      if (!chunk.roleAccess.has(roleName)) {
+        chunk.roleAccess.set(roleName, {
+          accessCount: 0,
+          totalSimilarity: 0,
+          questions: []
+        });
+      }
+      
+      const roleData = chunk.roleAccess.get(roleName)!;
+      roleData.accessCount++;
+      roleData.totalSimilarity += (doc.similarity || 0);
+      roleData.questions.push({
+        questionId: question.id || 'unknown',
+        questionText: question.text || 'Unknown question',
+        source: question.source || 'unknown',
+        similarity: (doc.similarity || 0) * 10 // Convert to 0-10 scale
+      });
+      
+      chunk.totalRetrievals++;
+      chunk.totalSimilarity += (doc.similarity || 0);
+    });
+  });
+
+  // Add orphaned chunks if allChunks is provided
+  const processedChunks = Array.from(chunkAccessMap.values());
+  const orphanedChunks: typeof processedChunks = [];
+  
+  if (allChunks) {
+    allChunks.forEach(chunk => {
+      if (!chunkAccessMap.has(chunk.chunk_id)) {
+        orphanedChunks.push({
+          chunkId: chunk.chunk_id,
+          docId: chunk.doc_id,
+          title: chunk.title,
+          roleAccess: new Map(),
+          totalRetrievals: 0,
+          totalSimilarity: 0
+        });
+      }
+    });
+  }
+
+  const allProcessedChunks = [...processedChunks, ...orphanedChunks];
+  const chunkPoints: HeatmapPoint[] = [];
+
+  allProcessedChunks.forEach((chunk, index) => {
+    if (chunk.totalRetrievals === 0) {
+      // Handle orphaned chunks
+      const chunkData: ChunkToRoleHeatmapData = {
+        type: 'chunk-to-role',
+        chunkId: chunk.chunkId,
+        docId: chunk.docId,
+        title: chunk.title,
+        totalRetrievals: 0,
+        roleAccess: [],
+        avgSimilarity: 0,
+        dominantRole: {
+          roleName: 'None',
+          accessCount: 0,
+          percentage: 0
+        },
+        isOrphaned: true
+      };
+
+      chunkPoints.push({
+        id: `chunk_${chunk.chunkId}`,
+        x: 0, // Will be positioned later
+        y: 0,
+        size: 0.15, // Small size for orphaned chunks
+        color: 0, // Grey color
+        opacity: 0.3,
+        data: chunkData
+      });
+    } else {
+      // Handle chunks with role access
+      const roleAccessArray = Array.from(chunk.roleAccess.entries()).map(([roleName, data]) => ({
+        roleName,
+        accessCount: data.accessCount,
+        avgSimilarity: (data.totalSimilarity / data.accessCount) * 10, // Convert to 0-10 scale
+        sampleQuestions: data.questions.slice(0, 3) // Top 3 questions
+      }));
+
+      // Find dominant role (role with most accesses)
+      const dominantRoleEntry = roleAccessArray.reduce((max, current) => 
+        current.accessCount > max.accessCount ? current : max
+      );
+
+      const avgSimilarity = (chunk.totalSimilarity / chunk.totalRetrievals) * 10; // Convert to 0-10 scale
+
+      const chunkData: ChunkToRoleHeatmapData = {
+        type: 'chunk-to-role',
+        chunkId: chunk.chunkId,
+        docId: chunk.docId,
+        title: chunk.title,
+        totalRetrievals: chunk.totalRetrievals,
+        roleAccess: roleAccessArray,
+        avgSimilarity: avgSimilarity,
+        dominantRole: {
+          roleName: dominantRoleEntry.roleName,
+          accessCount: dominantRoleEntry.accessCount,
+          percentage: Math.round((dominantRoleEntry.accessCount / chunk.totalRetrievals) * 100)
+        },
+        isOrphaned: false
+      };
+
+      chunkPoints.push({
+        id: `chunk_${chunk.chunkId}`,
+        x: 0, // Will be positioned later
+        y: avgSimilarity * 10, // Position based on average similarity
+        size: Math.max(0.3, Math.min(1.2, chunk.totalRetrievals / 5)), // Size based on total retrievals
+        color: avgSimilarity, // Color based on average similarity
+        opacity: Math.max(0.7, avgSimilarity / 10),
+        data: chunkData
+      });
+    }
+  });
+
+  // Apply center-perimeter positioning similar to chunks-to-questions
+  // Separate retrieved and orphaned chunks
+  const retrievedChunkPoints = chunkPoints.filter(p => !p.data.isOrphaned);
+  const orphanedChunkPoints = chunkPoints.filter(p => p.data.isOrphaned);
+
+  // Position retrieved chunks in center
+  const centerX = 50;
+  const centerY = 50;
+  const centerRadius = 20;
+
+  retrievedChunkPoints.forEach((point, index) => {
+    const angle = (index / retrievedChunkPoints.length) * 2 * Math.PI;
+    const radius = Math.random() * centerRadius;
+    point.x = centerX + radius * Math.cos(angle);
+    point.y = centerY + radius * Math.sin(angle);
+  });
+
+  // Position orphaned chunks around perimeter
+  orphanedChunkPoints.forEach((point, index) => {
+    const angle = (index / orphanedChunkPoints.length) * 2 * Math.PI;
+    const radius = 35 + Math.random() * 15; // Outer ring
+    point.x = centerX + radius * Math.cos(angle);
+    point.y = centerY + radius * Math.sin(angle);
+  });
+
+  const finalPoints = [...retrievedChunkPoints, ...orphanedChunkPoints];
+  
+  // Apply spacing optimization
+  optimizePointSpacing(finalPoints);
+  
+  return finalPoints;
 }

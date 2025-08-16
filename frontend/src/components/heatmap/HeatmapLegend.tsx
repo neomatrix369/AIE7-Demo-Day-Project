@@ -27,6 +27,15 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
     { size: 0.6, label: 'Medium retrieval frequency' },
     { size: 0.4, label: 'Low retrieval frequency' },
     { size: 0.15, label: 'Orphaned (no retrieval)' }
+  ] : perspective === 'chunks-to-roles' ? [
+    { size: 1.0, label: 'High role access' },
+    { size: 0.6, label: 'Medium role access' },
+    { size: 0.4, label: 'Low role access' },
+    { size: 0.15, label: 'Orphaned (no access)' }
+  ] : perspective === 'roles-to-chunks' ? [
+    { size: 1.0, label: 'Many questions' },
+    { size: 0.6, label: 'Some questions' },
+    { size: 0.3, label: 'Few questions' }
   ] : [
     { size: 1.0, label: 'High' },
     { size: 0.6, label: 'Medium' },
@@ -37,52 +46,52 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
     <div style={{ 
       display: 'flex',
       flexDirection: 'column',
-      gap: '15px',
-      padding: '15px',
+      gap: '10px',
+      padding: '12px',
       backgroundColor: '#f8f9fa',
       border: '1px solid #dee2e6',
       borderRadius: '6px',
-      fontSize: '0.85rem',
+      fontSize: '0.8rem',
       ...style
     }}>
       
       {/* Title */}
       <div style={{ 
         fontWeight: 'bold',
-        fontSize: '0.9rem',
+        fontSize: '0.85rem',
         color: '#333',
         borderBottom: '1px solid #dee2e6',
-        paddingBottom: '8px'
+        paddingBottom: '6px'
       }}>
-        🗺️ Heatmap Legend
+        🗺️ Legend
       </div>
 
       {/* Color Legend */}
       <div>
         <div style={{ 
           fontWeight: 'bold',
-          fontSize: '0.8rem',
+          fontSize: '0.75rem',
           color: '#555',
-          marginBottom: '8px'
+          marginBottom: '6px'
         }}>
-          🎨 Color Intensity ({perspective === 'questions-to-chunks' ? 'Quality Score' : 'Average Similarity'})
+          🎨 Color
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {colorLegendItems.map((item, index) => (
             <div key={index} style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '8px'
+              gap: '6px'
             }}>
               <div style={{ 
-                width: '16px',
-                height: '16px',
+                width: '12px',
+                height: '12px',
                 backgroundColor: item.color,
                 borderRadius: '50%',
                 border: '1px solid #fff',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }} />
-              <span style={{ color: '#666' }}>{item.label}</span>
+              <span style={{ color: '#666', fontSize: '0.75rem' }}>{item.label}</span>
             </div>
           ))}
         </div>
@@ -92,28 +101,28 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
       <div>
         <div style={{ 
           fontWeight: 'bold',
-          fontSize: '0.8rem',
+          fontSize: '0.75rem',
           color: '#555',
-          marginBottom: '8px'
+          marginBottom: '6px'
         }}>
-          📏 Point Size ({perspective === 'questions-to-chunks' ? 'Chunks Retrieved' : 'Retrieval Frequency'})
+          📏 Size
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {sizeLegendItems.map((item, index) => (
             <div key={index} style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '12px'
+              gap: '8px'
             }}>
               <div style={{ 
-                width: `${getScaledSize(item.size, 8, 20)}px`,
-                height: `${getScaledSize(item.size, 8, 20)}px`,
+                width: `${getScaledSize(item.size, 6, 16)}px`,
+                height: `${getScaledSize(item.size, 6, 16)}px`,
                 backgroundColor: '#6c757d',
                 borderRadius: '50%',
                 border: '1px solid #fff',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }} />
-              <span style={{ color: '#666' }}>{item.label}</span>
+              <span style={{ color: '#666', fontSize: '0.75rem' }}>{item.label}</span>
             </div>
           ))}
         </div>

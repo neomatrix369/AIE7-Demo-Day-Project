@@ -6,13 +6,15 @@ interface HeatmapControlsProps {
   onConfigChange: (newConfig: Partial<HeatmapConfig>) => void;
   totalQuestions: number;
   totalChunks: number;
+  totalRoles: number;
 }
 
 const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
   config,
   onConfigChange,
   totalQuestions,
-  totalChunks
+  totalChunks,
+  totalRoles
 }) => {
   const handlePerspectiveChange = (perspective: HeatmapPerspective) => {
     onConfigChange({ perspective });
@@ -49,21 +51,6 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
         </h4>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
-            className={config.perspective === 'questions-to-chunks' ? 'button' : 'button button-secondary'}
-            style={{ 
-              padding: '8px 16px',
-              fontSize: '0.85rem',
-              backgroundColor: config.perspective === 'questions-to-chunks' ? '#007bff' : '#6c757d',
-              minWidth: '160px'
-            }}
-            onClick={() => handlePerspectiveChange('questions-to-chunks')}
-          >
-            📝 Questions → Chunks
-            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
-              ({totalQuestions} questions)
-            </div>
-          </button>
-          <button
             className={config.perspective === 'chunks-to-questions' ? 'button' : 'button button-secondary'}
             style={{ 
               padding: '8px 16px',
@@ -78,11 +65,47 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
               ({totalChunks} retrieved chunks)
             </div>
           </button>
+          <button
+            className={config.perspective === 'chunks-to-roles' ? 'button' : 'button button-secondary'}
+            style={{ 
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              backgroundColor: config.perspective === 'chunks-to-roles' ? '#007bff' : '#6c757d',
+              minWidth: '160px'
+            }}
+            onClick={() => handlePerspectiveChange('chunks-to-roles')}
+          >
+            📄 Chunks → Roles
+            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
+              ({totalChunks} chunks analyzed)
+            </div>
+          </button>
+          {/* Hide Roles → Chunks button */}
+          <button
+            className={config.perspective === 'roles-to-chunks' ? 'button' : 'button button-secondary'}
+            style={{ 
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              backgroundColor: config.perspective === 'roles-to-chunks' ? '#007bff' : '#6c757d',
+              minWidth: '160px',
+              display: 'none' // Make invisible
+            }}
+            onClick={() => handlePerspectiveChange('roles-to-chunks')}
+          >
+            👥 Roles → Chunks
+            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
+              ({totalRoles} user roles)
+            </div>
+          </button>
         </div>
         <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '8px' }}>
-          {config.perspective === 'questions-to-chunks' 
-            ? 'View how questions map to document chunks they retrieve'
-            : 'View how document chunks are retrieved by different questions (includes orphaned chunks that were never retrieved)'
+          {config.perspective === 'chunks-to-questions'
+            ? 'View how document chunks are retrieved by different questions (includes orphaned chunks that were never retrieved)'
+            : config.perspective === 'chunks-to-roles'
+            ? 'View how document chunks are accessed by different user roles and analyze role-based usage patterns'
+            : config.perspective === 'roles-to-chunks'
+            ? 'View how different user roles access document chunks and analyze retrieval patterns by role'
+            : 'View how questions map to document chunks they retrieve'
           }
         </div>
       </div>
@@ -168,18 +191,32 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
         borderRadius: '4px',
         borderLeft: '3px solid #007bff'
       }}>
-        {config.perspective === 'questions-to-chunks' ? (
-          <>
-            <strong>📊 Data Points:</strong> Each point represents a question. 
-            <strong> Size</strong> = chunks retrieved, <strong>Color</strong> = quality score, 
-            <strong> Y-axis</strong> = average similarity.
-          </>
-        ) : (
+        {config.perspective === 'chunks-to-questions' ? (
           <>
             <strong>📊 Data Points:</strong> Each point represents a document chunk with optimized spacing. 
             <strong> Size</strong> = retrieval frequency (smaller for orphaned), <strong>Color</strong> = average similarity (grey for orphaned), 
             <strong> Position</strong> = center cluster (retrieved) vs edge scatter (orphaned). 
             <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Auto-spaced to prevent overlaps while maintaining center/edge distribution.</span>
+          </>
+        ) : config.perspective === 'chunks-to-roles' ? (
+          <>
+            <strong>📊 Data Points:</strong> Each point represents a document chunk analyzed by role usage. 
+            <strong> Size</strong> = total retrievals across roles (smaller for orphaned), <strong>Color</strong> = average similarity, 
+            <strong> Position</strong> = center cluster (accessed) vs edge scatter (orphaned). 
+            <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows which roles access which chunks and dominant usage patterns.</span>
+          </>
+        ) : config.perspective === 'roles-to-chunks' ? (
+          <>
+            <strong>📊 Data Points:</strong> Each point represents a user role grouped by performance. 
+            <strong> Size</strong> = number of questions from role, <strong>Color</strong> = average quality score, 
+            <strong> Position</strong> = horizontal role distribution with quality-based vertical positioning. 
+            <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows chunk retrieval patterns and effectiveness by user role.</span>
+          </>
+        ) : (
+          <>
+            <strong>📊 Data Points:</strong> Each point represents a question. 
+            <strong> Size</strong> = chunks retrieved, <strong>Color</strong> = quality score, 
+            <strong> Y-axis</strong> = average similarity.
           </>
         )}
       </div>

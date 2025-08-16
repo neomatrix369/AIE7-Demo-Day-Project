@@ -15,7 +15,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    perspective: 'questions-to-chunks',
+    perspective: 'chunks-to-questions',
     qualityFilter: 'all',
     showTooltips: true,
     pointSize: 'medium',
@@ -161,6 +161,18 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     return uniqueChunks.size;
   }, [results]);
 
+  // Calculate total roles for heatmap controls
+  const totalRoles = React.useMemo(() => {
+    if (!results) return 0;
+    const uniqueRoles = new Set();
+    results.per_question.forEach(question => {
+      if (question.role_name) {
+        uniqueRoles.add(question.role_name);
+      }
+    });
+    return uniqueRoles.size;
+  }, [results]);
+
   if (loading) {
     return (
       <div>
@@ -273,52 +285,76 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           onConfigChange={handleHeatmapConfigChange}
           totalQuestions={results.overall.total_questions}
           totalChunks={totalChunks}
+          totalRoles={totalRoles}
         />
 
         {/* Main Visualization Area */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: '1fr 320px', 
-          gap: '20px', 
+          gridTemplateColumns: '1fr 280px', 
+          gap: '8px', 
           marginBottom: '20px',
           minHeight: '500px'
         }}>
           
           {/* Heatmap Visualization */}
-          <div className="card" style={{ padding: '20px' }}>
+          <div className="card" style={{ padding: '10px' }}>
             <ScatterHeatmap
               questionResults={results.per_question}
               perspective={heatmapConfig.perspective}
               qualityFilter={heatmapConfig.qualityFilter}
               onPointClick={heatmapConfig.showTooltips ? handleHeatmapPointClick : undefined}
-              width={900}
-              height={500}
+              width={780}
+              height={460}
               allChunks={allChunks || undefined}
             />
           </div>
           
-          {/* Legend and Drill-down Panel */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {/* Legend and Actions Panel */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <HeatmapLegend
               perspective={heatmapConfig.perspective}
               style={{ height: 'fit-content' }}
             />
             
+            {/* Quick Actions Panel */}
+            <div className="card" style={{ padding: '10px' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '0.8rem' }}>
+                🔗 Quick Actions
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <button 
+                  className="button button-secondary"
+                  onClick={handleBackToResults}
+                  style={{ fontSize: '0.75rem', padding: '6px 10px' }}
+                >
+                  📊 Analysis Results
+                </button>
+                <button 
+                  className="button button-secondary"
+                  onClick={handleBackToDashboard}
+                  style={{ fontSize: '0.75rem', padding: '6px 10px' }}
+                >
+                  🏠 Dashboard
+                </button>
+              </div>
+            </div>
+            
             {/* Drill-down Information Panel */}
             {selectedHeatmapPoint && (
-              <div className="card" style={{ padding: '15px' }}>
-                <h4 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '0.9rem' }}>
+              <div className="card" style={{ padding: '12px' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '0.85rem' }}>
                   🎯 Selected Point Details
                 </h4>
                 <div style={{
                   backgroundColor: '#e8f4fd',
                   border: '1px solid #bee5eb',
                   borderRadius: '4px',
-                  padding: '10px',
-                  fontSize: '0.85rem',
+                  padding: '8px',
+                  fontSize: '0.8rem',
                   lineHeight: '1.4'
                 }}>
-                  <strong>Type:</strong> {selectedHeatmapPoint.data.type === 'question' ? 'Question' : 'Document Chunk'}<br/>
+                  <strong>Type:</strong> {selectedHeatmapPoint.data.type === 'question' ? 'Question' : selectedHeatmapPoint.data.type === 'chunk' ? 'Document Chunk' : selectedHeatmapPoint.data.type === 'role' ? 'User Role' : 'Chunk Role Analysis'}<br/>
                   <strong>Details:</strong> {drillDownData}<br/>
                   {selectedHeatmapPoint.data.type === 'question' ? (
                     <>
@@ -326,11 +362,23 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                       <strong>Quality Score:</strong> {selectedHeatmapPoint.data.qualityScore.toFixed(1)}<br/>
                       <strong>Chunks Retrieved:</strong> {selectedHeatmapPoint.data.chunkFrequency}
                     </>
-                  ) : (
+                  ) : selectedHeatmapPoint.data.type === 'chunk' ? (
                     <>
                       <strong>Retrieval Frequency:</strong> {selectedHeatmapPoint.data.retrievalFrequency} questions<br/>
                       <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
                       <strong>Best Match:</strong> {selectedHeatmapPoint.data.bestQuestion.similarity.toFixed(3)}
+                    </>
+                  ) : selectedHeatmapPoint.data.type === 'role' ? (
+                    <>
+                      <strong>Avg Quality Score:</strong> {selectedHeatmapPoint.data.avgQualityScore.toFixed(1)}<br/>
+                      <strong>Questions:</strong> {selectedHeatmapPoint.data.questionCount}<br/>
+                      <strong>Unique Chunks:</strong> {selectedHeatmapPoint.data.totalChunksRetrieved}
+                    </>
+                  ) : (
+                    <>
+                      <strong>Total Retrievals:</strong> {selectedHeatmapPoint.data.totalRetrievals}<br/>
+                      <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
+                      <strong>Dominant Role:</strong> {selectedHeatmapPoint.data.dominantRole.roleName}
                     </>
                   )}
                 </div>
@@ -340,14 +388,14 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                     setDrillDownData('');
                   }}
                   style={{
-                    marginTop: '10px',
-                    padding: '6px 12px',
+                    marginTop: '8px',
+                    padding: '6px 10px',
                     backgroundColor: '#6c757d',
                     color: 'white',
                     border: 'none',
                     borderRadius: '3px',
                     cursor: 'pointer',
-                    fontSize: '0.8rem',
+                    fontSize: '0.75rem',
                     width: '100%'
                   }}
                 >
@@ -355,29 +403,6 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 </button>
               </div>
             )}
-
-            {/* Quick Actions Panel */}
-            <div className="card" style={{ padding: '15px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '0.9rem' }}>
-                🔗 Quick Actions
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button 
-                  className="button button-secondary"
-                  onClick={handleBackToResults}
-                  style={{ fontSize: '0.85rem', padding: '8px 12px' }}
-                >
-                  📊 View Analysis Results
-                </button>
-                <button 
-                  className="button button-secondary"
-                  onClick={handleBackToDashboard}
-                  style={{ fontSize: '0.85rem', padding: '8px 12px' }}
-                >
-                  🏠 Back to Dashboard
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 

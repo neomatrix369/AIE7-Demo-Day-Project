@@ -5,6 +5,8 @@ import {
   HeatmapPoint, 
   processQuestionsToChunks, 
   processChunksToQuestions, 
+  processRolesToChunks,
+  processChunksToRoles,
   getHeatmapColor, 
   getScaledSize, 
   optimizePositions,
@@ -62,8 +64,12 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     
     if (perspective === 'questions-to-chunks') {
       points = processQuestionsToChunks(questionResults);
-    } else {
+    } else if (perspective === 'chunks-to-questions') {
       points = processChunksToQuestions(questionResults, memoizedAllChunks || undefined);
+    } else if (perspective === 'roles-to-chunks') {
+      points = processRolesToChunks(questionResults);
+    } else {
+      points = processChunksToRoles(questionResults, memoizedAllChunks || undefined);
     }
     
     // Filter by quality
@@ -81,11 +87,22 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     const canvasHeight = 320;
     
     return heatmapPoints.map((point, index) => {
-      if (perspective === 'chunks-to-questions') {
-        // For chunks view, use the pre-calculated positioning (center/perimeter layout)
+      if (perspective === 'chunks-to-questions' || perspective === 'chunks-to-roles') {
+        // For chunks views, use the pre-calculated positioning (center/perimeter layout)
         // Convert from 0-100 coordinate system to canvas pixels
         const x = (point.x / 100) * (canvasWidth - 60) + 30;
         const y = (point.y / 100) * (canvasHeight - 60) + 30;
+        
+        return {
+          ...point,
+          screenX: Math.max(20, Math.min(canvasWidth - 20, x)),
+          screenY: Math.max(20, Math.min(canvasHeight - 20, y))
+        };
+      } else if (perspective === 'roles-to-chunks') {
+        // For roles view, use horizontal spacing with quality-based vertical positioning
+        const spacing = Math.min(canvasWidth / (heatmapPoints.length + 1), 120);
+        const x = spacing * (index + 1);
+        const y = canvasHeight - (point.y * (canvasHeight - 60) / 100) - 30; // Invert Y for better visual
         
         return {
           ...point,

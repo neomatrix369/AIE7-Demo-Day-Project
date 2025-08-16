@@ -1,5 +1,5 @@
 import React from 'react';
-import { HeatmapPoint, QuestionHeatmapData, ChunkHeatmapData, RoleHeatmapData, ChunkToRoleHeatmapData } from '../../utils/heatmapData';
+import { HeatmapPoint, QuestionHeatmapData, ChunkHeatmapData, RoleHeatmapData, ChunkToRoleHeatmapData, UnassociatedClusterHeatmapData } from '../../utils/heatmapData';
 import { HeatmapPerspective, TooltipPosition } from '../../types';
 
 interface HeatmapTooltipProps {
@@ -401,6 +401,85 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
     </div>
   );
 
+  const renderClusterTooltip = (data: UnassociatedClusterHeatmapData) => (
+    <div>
+      <div style={{ 
+        fontWeight: 'bold', 
+        fontSize: '0.9rem',
+        marginBottom: '8px',
+        color: '#6c757d',
+        borderBottom: '1px solid #eee',
+        paddingBottom: '5px'
+      }}>
+        🔍 Unassociated Chunk Group
+      </div>
+      
+      <div style={{ marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>Contains:</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#6c757d' }}>
+            {data.chunkCount} document chunks
+          </span>
+        </div>
+      </div>
+
+      {data.documentBreakdown.length > 0 && (
+        <div style={{ marginBottom: '8px' }}>
+          <strong style={{ fontSize: '0.8rem' }}>📋 Documents:</strong>
+          <div style={{ marginTop: '4px' }}>
+            {data.documentBreakdown.slice(0, 5).map((doc, idx) => (
+              <div key={idx} style={{ 
+                fontSize: '0.75rem',
+                padding: '2px 0',
+                color: '#666',
+                borderLeft: '2px solid #6c757d',
+                paddingLeft: '6px',
+                marginBottom: '2px'
+              }}>
+                <div style={{ fontWeight: 'bold' }}>
+                  {doc.title.length > 40 ? `${doc.title.substring(0, 40)}...` : doc.title}
+                </div>
+                <div>{doc.chunkCount} chunk{doc.chunkCount > 1 ? 's' : ''}</div>
+              </div>
+            ))}
+            {data.documentBreakdown.length > 5 && (
+              <div style={{ 
+                fontSize: '0.7rem',
+                color: '#999',
+                fontStyle: 'italic',
+                marginTop: '4px'
+              }}>
+                ... and {data.documentBreakdown.length - 5} more documents
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div style={{ 
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '4px',
+        padding: '8px',
+        fontSize: '0.8rem',
+        color: '#6c757d',
+        fontStyle: 'italic'
+      }}>
+        ⚠️ Status: Never retrieved by any question in the current experiment
+      </div>
+
+      <div style={{ 
+        fontSize: '0.7rem',
+        color: '#999',
+        marginTop: '6px',
+        textAlign: 'center',
+        fontStyle: 'italic'
+      }}>
+        This cluster represents {data.chunkCount} unassociated chunks grouped for cleaner visualization
+      </div>
+    </div>
+  );
+
   const renderChunkToRoleTooltip = (data: ChunkToRoleHeatmapData) => (
     <div>
       <div style={{ 
@@ -543,6 +622,8 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
         ? renderChunkTooltip(point.data as ChunkHeatmapData)
         : point.data.type === 'role'
         ? renderRoleTooltip(point.data as RoleHeatmapData)
+        : point.data.type === 'unassociated-cluster'
+        ? renderClusterTooltip(point.data as UnassociatedClusterHeatmapData)
         : renderChunkToRoleTooltip(point.data as ChunkToRoleHeatmapData)
       }
       

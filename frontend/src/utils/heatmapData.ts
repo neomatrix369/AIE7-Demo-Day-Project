@@ -7,7 +7,7 @@ export interface HeatmapPoint {
   size: number;
   color: number;
   opacity: number;
-  data: QuestionHeatmapData | ChunkHeatmapData | RoleHeatmapData | ChunkToRoleHeatmapData;
+  data: QuestionHeatmapData | ChunkHeatmapData | RoleHeatmapData | ChunkToRoleHeatmapData | UnassociatedClusterHeatmapData;
 }
 
 export interface QuestionHeatmapData {
@@ -96,6 +96,175 @@ export interface ChunkToRoleHeatmapData {
     percentage: number; // Percentage of total retrievals from this role
   };
   isUnretrieved?: boolean; // True if this chunk has never been retrieved by any question
+}
+
+export interface UnassociatedClusterHeatmapData {
+  type: 'unassociated-cluster';
+  clusterId: string;
+  chunkCount: number; // Number of chunks in this cluster
+  chunks: Array<{
+    chunkId: string;
+    docId: string;
+    title: string;
+  }>;
+  documentBreakdown: Array<{
+    docId: string;
+    title: string;
+    chunkCount: number;
+  }>;
+  centerPosition: { x: number; y: number }; // Cluster center coordinates
+}
+
+/**
+ * Position associated chunks in the inner area with consistent grid-based spacing
+ */
+function positionAssociatedChunks(retrievedChunkPoints: HeatmapPoint[]): void {
+  if (retrievedChunkPoints.length === 0) return;
+
+  // Sort associated chunks by frequency for better central placement (highest frequency most central)
+  retrievedChunkPoints.sort((a, b) => {
+    const freqA = a.data.type === 'chunk' ? a.data.retrievalFrequency : 
+                  a.data.type === 'chunk-to-role' ? a.data.totalRetrievals : 0;
+    const freqB = b.data.type === 'chunk' ? b.data.retrievalFrequency : 
+                  b.data.type === 'chunk-to-role' ? b.data.totalRetrievals : 0;
+    return freqB - freqA;
+  });
+  
+  // Calculate grid for associated chunks with 2x wider spacing than original
+  const associatedAspectRatio = 1.1;
+  const associatedCols = Math.ceil(Math.sqrt(retrievedChunkPoints.length * associatedAspectRatio));
+  const associatedRows = Math.ceil(retrievedChunkPoints.length / associatedCols);
+  
+  // Use 2x wider spacing for associated chunks, focusing on inner area
+  const innerAreaSize = 60; // Use 60% of container for inner area
+  const associatedXSpacing = innerAreaSize / (associatedCols - 1 || 1);
+  const associatedYSpacing = innerAreaSize / (associatedRows - 1 || 1);
+  
+  // Generate inner grid positions for associated chunks
+  const associatedPositions: Array<{x: number, y: number, distanceFromCenter: number}> = [];
+  
+  for (let row = 0; row < associatedRows; row++) {
+    for (let col = 0; col < associatedCols; col++) {
+      if (associatedPositions.length >= retrievedChunkPoints.length) break;
+      
+      // Center the inner grid within the container
+      const innerStartX = 20; // Start inner area at 20% from edge
+      const innerStartY = 20;
+      const x = innerStartX + (col * associatedXSpacing);
+      const y = innerStartY + (row * associatedYSpacing);
+      
+      const centerX = 50;
+      const centerY = 50;
+      const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      
+      associatedPositions.push({ x, y, distanceFromCenter });
+    }
+  }
+  
+  // Sort associated positions from inside-out (center first for high-frequency chunks)
+  associatedPositions.sort((a, b) => a.distanceFromCenter - b.distanceFromCenter);
+  
+  // Assign inner positions to associated chunks
+  retrievedChunkPoints.forEach((point, index) => {
+    if (index < associatedPositions.length) {
+      const pos = associatedPositions[index];
+      point.x = pos.x;
+      point.y = pos.y;
+    }
+  });
+}
+
+/**
+ * Group unassociated chunks into spatial clusters for cleaner visualization
+ */
+function groupUnassociatedChunks(
+  unassociatedChunks: Array<{chunk_id: string; doc_id: string; title: string; content: string}>,
+  targetClusterCount: number = 12
+): HeatmapPoint[] {
+  if (unassociatedChunks.length === 0) return [];
+
+  // Create grid-based clusters around the perimeter
+  const clusters: Array<{
+    id: string;
+    chunks: typeof unassociatedChunks;
+    position: { x: number; y: number };
+  }> = [];
+
+  // Define cluster positions around the perimeter in a strategic pattern
+  const clusterPositions = [
+    // Top edge
+    { x: 15, y: 10 }, { x: 35, y: 8 }, { x: 65, y: 8 }, { x: 85, y: 10 },
+    // Right edge  
+    { x: 90, y: 25 }, { x: 92, y: 50 }, { x: 90, y: 75 },
+    // Bottom edge
+    { x: 85, y: 90 }, { x: 65, y: 92 }, { x: 35, y: 92 }, { x: 15, y: 90 },
+    // Left edge
+    { x: 8, y: 75 }, { x: 10, y: 50 }, { x: 8, y: 25 }
+  ];
+
+  // Use only the number of clusters we need
+  const actualClusterCount = Math.min(targetClusterCount, clusterPositions.length);
+  const selectedPositions = clusterPositions.slice(0, actualClusterCount);
+
+  // Initialize clusters
+  selectedPositions.forEach((pos, index) => {
+    clusters.push({
+      id: `cluster_${index}`,
+      chunks: [],
+      position: pos
+    });
+  });
+
+  // Distribute unassociated chunks among clusters (simple round-robin)
+  unassociatedChunks.forEach((chunk, index) => {
+    const clusterIndex = index % clusters.length;
+    clusters[clusterIndex].chunks.push(chunk);
+  });
+
+  // Convert clusters to HeatmapPoints
+  return clusters.map((cluster) => {
+    // Group chunks by document for breakdown
+    const documentBreakdown = new Map<string, { title: string; count: number }>();
+    
+    cluster.chunks.forEach(chunk => {
+      const docKey = chunk.doc_id;
+      if (!documentBreakdown.has(docKey)) {
+        documentBreakdown.set(docKey, { title: chunk.title, count: 0 });
+      }
+      documentBreakdown.get(docKey)!.count++;
+    });
+
+    const clusterData: UnassociatedClusterHeatmapData = {
+      type: 'unassociated-cluster',
+      clusterId: cluster.id,
+      chunkCount: cluster.chunks.length,
+      chunks: cluster.chunks.map(chunk => ({
+        chunkId: chunk.chunk_id,
+        docId: chunk.doc_id,
+        title: chunk.title
+      })),
+      documentBreakdown: Array.from(documentBreakdown.entries()).map(([docId, data]) => ({
+        docId,
+        title: data.title,
+        chunkCount: data.count
+      })),
+      centerPosition: cluster.position
+    };
+
+    // Size based on number of chunks (larger clusters = bigger hexagons)
+    const maxChunksPerCluster = Math.max(...clusters.map(c => c.chunks.length), 1);
+    const normalizedSize = cluster.chunks.length / maxChunksPerCluster;
+
+    return {
+      id: cluster.id,
+      x: cluster.position.x,
+      y: cluster.position.y,
+      size: Math.max(0.3, normalizedSize * 0.8), // Cluster size based on chunk count
+      color: 0, // Grey color for unassociated
+      opacity: 0.4, // Lower opacity for background layer
+      data: clusterData
+    };
+  });
 }
 
 /**
@@ -192,219 +361,67 @@ export function processChunksToQuestions(
 
   const retrievedChunks = Array.from(chunkMap.values());
   
-  // Add Unretrieved chunks if allChunks data is provided
-  const UnretrievedChunks: Array<{
-    chunkId: string;
-    docId: string;
-    title: string;
-    questions: Array<any>;
-    totalSimilarity: number;
-    isUnretrieved: boolean;
-  }> = [];
+  // Create clustered unassociated chunks if allChunks data is provided
+  let clusteredUnassociatedPoints: HeatmapPoint[] = [];
   
   if (allChunks) {
     const retrievedChunkIds = new Set(retrievedChunks.map(c => c.chunkId));
+    const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
     
-    allChunks.forEach(chunk => {
-      if (!retrievedChunkIds.has(chunk.chunk_id)) {
-        UnretrievedChunks.push({
-          chunkId: chunk.chunk_id,
-          docId: chunk.doc_id,
-          title: chunk.title,
-          questions: [],
-          totalSimilarity: 0,
-          isUnretrieved: true
-        });
-      }
-    });
+    // Group unassociated chunks into clusters instead of individual points
+    clusteredUnassociatedPoints = groupUnassociatedChunks(unassociatedChunks);
   }
   
-  // Combine retrieved and Unretrieved chunks
-  const allProcessedChunks = [
-    ...retrievedChunks.map(c => ({ ...c, isUnretrieved: false })),
-    ...UnretrievedChunks
-  ];
-  
   // Handle case where no chunks are found
-  if (allProcessedChunks.length === 0) {
+  if (retrievedChunks.length === 0 && clusteredUnassociatedPoints.length === 0) {
     return [];
   }
 
   const maxRetrievalFrequency = Math.max(...retrievedChunks.map(c => c.questions.length), 1);
-  const maxAvgSimilarity = Math.max(...retrievedChunks.map(c => c.totalSimilarity / c.questions.length), 1);
 
-  // Sort chunks: retrieved chunks first (by frequency), then Unretrieved chunks
-  allProcessedChunks.sort((a, b) => {
-    if (a.isUnretrieved && !b.isUnretrieved) return 1;
-    if (!a.isUnretrieved && b.isUnretrieved) return -1;
-    return b.questions.length - a.questions.length;
+  // Create retrieved chunk points
+  const retrievedChunkPoints: HeatmapPoint[] = retrievedChunks.map((chunk) => {
+    const avgSimilarity = chunk.totalSimilarity / chunk.questions.length;
+    const bestQuestion = chunk.questions.reduce((best, current) => 
+      current.similarity > best.similarity ? current : best
+    );
+
+    const chunkData: ChunkHeatmapData = {
+      type: 'chunk',
+      chunkId: chunk.chunkId,
+      docId: chunk.docId,
+      title: chunk.title,
+      retrievalFrequency: chunk.questions.length,
+      avgSimilarity,
+      bestQuestion: {
+        questionId: bestQuestion.questionId,
+        questionText: bestQuestion.questionText,
+        similarity: bestQuestion.similarity,
+        roleName: bestQuestion.roleName
+      },
+      retrievingQuestions: chunk.questions,
+      isUnretrieved: false
+    };
+
+    return {
+      id: chunk.chunkId,
+      x: 0, // Will be calculated later
+      y: 0, // Will be calculated later
+      size: Math.max(0.4, (chunkData.retrievalFrequency / maxRetrievalFrequency) * 1.0),
+      color: avgSimilarity, // Pass actual average similarity (0-10 scale)
+      opacity: Math.max(0.7, avgSimilarity / 10),
+      data: chunkData
+    };
   });
 
-  // Separate retrieved and Unretrieved chunks for different positioning strategies
-  const retrievedChunkPoints: HeatmapPoint[] = [];
-  const UnretrievedChunkPoints: HeatmapPoint[] = [];
+  // Phase 1: Clustered unassociated chunks are already positioned around perimeter
+  // (positions are set in groupUnassociatedChunks function)
   
-  allProcessedChunks.forEach((chunk, index) => {
-    if (chunk.isUnretrieved) {
-      // Handle Unretrieved chunks with minimal data
-      const chunkData: ChunkHeatmapData = {
-        type: 'chunk',
-        chunkId: chunk.chunkId,
-        docId: chunk.docId,
-        title: chunk.title,
-        retrievalFrequency: 0,
-        avgSimilarity: 0,
-        bestQuestion: {
-          questionId: 'none',
-          questionText: 'No questions retrieve this chunk',
-          similarity: 0
-        },
-        retrievingQuestions: [],
-        isUnretrieved: true
-      };
+  // Phase 2: Position associated chunks using common positioning logic
+  positionAssociatedChunks(retrievedChunkPoints);
 
-      UnretrievedChunkPoints.push({
-        id: chunk.chunkId,
-        x: 0, // Will be calculated later
-        y: 0, // Will be calculated later
-        size: 0.15, // Much smaller size for Unretrieved chunks
-        color: 0, // Grey color (will be handled in getHeatmapColor)
-        opacity: 0.3, // Lower opacity for Unretrieved chunks
-        data: chunkData
-      });
-    } else {
-      // Handle retrieved chunks normally
-      const avgSimilarity = chunk.totalSimilarity / chunk.questions.length;
-      const bestQuestion = chunk.questions.reduce((best, current) => 
-        current.similarity > best.similarity ? current : best
-      );
-
-      const chunkData: ChunkHeatmapData = {
-        type: 'chunk',
-        chunkId: chunk.chunkId,
-        docId: chunk.docId,
-        title: chunk.title,
-        retrievalFrequency: chunk.questions.length,
-        avgSimilarity,
-        bestQuestion: {
-          questionId: bestQuestion.questionId,
-          questionText: bestQuestion.questionText,
-          similarity: bestQuestion.similarity,
-          roleName: bestQuestion.roleName
-        },
-        retrievingQuestions: chunk.questions,
-        isUnretrieved: false
-      };
-
-      retrievedChunkPoints.push({
-        id: chunk.chunkId,
-        x: 0, // Will be calculated later
-        y: 0, // Will be calculated later
-        size: Math.max(0.4, (chunkData.retrievalFrequency / maxRetrievalFrequency) * 1.0),
-        color: avgSimilarity, // Pass actual average similarity (0-10 scale)
-        opacity: Math.max(0.7, avgSimilarity / 10),
-        data: chunkData
-      });
-    }
-  });
-
-  // Phase 1: Position unassociated chunks first with wide spacing around perimeter
-  if (UnretrievedChunkPoints.length > 0) {
-    // Calculate grid for unassociated chunks with 3x wider spacing
-    const unassociatedAspectRatio = 1.3;
-    const unassociatedCols = Math.ceil(Math.sqrt(UnretrievedChunkPoints.length * unassociatedAspectRatio));
-    const unassociatedRows = Math.ceil(UnretrievedChunkPoints.length / unassociatedCols);
-    
-    // Use 3x wider spacing for unassociated chunks - covering more of the perimeter area
-    const unassociatedXSpacing = 85 / (unassociatedCols - 1 || 1); // Wider coverage (85% instead of 90%)
-    const unassociatedYSpacing = 85 / (unassociatedRows - 1 || 1);
-    
-    // Generate sparse grid positions for unassociated chunks
-    const unassociatedPositions: Array<{x: number, y: number, distanceFromCenter: number}> = [];
-    
-    for (let row = 0; row < unassociatedRows; row++) {
-      for (let col = 0; col < unassociatedCols; col++) {
-        if (unassociatedPositions.length >= UnretrievedChunkPoints.length) break;
-        
-        const x = 7.5 + (col * unassociatedXSpacing); // Start at 7.5% margin for wider boundary
-        const y = 7.5 + (row * unassociatedYSpacing);
-        
-        const centerX = 50;
-        const centerY = 50;
-        const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-        
-        unassociatedPositions.push({ x, y, distanceFromCenter });
-      }
-    }
-    
-    // Sort unassociated positions from outside-in (perimeter first)
-    unassociatedPositions.sort((a, b) => b.distanceFromCenter - a.distanceFromCenter);
-    
-    // Assign perimeter positions to unassociated chunks
-    UnretrievedChunkPoints.forEach((point, index) => {
-      if (index < unassociatedPositions.length) {
-        const pos = unassociatedPositions[index];
-        point.x = pos.x;
-        point.y = pos.y;
-      }
-    });
-  }
-  
-  // Phase 2: Position associated chunks with wide spacing, filling from where unassociated ended
-  if (retrievedChunkPoints.length > 0) {
-    // Sort associated chunks by frequency for better central placement (highest frequency most central)
-    retrievedChunkPoints.sort((a, b) => {
-      const freqA = a.data.type === 'chunk' ? a.data.retrievalFrequency : 0;
-      const freqB = b.data.type === 'chunk' ? b.data.retrievalFrequency : 0;
-      return freqB - freqA;
-    });
-    
-    // Calculate grid for associated chunks with 2x wider spacing than original
-    const associatedAspectRatio = 1.1;
-    const associatedCols = Math.ceil(Math.sqrt(retrievedChunkPoints.length * associatedAspectRatio));
-    const associatedRows = Math.ceil(retrievedChunkPoints.length / associatedCols);
-    
-    // Use 2x wider spacing for associated chunks, focusing on inner area
-    const innerAreaSize = 60; // Use 60% of container for inner area
-    const associatedXSpacing = innerAreaSize / (associatedCols - 1 || 1);
-    const associatedYSpacing = innerAreaSize / (associatedRows - 1 || 1);
-    
-    // Generate inner grid positions for associated chunks
-    const associatedPositions: Array<{x: number, y: number, distanceFromCenter: number}> = [];
-    
-    for (let row = 0; row < associatedRows; row++) {
-      for (let col = 0; col < associatedCols; col++) {
-        if (associatedPositions.length >= retrievedChunkPoints.length) break;
-        
-        // Center the inner grid within the container
-        const innerStartX = 20; // Start inner area at 20% from edge
-        const innerStartY = 20;
-        const x = innerStartX + (col * associatedXSpacing);
-        const y = innerStartY + (row * associatedYSpacing);
-        
-        const centerX = 50;
-        const centerY = 50;
-        const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-        
-        associatedPositions.push({ x, y, distanceFromCenter });
-      }
-    }
-    
-    // Sort associated positions from inside-out (center first for high-frequency chunks)
-    associatedPositions.sort((a, b) => a.distanceFromCenter - b.distanceFromCenter);
-    
-    // Assign inner positions to associated chunks
-    retrievedChunkPoints.forEach((point, index) => {
-      if (index < associatedPositions.length) {
-        const pos = associatedPositions[index];
-        point.x = pos.x;
-        point.y = pos.y;
-      }
-    });
-  }
-
-  // Combine all points for collision detection - unassociated chunks first (background layer)
-  const allPoints = [...UnretrievedChunkPoints, ...retrievedChunkPoints];
+  // Combine all points for collision detection - clustered unassociated chunks first (background layer)
+  const allPoints = [...clusteredUnassociatedPoints, ...retrievedChunkPoints];
   
   // Apply collision detection and spacing optimization
   optimizePointSpacing(allPoints);
@@ -508,8 +525,8 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
  * Get color based on quality score (0-10 scale) or intensity (0-1 scale)
  */
 export function getHeatmapColor(value: number, isUnretrieved: boolean = false, isQualityScore: boolean = false): string {
-  // Special color for Unretrieved chunks
-  if (isUnretrieved || value === 0) return '#6c757d'; // Grey for Unretrieved chunks
+  // Special color for Unretrieved chunks and clusters
+  if (isUnretrieved || value === 0) return '#6c757d'; // Grey for Unretrieved chunks and clusters
   
   if (isQualityScore) {
     // Quality score scale (0-10): use actual thresholds
@@ -568,11 +585,14 @@ export function filterPointsByQuality(
       const score = point.data.avgQualityScore;
       const status = score >= 7.0 ? 'good' : score >= 5.0 ? 'weak' : 'poor';
       return status === threshold;
-    } else {
+    } else if (point.data.type === 'chunk-to-role') {
       // For chunk-to-role, determine status based on avgSimilarity
       const similarity = point.data.avgSimilarity;
       const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'weak' : 'poor';
       return status === threshold;
+    } else {
+      // For unassociated clusters, always show them (they represent background)
+      return true;
     }
   });
 }
@@ -752,126 +772,71 @@ export function processChunksToRoles(
     });
   });
 
-  // Add Unretrieved chunks if allChunks is provided
-  const processedChunks = Array.from(chunkAccessMap.values());
-  const UnretrievedChunks: typeof processedChunks = [];
+  // Create clustered unassociated chunks if allChunks data is provided
+  let clusteredUnassociatedPoints: HeatmapPoint[] = [];
   
   if (allChunks) {
-    allChunks.forEach(chunk => {
-      if (!chunkAccessMap.has(chunk.chunk_id)) {
-        UnretrievedChunks.push({
-          chunkId: chunk.chunk_id,
-          docId: chunk.doc_id,
-          title: chunk.title,
-          roleAccess: new Map(),
-          totalRetrievals: 0,
-          totalSimilarity: 0
-        });
-      }
-    });
+    const retrievedChunkIds = new Set(Array.from(chunkAccessMap.keys()));
+    const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
+    
+    // Group unassociated chunks into clusters instead of individual points
+    clusteredUnassociatedPoints = groupUnassociatedChunks(unassociatedChunks);
   }
 
-  const allProcessedChunks = [...processedChunks, ...UnretrievedChunks];
-  const chunkPoints: HeatmapPoint[] = [];
+  // Process retrieved chunks with role access
+  const processedChunks = Array.from(chunkAccessMap.values());
+  const retrievedChunkPoints: HeatmapPoint[] = [];
 
-  allProcessedChunks.forEach((chunk, index) => {
-    if (chunk.totalRetrievals === 0) {
-      // Handle Unretrieved chunks
-      const chunkData: ChunkToRoleHeatmapData = {
-        type: 'chunk-to-role',
-        chunkId: chunk.chunkId,
-        docId: chunk.docId,
-        title: chunk.title,
-        totalRetrievals: 0,
-        roleAccess: [],
-        avgSimilarity: 0,
-        dominantRole: {
-          roleName: 'None',
-          accessCount: 0,
-          percentage: 0
-        },
-        isUnretrieved: true
-      };
+  processedChunks.forEach((chunk) => {
+    // Handle chunks with role access
+    const roleAccessArray = Array.from(chunk.roleAccess.entries()).map(([roleName, data]) => ({
+      roleName,
+      accessCount: data.accessCount,
+      avgSimilarity: (data.totalSimilarity / data.accessCount) * 10, // Convert to 0-10 scale
+      sampleQuestions: data.questions.slice(0, 3) // Top 3 questions
+    }));
 
-      chunkPoints.push({
-        id: `chunk_${chunk.chunkId}`,
-        x: 0, // Will be positioned later
-        y: 0,
-        size: 0.15, // Small size for Unretrieved chunks
-        color: 0, // Grey color
-        opacity: 0.3,
-        data: chunkData
-      });
-    } else {
-      // Handle chunks with role access
-      const roleAccessArray = Array.from(chunk.roleAccess.entries()).map(([roleName, data]) => ({
-        roleName,
-        accessCount: data.accessCount,
-        avgSimilarity: (data.totalSimilarity / data.accessCount) * 10, // Convert to 0-10 scale
-        sampleQuestions: data.questions.slice(0, 3) // Top 3 questions
-      }));
+    // Find dominant role (role with most accesses)
+    const dominantRoleEntry = roleAccessArray.reduce((max, current) => 
+      current.accessCount > max.accessCount ? current : max
+    );
 
-      // Find dominant role (role with most accesses)
-      const dominantRoleEntry = roleAccessArray.reduce((max, current) => 
-        current.accessCount > max.accessCount ? current : max
-      );
+    const avgSimilarity = (chunk.totalSimilarity / chunk.totalRetrievals) * 10; // Convert to 0-10 scale
 
-      const avgSimilarity = (chunk.totalSimilarity / chunk.totalRetrievals) * 10; // Convert to 0-10 scale
+    const chunkData: ChunkToRoleHeatmapData = {
+      type: 'chunk-to-role',
+      chunkId: chunk.chunkId,
+      docId: chunk.docId,
+      title: chunk.title,
+      totalRetrievals: chunk.totalRetrievals,
+      roleAccess: roleAccessArray,
+      avgSimilarity: avgSimilarity,
+      dominantRole: {
+        roleName: dominantRoleEntry.roleName,
+        accessCount: dominantRoleEntry.accessCount,
+        percentage: Math.round((dominantRoleEntry.accessCount / chunk.totalRetrievals) * 100)
+      },
+      isUnretrieved: false
+    };
 
-      const chunkData: ChunkToRoleHeatmapData = {
-        type: 'chunk-to-role',
-        chunkId: chunk.chunkId,
-        docId: chunk.docId,
-        title: chunk.title,
-        totalRetrievals: chunk.totalRetrievals,
-        roleAccess: roleAccessArray,
-        avgSimilarity: avgSimilarity,
-        dominantRole: {
-          roleName: dominantRoleEntry.roleName,
-          accessCount: dominantRoleEntry.accessCount,
-          percentage: Math.round((dominantRoleEntry.accessCount / chunk.totalRetrievals) * 100)
-        },
-        isUnretrieved: false
-      };
-
-      chunkPoints.push({
-        id: `chunk_${chunk.chunkId}`,
-        x: 0, // Will be positioned later
-        y: avgSimilarity * 10, // Position based on average similarity
-        size: Math.max(0.3, Math.min(1.2, chunk.totalRetrievals / 5)), // Size based on total retrievals
-        color: avgSimilarity, // Color based on average similarity
-        opacity: Math.max(0.7, avgSimilarity / 10),
-        data: chunkData
-      });
-    }
+    retrievedChunkPoints.push({
+      id: `chunk_${chunk.chunkId}`,
+      x: 0, // Will be positioned later
+      y: 0, // Will be positioned later
+      size: Math.max(0.3, Math.min(1.2, chunk.totalRetrievals / 5)), // Size based on total retrievals
+      color: avgSimilarity, // Color based on average similarity
+      opacity: Math.max(0.7, avgSimilarity / 10),
+      data: chunkData
+    });
   });
 
-  // Apply center-perimeter positioning similar to chunks-to-questions
-  // Separate retrieved and Unretrieved chunks
-  const retrievedChunkPoints = chunkPoints.filter(p => !p.data.isUnretrieved);
-  const UnretrievedChunkPoints = chunkPoints.filter(p => p.data.isUnretrieved);
+  // Phase 1: Clustered unassociated chunks are already positioned around perimeter
+  // (positions are set in groupUnassociatedChunks function)
+  
+  // Phase 2: Position associated chunks using common positioning logic
+  positionAssociatedChunks(retrievedChunkPoints);
 
-  // Position retrieved chunks in center
-  const centerX = 50;
-  const centerY = 50;
-  const centerRadius = 20;
-
-  retrievedChunkPoints.forEach((point, index) => {
-    const angle = (index / retrievedChunkPoints.length) * 2 * Math.PI;
-    const radius = Math.random() * centerRadius;
-    point.x = centerX + radius * Math.cos(angle);
-    point.y = centerY + radius * Math.sin(angle);
-  });
-
-  // Position Unretrieved chunks around perimeter
-  UnretrievedChunkPoints.forEach((point, index) => {
-    const angle = (index / UnretrievedChunkPoints.length) * 2 * Math.PI;
-    const radius = 35 + Math.random() * 15; // Outer ring
-    point.x = centerX + radius * Math.cos(angle);
-    point.y = centerY + radius * Math.sin(angle);
-  });
-
-  const finalPoints = [...UnretrievedChunkPoints, ...retrievedChunkPoints];
+  const finalPoints = [...clusteredUnassociatedPoints, ...retrievedChunkPoints];
   
   // Apply spacing optimization
   optimizePointSpacing(finalPoints);

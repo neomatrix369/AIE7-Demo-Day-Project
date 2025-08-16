@@ -197,8 +197,12 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     };
 
     // Separate points by type for sequential rendering
-    const unassociatedPoints = positionPoints.filter(p => p.data.type === 'chunk' && p.data.isUnretrieved);
-    const associatedPoints = positionPoints.filter(p => !(p.data.type === 'chunk' && p.data.isUnretrieved));
+    const unassociatedPoints = positionPoints.filter(p => 
+      p.data.type === 'unassociated-cluster' || (p.data.type === 'chunk' && p.data.isUnretrieved)
+    );
+    const associatedPoints = positionPoints.filter(p => 
+      !(p.data.type === 'unassociated-cluster' || (p.data.type === 'chunk' && p.data.isUnretrieved))
+    );
 
     // Phase 1: Render unassociated chunks first (background layer)
     const unassociatedHexagons = g.selectAll('.unassociated-point')

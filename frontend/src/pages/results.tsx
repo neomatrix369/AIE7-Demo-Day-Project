@@ -450,6 +450,52 @@ const AnalysisResults: React.FC = () => {
           </div>
         </div>
 
+        {/* Quick Actions Bar */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          marginBottom: '20px',
+          padding: '15px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '6px',
+          border: '1px solid #dee2e6',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <strong style={{ fontSize: '0.9rem', color: '#333', marginRight: '10px' }}>🚀 Quick Actions:</strong>
+          <button 
+            className="button button-secondary"
+            onClick={() => {
+              const poorQuestions = results.per_question.filter(q => q.status === 'poor');
+              if (poorQuestions.length > 0) {
+                setExpandedQuestion(poorQuestions[0].id);
+                setFilterStatus('poor');
+                document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+          >
+            🔍 Focus on Poor Questions ({results.per_question.filter(q => q.status === 'poor').length})
+          </button>
+          <button 
+            className="button button-secondary"
+            onClick={() => {
+              setFilterStatus('good');
+              document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+          >
+            ✨ View Top Performers ({results.per_question.filter(q => q.status === 'good').length})
+          </button>
+          <button 
+            className="button"
+            onClick={handleViewHeatmap}
+            style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#007bff' }}
+          >
+            🗺️ Visualize Data
+          </button>
+        </div>
+
         <div className="analysis-section">
           <h3 
             style={{ 
@@ -565,33 +611,41 @@ const AnalysisResults: React.FC = () => {
               marginBottom: '20px',
               lineHeight: '1.5'
             }}>
-              Explore question-chunk relationships through interactive scatter plot heatmaps with dual perspectives. 
-              Analyze patterns, clusters, and outliers in your RAG system&apos;s performance.
+              Explore question-chunk relationships through interactive scatter plot heatmaps with multiple perspectives. 
+              Analyze coverage patterns, role-based usage, and identify optimization opportunities in your RAG system.
             </p>
             
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
               gap: '15px', 
               marginBottom: '20px',
               fontSize: '0.9rem',
               color: '#666'
             }}>
               <div>
-                <strong style={{ color: '#007bff' }}>📊 Questions View</strong><br/>
-                See how questions map to chunks
+                <strong style={{ color: '#007bff' }}>📄 Chunks → Questions</strong><br/>
+                See how chunks are retrieved with orphaned chunk detection
               </div>
               <div>
-                <strong style={{ color: '#007bff' }}>📄 Chunks View</strong><br/>
-                See how chunks are retrieved
+                <strong style={{ color: '#007bff' }}>📄 Chunks → Roles</strong><br/>
+                Analyze role-based chunk access patterns and usage
               </div>
               <div>
-                <strong style={{ color: '#007bff' }}>🎯 Interactive</strong><br/>
-                Click points for drill-down
+                <strong style={{ color: '#007bff' }}>📊 Coverage Analytics</strong><br/>
+                Track chunk utilization and identify gaps
               </div>
               <div>
-                <strong style={{ color: '#007bff' }}>🔍 Filters</strong><br/>
-                Filter by quality scores
+                <strong style={{ color: '#007bff' }}>🎯 Smart Insights</strong><br/>
+                Performance gaps and efficiency indicators
+              </div>
+              <div>
+                <strong style={{ color: '#007bff' }}>🔍 Interactive Tooltips</strong><br/>
+                Detailed info with role data on hover/click
+              </div>
+              <div>
+                <strong style={{ color: '#007bff' }}>⚙️ Advanced Filters</strong><br/>
+                Quality filters and perspective switching
               </div>
             </div>
             
@@ -610,7 +664,7 @@ const AnalysisResults: React.FC = () => {
           )}
         </div>
 
-        <div className="analysis-section">
+        <div className="analysis-section" id="per-question-analysis">
           <h3>🔍 Per Question Analysis</h3>
           
           <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>

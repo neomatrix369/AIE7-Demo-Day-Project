@@ -214,6 +214,35 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     return 'POOR';
   };
 
+  // Calculate advanced insights
+  const advancedInsights = React.useMemo(() => {
+    if (!results) return null;
+
+    const llmScore = results.per_group.llm?.avg_quality_score || 0;
+    const ragasScore = results.per_group.ragas?.avg_quality_score || 0;
+    const performanceDiff = Math.abs(llmScore - ragasScore);
+    const betterPerformer = llmScore > ragasScore ? 'LLM' : 'RAGAS';
+    
+    const rolePerformance = Object.entries(results.per_group).flatMap(([groupName, groupData]) => 
+      Object.entries(groupData.roles || {}).map(([roleName, roleData]) => ({
+        role: roleName,
+        group: groupName,
+        score: roleData.avg_quality_score
+      }))
+    ).sort((a, b) => b.score - a.score);
+
+    const topRole = rolePerformance[0];
+    const worstRole = rolePerformance[rolePerformance.length - 1];
+
+    return {
+      performanceDiff: performanceDiff.toFixed(1),
+      betterPerformer,
+      topRole,
+      worstRole,
+      roleSpread: rolePerformance.length > 1 ? (topRole.score - worstRole.score).toFixed(1) : 0
+    };
+  }, [results]);
+
   if (loading) {
     return (
       <div>
@@ -389,6 +418,61 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                       {totalRoles}
                     </span>
                     <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Distinct User Roles</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Smart Insights Section */}
+          {advancedInsights && (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '15px',
+              marginTop: '15px'
+            }}>
+              {/* Performance Gap Insight */}
+              <div style={{ backgroundColor: '#fff3cd', border: '2px solid #ffc107', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#856404', fontSize: '0.9rem' }}>⚡ Performance Gap</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#ffc107', fontSize: '1.4rem', fontWeight: 'bold', display: 'block' }}>
+                    {advancedInsights.performanceDiff}
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                    Points between {advancedInsights.betterPerformer} & others
+                  </div>
+                </div>
+              </div>
+
+              {/* Role Performance Spread */}
+              {advancedInsights.topRole && advancedInsights.worstRole && (
+                <div style={{ backgroundColor: '#e7f3ff', border: '2px solid #0066cc', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#004099', fontSize: '0.9rem' }}>🎭 Role Spread</h4>
+                  <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                    <span style={{ color: '#0066cc', fontSize: '1.4rem', fontWeight: 'bold', display: 'block' }}>
+                      {advancedInsights.roleSpread}
+                    </span>
+                    <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                      Best: {advancedInsights.topRole.role} vs Worst: {advancedInsights.worstRole.role}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Coverage Efficiency (for chunk views) */}
+              {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'chunks-to-roles') && (
+                <div style={{ backgroundColor: '#f0fff0', border: '2px solid #28a745', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#155724', fontSize: '0.9rem' }}>🎯 Efficiency</h4>
+                  <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                    <span style={{ color: '#28a745', fontSize: '1.4rem', fontWeight: 'bold', display: 'block' }}>
+                      {chunkCoverageStats.coveragePercentage > 80 ? '🏆' : chunkCoverageStats.coveragePercentage > 60 ? '👍' : '⚠️'}
+                    </span>
+                    <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                      {chunkCoverageStats.coveragePercentage > 80 ? 'Excellent Coverage' 
+                       : chunkCoverageStats.coveragePercentage > 60 ? 'Good Coverage' 
+                       : 'Coverage Needs Improvement'}
+                    </div>
                   </div>
                 </div>
               )}

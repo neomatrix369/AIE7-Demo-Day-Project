@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "name": "ragcheck-aie7-demo-day-project",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_BACKEND_URL": "NEXT_PUBLIC_BACKEND_URL",
+    "NEXT_PUBLIC_DEPLOYMENT_ENV": "vercel"
+  }
+}

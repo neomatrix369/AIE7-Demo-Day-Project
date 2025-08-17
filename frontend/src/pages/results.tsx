@@ -5,6 +5,7 @@ import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
+import { createStorageAdapter } from '../services/storage';
 
 const AnalysisResults: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
@@ -198,7 +199,8 @@ const AnalysisResults: React.FC = () => {
         action: 'CLEAR_RESULTS_START'
       });
 
-      const response = await resultsApi.clearResults();
+      const storageAdapter = createStorageAdapter();
+      const response = await storageAdapter.clearResults();
       
       if (response.success) {
         setResults(null);

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { experimentsApi } from '../services/api';
 import { ExperimentFile } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
+import { createStorageAdapter } from '../services/storage';
 
 const ExperimentManagement: React.FC = () => {
   const [experiments, setExperiments] = useState<ExperimentFile[]>([]);
@@ -34,7 +34,8 @@ const ExperimentManagement: React.FC = () => {
         action: 'LOAD_EXPERIMENTS_START'
       });
 
-      const response = await experimentsApi.list();
+      const storageAdapter = createStorageAdapter();
+      const response = await storageAdapter.listExperiments();
       
       if (response.success) {
         setExperiments(response.experiments);
@@ -68,7 +69,8 @@ const ExperimentManagement: React.FC = () => {
         data: { filename }
       });
 
-      const response = await experimentsApi.load(filename);
+      const storageAdapter = createStorageAdapter();
+      const response = await storageAdapter.loadExperiment(filename);
       
       if (response.success) {
         setSelectedExperiment(filename);
@@ -102,7 +104,8 @@ const ExperimentManagement: React.FC = () => {
         data: { filename }
       });
 
-      const response = await experimentsApi.delete(filename);
+      const storageAdapter = createStorageAdapter();
+      const response = await storageAdapter.deleteExperiment(filename);
       
       if (response.success) {
         logSuccess(`Deleted experiment ${filename}`, {

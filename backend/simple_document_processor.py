@@ -12,7 +12,7 @@ from managers.search_manager import SearchManager
 # Set up logging
 logger = setup_logging(__name__)
 
-DEFAULT_FOLDER_LOCATION = "../data/"
+DEFAULT_FOLDER_LOCATION = "./data/"
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "student_loan_corpus")
 
 class SimpleDocumentProcessor:
@@ -28,10 +28,8 @@ class SimpleDocumentProcessor:
         self._documents_loaded = False
 
     def _get_data_folder(self) -> str:
-        """Get the data folder path."""
-        data_folder = os.getenv("DATA_FOLDER")
-        if not data_folder or not os.path.exists(data_folder):
-            data_folder = os.path.join(os.path.dirname(__file__), "..", "data")
+        """Get the data folder path from environment variable."""
+        data_folder = os.getenv("DATA_FOLDER", "./data/")
         logger.info(f"📁 Data folder: {data_folder}")
         return data_folder
 

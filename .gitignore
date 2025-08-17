@@ -77,3 +77,4 @@ coverage/
 CLAUDE.md
 
 experiments/*
+.vercel

@@ -56,7 +56,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
   }), [dimensions]);
 
   // Memoize allChunks to prevent unnecessary re-renders when array content is the same
-  const memoizedAllChunks = useMemo(() => allChunks, [allChunks?.length]);
+  const memoizedAllChunks = useMemo(() => allChunks, [allChunks]);
 
   // Process data based on perspective
   const heatmapPoints = useMemo(() => {
@@ -244,16 +244,17 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     // Add event listeners that only modify styles, not the entire DOM
     allHexagons
       .on('mouseover', function(event, d) {
+        const heatmapPoint = d as HeatmapPoint;
         // Hide any existing tooltip first
         setTooltipPosition(prev => ({ ...prev, visible: false }));
         setTooltipData(null);
         
         // Only modify the specific hexagon's styles
-        const currentRadius = getScaledSize(d.size, 6, 20);
+        const currentRadius = getScaledSize(heatmapPoint.size, 6, 20);
         d3.select(this)
           .attr('stroke-width', 3)
           .attr('stroke', '#333')
-          .attr('points', generateHexagon(d.screenX, d.screenY, currentRadius + 2));
+          .attr('points', generateHexagon(heatmapPoint.screenX!, heatmapPoint.screenY!, currentRadius + 2));
         
         // Show tooltip without triggering re-render
         const rect = svgRef.current!.getBoundingClientRect();
@@ -271,21 +272,23 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
           }
         });
       })
-      .on('mouseout', function(event, d) {
+      .on('mouseout', function(_, d) {
+        const heatmapPoint = d as HeatmapPoint;
         // Only modify the specific hexagon's styles
-        const currentRadius = getScaledSize(d.size, 6, 20);
+        const currentRadius = getScaledSize(heatmapPoint.size, 6, 20);
         d3.select(this)
           .attr('stroke-width', 2)
           .attr('stroke', '#fff')
-          .attr('points', generateHexagon(d.screenX, d.screenY, currentRadius));
+          .attr('points', generateHexagon(heatmapPoint.screenX!, heatmapPoint.screenY!, currentRadius));
       })
-      .on('click', function(event, d) {
+      .on('click', function(_, d) {
+        const heatmapPoint = d as HeatmapPoint;
         // Hide tooltip on click
         setTooltipPosition(prev => ({ ...prev, visible: false }));
         setTooltipData(null);
         
         if (onPointClick) {
-          onPointClick(d);
+          onPointClick(heatmapPoint);
         }
       });
 
@@ -306,7 +309,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .delay((d, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
       .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)));
 
-  }, [renderKey, positionPoints, dimensions]);
+  }, [renderKey, positionPoints, dimensions, onPointClick, tooltipData?.id]);
 
   // Separate effect for click handler updates (doesn't trigger full redraw)
   useEffect(() => {

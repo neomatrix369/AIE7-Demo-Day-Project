@@ -25,6 +25,7 @@ class QdrantManager:
         Create and return a Qdrant client instance.
         """
         logger.info(f"🔗 Connecting to Qdrant server at {QDRANT_URL}")
+        logger.info(f"🔑 Using API key: {'Yes' if QDRANT_API_KEY else 'No'}")
         client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
         try:
             collections = client.get_collections()
@@ -32,6 +33,8 @@ class QdrantManager:
             logger.info(f"📊 Found {len(collections.collections)} existing collections")
         except Exception as e:
             logger.error(f"❌ Failed to connect to Qdrant server: {e}")
+            logger.error(f"❌ URL: {QDRANT_URL}")
+            logger.error(f"❌ Has API key: {'Yes' if QDRANT_API_KEY else 'No'}")
             raise
         return client
 

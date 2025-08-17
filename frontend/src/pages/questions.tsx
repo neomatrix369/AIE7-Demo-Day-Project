@@ -154,7 +154,7 @@ const QuestionGroupsOverview: React.FC = () => {
                       textTransform: 'capitalize'
                     }}
                   >
-                    {category.role.replace('_', ' ')}
+                    {role.role.replace('_', ' ')}
                   </span>
                 ))}
               </div>
@@ -165,7 +165,7 @@ const QuestionGroupsOverview: React.FC = () => {
               <div className="question-list">
                 {llmQuestions.slice(0, 5).map((role) => (
                   role.questions.slice(0, 1).map((question, index) => (
-                    <div key={`${category.role_id}-${index}`} className="question-item">
+                    <div key={`${role.role_id}-${index}`} className="question-item">
                       <span style={{ color: '#666', fontSize: '0.9rem' }}>{role.emoji}</span> {question.text}
                     </div>
                   ))
@@ -204,7 +204,7 @@ const QuestionGroupsOverview: React.FC = () => {
                       textTransform: 'capitalize'
                     }}
                   >
-                    {category.role.replace('_', ' ')}
+                    {role.role.replace('_', ' ')}
                   </span>
                 ))}
               </div>
@@ -215,7 +215,7 @@ const QuestionGroupsOverview: React.FC = () => {
               <div className="question-list">
                 {ragasQuestions.slice(0, 5).map((role) => (
                   role.questions.slice(0, 1).map((question, index) => (
-                    <div key={`${category.role_id}-${index}`} className="question-item">
+                    <div key={`${role.role_id}-${index}`} className="question-item">
                       <span style={{ color: '#666', fontSize: '0.9rem' }}>{role.emoji}</span> {question.text}
                     </div>
                   ))

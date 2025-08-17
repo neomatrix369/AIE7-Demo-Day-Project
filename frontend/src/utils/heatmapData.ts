@@ -7,6 +7,8 @@ export interface HeatmapPoint {
   size: number;
   color: number;
   opacity: number;
+  screenX?: number;
+  screenY?: number;
   data: QuestionHeatmapData | ChunkHeatmapData | RoleHeatmapData | ChunkToRoleHeatmapData | UnassociatedClusterHeatmapData;
 }
 

@@ -89,7 +89,7 @@ DEBUG=false
 
 ### Data Folder Structure
 ```
-../data/
+./backend/data/
 ├── complaints.csv          # Consumer complaint data  
 ├── document1.pdf          # PDF documents
 ├── document2.pdf

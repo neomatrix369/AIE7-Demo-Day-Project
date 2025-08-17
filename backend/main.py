@@ -18,6 +18,8 @@ from dotenv import load_dotenv
 # Load environment variables from root .env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
+data_folder = os.getenv("DATA_FOLDER")
+
 app = FastAPI(title="RagCheck API", version="1.0.0")
 
 # Set up logging
@@ -26,7 +28,7 @@ logger = setup_logging(__name__)
 # Initialize managers
 doc_processor = SimpleDocumentProcessor()
 qdrant_manager = QdrantManager(collection_name="student_loan_corpus")
-data_manager = DataManager(data_folder=os.path.join(os.path.dirname(__file__), '..', 'data'))
+data_manager = DataManager(data_folder=data_folder)
 search_manager = SearchManager(data_manager, qdrant_manager)
 documents_loaded = False
 
@@ -203,9 +205,23 @@ except Exception as e:
     logger.error(traceback.format_exc())
     logger.info("📝 Falling back to mock data mode")
 
+# Configure CORS for both local and Vercel deployments
+cors_origins = ["http://localhost:3000", "http://localhost:3001"]
+
+# Add Vercel deployment URL if available
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url not in cors_origins:
+    cors_origins.append(frontend_url)
+
+# Add common Vercel patterns
+cors_origins.extend([
+    "https://*.vercel.app",
+    "https://vercel.app"
+])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -237,6 +253,7 @@ def load_questions_from_file(filename: str) -> Dict[str, Any]:
         A dictionary containing the questions, count, and roles
     """
     try:
+        logger.info(f"Started loading questions from {filename}")
         with open(filename, 'r', encoding='utf-8-sig') as f:
             questions_data = json.load(f)
         
@@ -248,12 +265,15 @@ def load_questions_from_file(filename: str) -> Dict[str, Any]:
             for question in role_item["questions"]:
                 all_questions.append(question["text"])
 
+        logger.info(f"Loaded {len(all_questions)} questions.")
+        logger.info(f"...finished loading questions from {filename}.")
+
         return {
             "count": len(all_questions),
             "sample": random.sample(all_questions, min(len(all_questions), 3)),
             "roles": roles,
             "questions": questions_data
-        }
+        }        
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.error(f"Error loading questions from {filename}: {e}")
         return {
@@ -263,14 +283,16 @@ def load_questions_from_file(filename: str) -> Dict[str, Any]:
             "questions": []
         }
 
+logger.info(f"📁 Data folder: {data_folder}")
+
 # Load LLM questions from the JSON file
 LLM_QUESTIONS = load_questions_from_file(
-    os.path.join(os.path.dirname(__file__), '..', 'data', 'questions', 'llm-generated.json')
+    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'llm-generated.json')
 )
 
 # Load RAGAS questions from the JSON file
 RAGAS_QUESTIONS = load_questions_from_file(
-    os.path.join(os.path.dirname(__file__), '..', 'data', 'questions', 'ragas-generated.json')
+    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ragas-generated.json')
 )
 
 # Pydantic models

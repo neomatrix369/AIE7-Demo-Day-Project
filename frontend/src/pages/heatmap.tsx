@@ -126,8 +126,10 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     // Set drill-down data for display
     if (point.data.type === 'question') {
       setDrillDownData(`Question: "${point.data.questionText}"`);
-    } else {
+    } else if (point.data.type === 'chunk') {
       setDrillDownData(`Chunk: ${point.data.chunkId} from ${point.data.docId}`);
+    } else {
+      setDrillDownData(`Data point selected`);
     }
   }, [heatmapConfig.perspective]);
 
@@ -576,13 +578,19 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                       <strong>Questions:</strong> {selectedHeatmapPoint.data.questionCount}<br/>
                       <strong>Unique Chunks:</strong> {selectedHeatmapPoint.data.totalChunksRetrieved}
                     </>
-                  ) : (
+                  ) : selectedHeatmapPoint.data.type === 'chunk-to-role' ? (
                     <>
                       <strong>Total Retrievals:</strong> {selectedHeatmapPoint.data.totalRetrievals}<br/>
                       <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
                       <strong>Dominant Role:</strong> {selectedHeatmapPoint.data.dominantRole.roleName}
                     </>
-                  )}
+                  ) : selectedHeatmapPoint.data.type === 'unassociated-cluster' ? (
+                    <>
+                      <strong>Cluster:</strong> {selectedHeatmapPoint.data.clusterId}<br/>
+                      <strong>Chunks in Cluster:</strong> {selectedHeatmapPoint.data.chunkCount}<br/>
+                      <strong>Documents:</strong> {selectedHeatmapPoint.data.documentBreakdown.length}
+                    </>
+                  ) : null}
                 </div>
                 <button
                   onClick={() => {

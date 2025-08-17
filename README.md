@@ -25,12 +25,14 @@ A 5-screen wizard application for comprehensive RAG system quality assessment us
 │   ├── src/pages/             # 5-screen wizard application
 │   ├── src/components/heatmap/ # Interactive visualization components
 │   ├── src/services/api.ts    # API client with logging interceptors
+│   ├── src/services/storage/  # Cross-platform storage adapters
 │   ├── src/utils/logger.ts    # User-friendly logging system
 │   ├── src/utils/heatmapData.ts # Data processing for visualizations
 │   └── src/types/index.ts     # TypeScript interfaces
 ├── scripts/                    # Setup and utility scripts
 │   └── setup_qdrant.sh        # Qdrant startup and health check
 ├── docker-compose.yml          # Qdrant database container with health monitoring
+├── vercel.json                # Vercel deployment configuration
 ├── .env.example               # Comprehensive environment variables template
 ├── .env                       # Your environment configuration (gitignored)
 └── README.md                  # This file
@@ -67,7 +69,7 @@ A 5-screen wizard application for comprehensive RAG system quality assessment us
 2. **Node.js 18+ or 22+** - For frontend development (with nvm recommended)
 3. **Python 3.8+** - For backend development (uv package manager recommended)
 4. **OpenAI API Key** - Required for document embeddings ([Get API key](https://platform.openai.com/api-keys))
-5. **Data Files** - CSV and PDF files in `../data/` folder for document processing
+5. **Data Files** - CSV and PDF files in `./backend/data/` folder for document processing
 
 ### Quick Start
 ```bash
@@ -165,6 +167,63 @@ npm run dev
 - **Health Monitoring** - TCP-based health checks for container reliability
 - **Persistent Storage** - Docker volumes for Qdrant data persistence
 - **Environment Management** - Centralized configuration with comprehensive .env.example
+
+## Cloud Deployment
+
+### Hybrid Deployment (Recommended)
+Deploy frontend to Vercel and backend to Railway for optimal performance:
+
+#### Step 1: Deploy Backend to Railway
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login to Railway
+railway login
+
+# Initialize Railway project
+railway init
+
+# Deploy backend
+railway up
+
+# Set environment variables in Railway dashboard:
+# - QDRANT_URL (Your Qdrant Cloud URL)
+# - QDRANT_API_KEY (Your Qdrant Cloud API Key)  
+# - OPENAI_API_KEY (Your OpenAI API Key)
+# - QDRANT_COLLECTION_NAME=student_loan_corpus
+# - DATA_FOLDER=data/
+```
+
+Generate public domain url to set in Vercel by doing these steps:
+- Select the deployed service on the Railway dashboard. Then click on Settings -> Networking -> Public Networking -> Generate Domain. 
+- Fill out the port number correctly (should match the port at which your server/application is listening to). Then you will get a domain that you can use as an endpoint.
+
+#### Step 2: Deploy Frontend to Vercel
+
+```bash
+# Ensure correct Node.js version
+source ~/.zshrc && nvm use default && nvm use default
+
+# Deploy frontend to Vercel
+vercel --yes
+
+# Set environment variables in Vercel dashboard:
+# - NEXT_PUBLIC_BACKEND_URL (Your Railway backend URL)
+# - NEXT_PUBLIC_DEPLOYMENT_ENV=vercel
+```
+
+Go to the Vercel Dashboard of the deployed server, select Environment Variables and set the `NEXT_PUBLIC_BACKEND_URL` environment variable with the url to the Railway backend service. 
+
+**Benefits of Hybrid Deployment:**
+- **Vercel Frontend**: Fast CDN, excellent Next.js support
+- **Railway Backend**: Large Python dependencies, WebSocket support, no size limits
+
+### Storage Adapters
+The application automatically adapts storage based on deployment environment:
+- **Local Development**: FileSystemStorage (saves to `experiments/` folder)
+- **Cloud Deployment**: BrowserStorage (saves to browser localStorage)
 
 ## Contributing
 

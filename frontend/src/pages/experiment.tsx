@@ -145,9 +145,29 @@ const ExperimentConfiguration: React.FC = () => {
     setResults([]);
     setCompleted(false);
 
-    // Connect to WebSocket for real-time streaming
-    const wsUrl = `ws://localhost:8000/ws/experiment/stream`;
+    // Connect to WebSocket for real-time streaming (with fallback for Vercel)
+    const getWebSocketUrl = () => {
+      if (typeof window !== 'undefined') {
+        // Vercel deployment with external backend
+        if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+          const protocol = backendUrl.startsWith('https:') ? 'wss:' : 'ws:';
+          const host = backendUrl.replace(/^https?:\/\//, '');
+          return `${protocol}//${host}/ws/experiment/stream`;
+        }
+        
+        // Local development or production with same-host backend
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.hostname;
+        const port = process.env.NODE_ENV === 'development' ? ':8000' : '';
+        return `${protocol}//${host}${port}/ws/experiment/stream`;
+      }
+      return 'ws://localhost:8000/ws/experiment/stream';
+    };
+    
+    const wsUrl = getWebSocketUrl();
     const websocket = new WebSocket(wsUrl);
+    let usingPolling = false;
     
     // Set a timeout for WebSocket connection
     const connectionTimeout = setTimeout(() => {

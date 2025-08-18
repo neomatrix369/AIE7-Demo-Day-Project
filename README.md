@@ -170,6 +170,16 @@ npm run dev
 
 ## Cloud Deployment
 
+### Prerequisites for Cloud Deployment
+
+#### 1. Qdrant Cloud Setup (Required for both platforms)
+```bash
+# Sign up for Qdrant Cloud at https://cloud.qdrant.io
+# Create a cluster and note down:
+# - Cluster URL (e.g., https://xyz-abc-123.eu-central.aws.cloud.qdrant.io:6333)
+# - API Key (generated in the cluster dashboard)
+```
+
 ### Hybrid Deployment (Recommended)
 Deploy frontend to Vercel and backend to Railway for optimal performance:
 
@@ -182,23 +192,32 @@ npm install -g @railway/cli
 # Login to Railway
 railway login
 
-# Initialize Railway project
+# Initialize Railway project (in project root)
 railway init
 
 # Deploy backend
 railway up
-
-# Set environment variables in Railway dashboard:
-# - QDRANT_URL (Your Qdrant Cloud URL)
-# - QDRANT_API_KEY (Your Qdrant Cloud API Key)  
-# - OPENAI_API_KEY (Your OpenAI API Key)
-# - QDRANT_COLLECTION_NAME=student_loan_corpus
-# - DATA_FOLDER=data/
 ```
 
-Generate public domain url to set in Vercel by doing these steps:
-- Select the deployed service on the Railway dashboard. Then click on Settings -> Networking -> Public Networking -> Generate Domain. 
-- Fill out the port number correctly (should match the port at which your server/application is listening to). Then you will get a domain that you can use as an endpoint.
+**Railway Environment Variables Configuration:**
+Go to Railway Dashboard → Your Project → Variables and set:
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `QDRANT_URL` | `https://your-cluster.eu-central.aws.cloud.qdrant.io:6333` | Your Qdrant Cloud cluster URL |
+| `QDRANT_API_KEY` | `your_qdrant_cloud_api_key` | API key from Qdrant Cloud dashboard |
+| `OPENAI_API_KEY` | `sk-...` | Your OpenAI API key |
+| `QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Vector collection name |
+| `DATA_FOLDER` | `backend/data/` | Path to data files in Railway |
+| `BACKEND_HOST` | `0.0.0.0` | Allow external connections |
+| `BACKEND_PORT` | `8000` | Port for FastAPI (Railway auto-detects) |
+| `LOG_LEVEL` | `INFO` | Logging verbosity |
+
+**Generate Public Domain URL:**
+1. Select deployed service in Railway dashboard
+2. Go to Settings → Networking → Public Networking → Generate Domain
+3. Set port to `8000` (FastAPI default)
+4. Copy the generated domain (e.g., `https://ragcheck-backend-production.up.railway.app`)
 
 #### Step 2: Deploy Frontend to Vercel
 
@@ -208,17 +227,58 @@ source ~/.zshrc && nvm use default && nvm use default
 
 # Deploy frontend to Vercel
 vercel --yes
-
-# Set environment variables in Vercel dashboard:
-# - NEXT_PUBLIC_BACKEND_URL (Your Railway backend URL)
-# - NEXT_PUBLIC_DEPLOYMENT_ENV=vercel
 ```
 
-Go to the Vercel Dashboard of the deployed server, select Environment Variables and set the `NEXT_PUBLIC_BACKEND_URL` environment variable with the url to the Railway backend service. 
+**Vercel Environment Variables Configuration:**
+Go to Vercel Dashboard → Your Project → Settings → Environment Variables and set:
+
+| Variable | Value | Environment | Description |
+|----------|-------|-------------|-------------|
+| `NEXT_PUBLIC_BACKEND_URL` | `https://ragcheck-backend-production.up.railway.app` | Production | Railway backend URL (from Step 1) |
+| `NEXT_PUBLIC_DEPLOYMENT_ENV` | `vercel` | Production | Enables browser storage adapter |
+| `NEXT_PUBLIC_QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Production | Collection name for frontend |
+
+**Important Notes:**
+- Only `NEXT_PUBLIC_*` variables are accessible in the browser
+- Backend handles Qdrant/OpenAI connections, so frontend doesn't need those credentials
+- Redeploy frontend after setting environment variables
 
 **Benefits of Hybrid Deployment:**
 - **Vercel Frontend**: Fast CDN, excellent Next.js support
 - **Railway Backend**: Large Python dependencies, WebSocket support, no size limits
+
+### Alternative: Full-Stack Railway Deployment
+
+Deploy both frontend and backend to Railway as a single service:
+
+```bash
+# Deploy entire application to Railway
+railway login
+railway init
+railway up
+```
+
+**Railway Environment Variables Configuration (Full-Stack):**
+Go to Railway Dashboard → Your Project → Variables and set:
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `QDRANT_URL` | `https://your-cluster.eu-central.aws.cloud.qdrant.io:6333` | Your Qdrant Cloud cluster URL |
+| `QDRANT_API_KEY` | `your_qdrant_cloud_api_key` | API key from Qdrant Cloud dashboard |
+| `OPENAI_API_KEY` | `sk-...` | Your OpenAI API key |
+| `QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Vector collection name |
+| `DATA_FOLDER` | `backend/data/` | Path to data files |
+| `BACKEND_HOST` | `0.0.0.0` | Allow external connections |
+| `BACKEND_PORT` | `8000` | Port for FastAPI |
+| `NEXT_PUBLIC_DEPLOYMENT_ENV` | `railway` | Enables browser storage adapter |
+| `NEXT_PUBLIC_QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Collection name for frontend |
+| `LOG_LEVEL` | `INFO` | Logging verbosity |
+
+**Benefits of Full-Stack Railway:**
+- **Single deployment**: Easier management, one domain
+- **WebSocket support**: Better real-time features
+- **No size limits**: Handle large Python dependencies
+- **Automatic builds**: Deploys on git push
 
 ### Storage Adapters
 The application automatically adapts storage based on deployment environment:

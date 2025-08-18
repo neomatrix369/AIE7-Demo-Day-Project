@@ -206,18 +206,23 @@ except Exception as e:
     logger.info("📝 Falling back to mock data mode")
 
 # Configure CORS for both local and Vercel deployments
-cors_origins = ["http://localhost:3000", "http://localhost:3001"]
+cors_origins = [
+    "http://localhost:3000", 
+    "http://localhost:3001",
+    "https://ragcheck-aie7-demo-day-project.vercel.app"  # Specific Vercel domain
+]
 
 # Add Vercel deployment URL if available
 frontend_url = os.getenv("FRONTEND_URL")
 if frontend_url and frontend_url not in cors_origins:
     cors_origins.append(frontend_url)
 
-# Add common Vercel patterns
-cors_origins.extend([
-    "https://*.vercel.app",
-    "https://vercel.app"
-])
+# Add any additional Vercel domains from environment
+vercel_domain = os.getenv("VERCEL_DOMAIN")
+if vercel_domain and vercel_domain not in cors_origins:
+    cors_origins.append(vercel_domain)
+
+logger.info(f"🌐 CORS origins configured: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -226,6 +231,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Health check endpoint for CORS testing
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint to test CORS configuration."""
+    return {
+        "status": "healthy",
+        "cors_origins": cors_origins,
+        "timestamp": "2025-08-18T00:53:19Z"
+    }
 
 import json
 

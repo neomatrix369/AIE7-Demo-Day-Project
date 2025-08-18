@@ -208,16 +208,17 @@ Go to Railway Dashboard → Your Project → Variables and set:
 | `QDRANT_API_KEY` | `your_qdrant_cloud_api_key` | API key from Qdrant Cloud dashboard |
 | `OPENAI_API_KEY` | `sk-...` | Your OpenAI API key |
 | `QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Vector collection name |
-| `DATA_FOLDER` | `backend/data/` | Path to data files in Railway |
+| `DATA_FOLDER` | `data/` | Path to data files in Railway |
 | `BACKEND_HOST` | `0.0.0.0` | Allow external connections |
 | `BACKEND_PORT` | `8000` | Port for FastAPI (Railway auto-detects) |
+| `VERCEL_FRONTEND_URL` | `https://xxxxxx.vercel.app` | Vercel frontend URL for CORS |
 | `LOG_LEVEL` | `INFO` | Logging verbosity |
 
 **Generate Public Domain URL:**
 1. Select deployed service in Railway dashboard
 2. Go to Settings → Networking → Public Networking → Generate Domain
 3. Set port to `8000` (FastAPI default)
-4. Copy the generated domain (e.g., `https://ragcheck-backend-production.up.railway.app`)
+4. Copy the generated domain (e.g., `https://xxxxx.railway.app`)
 
 #### Step 2: Deploy Frontend to Vercel
 
@@ -234,7 +235,7 @@ Go to Vercel Dashboard → Your Project → Settings → Environment Variables a
 
 | Variable | Value | Environment | Description |
 |----------|-------|-------------|-------------|
-| `NEXT_PUBLIC_BACKEND_URL` | `https://ragcheck-backend-production.up.railway.app` | Production | Railway backend URL (from Step 1) |
+| `NEXT_PUBLIC_BACKEND_URL` | `https://xxxxx.railway.app/` | Production | Railway backend URL (from Step 1), ensure it trails with a `/` |
 | `NEXT_PUBLIC_DEPLOYMENT_ENV` | `vercel` | Production | Enables browser storage adapter |
 | `NEXT_PUBLIC_QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Production | Collection name for frontend |
 

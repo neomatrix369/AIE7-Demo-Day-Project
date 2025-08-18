@@ -206,16 +206,17 @@ except Exception as e:
     logger.info("📝 Falling back to mock data mode")
 
 # Configure CORS for both local and Vercel deployments
-cors_origins = [
-    "http://localhost:3000", 
-    "http://localhost:3001",
-    "https://ragcheck-aie7-demo-day-project.vercel.app"  # Specific Vercel domain
-]
+cors_origins = ["http://localhost:3000"]
 
-# Add Vercel deployment URL if available
+# Add production frontend URLs from environment
 frontend_url = os.getenv("FRONTEND_URL")
 if frontend_url and frontend_url not in cors_origins:
     cors_origins.append(frontend_url)
+
+# Add Vercel frontend URL from environment
+vercel_frontend_url = os.getenv("VERCEL_FRONTEND_URL")
+if vercel_frontend_url and vercel_frontend_url not in cors_origins:
+    cors_origins.append(vercel_frontend_url)
 
 # Add any additional Vercel domains from environment
 vercel_domain = os.getenv("VERCEL_DOMAIN")

@@ -2,7 +2,14 @@ import axios from 'axios';
 import { CorpusStatus, QuestionGroup, ExperimentConfig, AnalysisResults } from '../types';
 import { logApiRequest, logApiResponse, logApiError } from '../utils/logger';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
+// Normalize the base URL to handle trailing slashes properly
+const normalizeBaseUrl = (url: string): string => {
+  return url.replace(/\/+$/, ''); // Remove trailing slashes
+};
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
+  ? normalizeBaseUrl(process.env.NEXT_PUBLIC_BACKEND_URL) + '/api'
+  : '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

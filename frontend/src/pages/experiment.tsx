@@ -152,7 +152,8 @@ const ExperimentConfiguration: React.FC = () => {
         if (process.env.NEXT_PUBLIC_BACKEND_URL) {
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
           const protocol = backendUrl.startsWith('https:') ? 'wss:' : 'ws:';
-          const host = backendUrl.replace(/^https?:\/\//, '');
+          // Normalize URL: remove protocol and trailing slashes
+          const host = backendUrl.replace(/^https?:\/\//, '').replace(/\/+$/, '');
           return `${protocol}//${host}/ws/experiment/stream`;
         }
         

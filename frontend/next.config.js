@@ -19,14 +19,17 @@ const nextConfig = {
     
     // Vercel deployment: proxy to external backend (Railway)
     if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      // Normalize backend URL to handle trailing slashes
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL.replace(/\/+$/, '');
+      
       return [
         {
           source: '/api/:path*',
-          destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/:path*`,
+          destination: `${backendUrl}/api/:path*`,
         },
         {
           source: '/ws/:path*',
-          destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/ws/:path*`,
+          destination: `${backendUrl}/ws/:path*`,
         },
       ]
     }

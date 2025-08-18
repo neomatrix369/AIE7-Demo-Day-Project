@@ -334,3 +334,16 @@ body {
   border-bottom: 2px solid #dee2e6;
   box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
 }
+
+/* Tagline color classes */
+.tagline-validate {
+  color: #4ECDC4;
+}
+
+.tagline-save {
+  color: #F39C12;
+}
+
+.tagline-generate {
+  color: #E74C3C;
+}

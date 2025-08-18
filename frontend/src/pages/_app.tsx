@@ -17,11 +17,10 @@ export default function App({ Component, pageProps }: AppProps) {
           <p style={{ 
             fontSize: '16px', 
             fontStyle: 'italic', 
-            color: '#FD0', 
             margin: '8px 0 0 0',
             fontWeight: 'normal'
           }}>
-            Validate your RAG before you build (pre-retrieval checks) | Save on expensive evaluation time and costs | As retrieved, so generated!
+            <span className="tagline-validate">Validate your RAG before you build (pre-retrieval checks)</span> | <span className="tagline-save">Save on expensive evaluation time and costs</span> | <span className="tagline-generate">As retrieved, so generated!</span>
           </p>
         </header>
         <main className="App-main">

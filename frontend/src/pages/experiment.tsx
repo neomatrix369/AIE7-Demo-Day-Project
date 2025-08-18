@@ -110,6 +110,16 @@ const ExperimentConfiguration: React.FC = () => {
     fetchQuestionCounts();
   }, []);
 
+  // Auto-save effect for Vercel deployments when experiment completes
+  useEffect(() => {
+    if (completed && isVercelDeployment() && results.length > 0 && !isRunning) {
+      console.log(`🎯 Auto-save trigger: experiment completed with ${results.length} results`);
+      setTimeout(() => {
+        saveExperimentToBrowser();
+      }, 500);
+    }
+  }, [completed, results.length, isRunning]);
+
   const handleGroupChange = (group: string, checked: boolean) => {
     setConfig(prev => ({
       ...prev,
@@ -197,19 +207,11 @@ const ExperimentConfiguration: React.FC = () => {
           setIsRunning(false);
           websocket.close();
           
-          // Auto-save experiment in Vercel deployment (with slight delay to ensure results are finalized)
+          // Auto-save will be handled by useEffect when results are ready
           if (isVercelDeployment()) {
-            console.log('🌐 Vercel mode detected - triggering auto-save');
-            setTimeout(() => {
-              if (results.length > 0) {
-                console.log(`💾 Auto-saving experiment with ${results.length} results`);
-                saveExperimentToBrowser();
-              } else {
-                console.log('⚠️ No results to save - skipping auto-save');
-              }
-            }, 500);
+            console.log('🌐 Vercel mode - auto-save will trigger via useEffect when results are ready');
           } else {
-            console.log('🏠 Local mode detected - auto-save not needed (backend handles saving)');
+            console.log('🏠 Local mode - auto-save not needed (backend handles saving)');
           }
         } else if (data.type === 'error') {
           console.error('❌ Experiment error:', data.message);

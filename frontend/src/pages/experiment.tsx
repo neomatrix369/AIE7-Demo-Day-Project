@@ -199,11 +199,17 @@ const ExperimentConfiguration: React.FC = () => {
           
           // Auto-save experiment in Vercel deployment (with slight delay to ensure results are finalized)
           if (isVercelDeployment()) {
+            console.log('🌐 Vercel mode detected - triggering auto-save');
             setTimeout(() => {
               if (results.length > 0) {
+                console.log(`💾 Auto-saving experiment with ${results.length} results`);
                 saveExperimentToBrowser();
+              } else {
+                console.log('⚠️ No results to save - skipping auto-save');
               }
             }, 500);
+          } else {
+            console.log('🏠 Local mode detected - auto-save not needed (backend handles saving)');
           }
         } else if (data.type === 'error') {
           console.error('❌ Experiment error:', data.message);

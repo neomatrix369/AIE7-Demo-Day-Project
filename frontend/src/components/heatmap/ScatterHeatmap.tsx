@@ -309,7 +309,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .delay((d, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
       .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)));
 
-  }, [renderKey, positionPoints, dimensions, onPointClick, tooltipData?.id]);
+  }, [renderKey, positionPoints, dimensions, onPointClick]);
 
   // Separate effect for click handler updates (doesn't trigger full redraw)
   useEffect(() => {

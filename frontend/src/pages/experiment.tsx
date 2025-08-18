@@ -5,6 +5,7 @@ import { ExperimentConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation, logWebSocketEvent, logProgress } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
+import { createStorageAdapter, isVercelDeployment } from '../services/storage';
 
 interface StreamResult {
   question_id: string;
@@ -195,6 +196,15 @@ const ExperimentConfiguration: React.FC = () => {
           setCompleted(true);
           setIsRunning(false);
           websocket.close();
+          
+          // Auto-save experiment in Vercel deployment (with slight delay to ensure results are finalized)
+          if (isVercelDeployment()) {
+            setTimeout(() => {
+              if (results.length > 0) {
+                saveExperimentToBrowser();
+              }
+            }, 500);
+          }
         } else if (data.type === 'error') {
           console.error('❌ Experiment error:', data.message);
           alert(`Experiment failed: ${data.message}`);
@@ -247,6 +257,50 @@ const ExperimentConfiguration: React.FC = () => {
       ws.close();
     }
     setIsRunning(false);
+  };
+
+  const saveExperimentToBrowser = async () => {
+    try {
+      const storageAdapter = createStorageAdapter();
+      const timestamp = new Date().toISOString();
+      
+      // Calculate average quality score
+      const avgQualityScore = results.length > 0 
+        ? Math.round((results.reduce((sum, r) => sum + r.avg_quality_score, 0) / results.length) * 10) / 10
+        : 0;
+      
+      const experimentData = {
+        timestamp,
+        config,
+        results,
+        total_questions: results.length,
+        sources: config.selected_groups,
+        avg_quality_score: avgQualityScore
+      };
+      
+      const response = await storageAdapter.saveExperiment(experimentData);
+      
+      if (response.success) {
+        logSuccess(`Experiment auto-saved: ${response.filename}`, {
+          component: 'Experiment',
+          action: 'AUTO_SAVE_SUCCESS',
+          data: { filename: response.filename, questions: results.length }
+        });
+        console.log(`✅ Experiment auto-saved: ${response.filename}`);
+      } else {
+        logError(`Auto-save failed: ${response.message}`, {
+          component: 'Experiment',
+          action: 'AUTO_SAVE_FAILED'
+        });
+        console.error('❌ Auto-save failed:', response.message);
+      }
+    } catch (error) {
+      logError(`Auto-save error: ${String(error)}`, {
+        component: 'Experiment',
+        action: 'AUTO_SAVE_ERROR'
+      });
+      console.error('❌ Auto-save error:', error);
+    }
   };
 
   const handleViewResults = () => {

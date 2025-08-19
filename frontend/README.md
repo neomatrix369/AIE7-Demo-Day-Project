@@ -2,10 +2,12 @@
 
 Next.js frontend with comprehensive logging, real-time WebSocket communication, and user-friendly interface for corpus/data quality analysis.
 
+> **📖 Main Documentation**: See the [main README](../README.md) for complete setup instructions and project overview.
+
 ## Architecture
 
 ### Component Structure
-- **4-Screen Wizard Flow**: Dashboard → Questions → Experiment → Results
+- **5-Screen Wizard Flow**: Dashboard → Questions → Experiment → Results → Heatmap
 - **TypeScript**: Full type safety throughout the application
 - **Real-time Updates**: WebSocket integration for experiment streaming
 - **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts
@@ -20,20 +22,30 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 
 ```
 src/
-├── components/           # Reusable React components (future)
+├── components/           # Reusable React components
+│   ├── heatmap/          # Interactive visualization components
+│   │   ├── ScatterHeatmap.tsx     # D3.js hexagonal scatter plots
+│   │   ├── HeatmapControls.tsx    # Perspective switching controls
+│   │   ├── HeatmapLegend.tsx      # Dynamic legends
+│   │   └── HeatmapTooltip.tsx     # Enhanced tooltips with role info
+│   ├── Footer.tsx        # Application footer component
+│   ├── NavigationHeader.tsx  # Navigation header component
+│   └── QualityScoreLegend.tsx  # Quality score legend component
 ├── pages/               # Next.js page router
 │   ├── _app.tsx         # App configuration and global styles
 │   ├── index.tsx        # Landing page (redirects to dashboard)
 │   ├── dashboard.tsx    # Screen 1: Corpus overview
 │   ├── questions.tsx    # Screen 2: Question groups comparison
 │   ├── experiment.tsx   # Screen 3: Experiment configuration
-│   └── results.tsx      # Screen 4: Analysis results
+│   ├── results.tsx      # Screen 4: Analysis results
+│   └── heatmap.tsx      # Screen 5: Interactive data visualization
 ├── services/
 │   └── api.ts           # API client with logging interceptors
 ├── types/
 │   └── index.ts         # TypeScript interfaces
 ├── utils/
-│   └── logger.ts        # Comprehensive logging system
+│   ├── logger.ts        # Comprehensive logging system
+│   └── heatmapData.ts   # Data processing for visualizations
 └── styles/
     └── globals.css      # Global styles and component classes
 ```
@@ -100,6 +112,13 @@ node --version   # Should show 18+ or 22+
 - **Visual Elements**: Similarity score bars, health indicators, status badges, distribution charts
 - **Detailed Inspection**: Full question text, retrieved document details, similarity scores per document
 - **Navigation**: Easy navigation to restart experiments or return to previous screens
+
+### 5. Heatmap (Screen 5)
+- **Interactive Data Visualization**: Multi-perspective hexagonal heatmaps with coverage analytics
+- **Multiple Perspectives**: Chunks-to-Questions, Chunks-to-Roles visualization modes
+- **Advanced Analytics**: Coverage statistics, orphaned chunk detection, performance insights
+- **Smart Insights**: Role-based performance analysis, efficiency indicators
+- **Enhanced UX**: Collapsible sections, quick actions, context-aware statistics
 
 ## API Integration
 

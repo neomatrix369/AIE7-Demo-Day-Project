@@ -6,72 +6,8 @@ A 5-screen wizard application for comprehensive RAG system quality assessment us
 
 *Screenshots of the 5-screen wizard application will be added here soon.*
 
-## Project Structure
+## Quick Start
 
-```
-├── backend/                    # FastAPI backend with document processing
-│   ├── main.py                # FastAPI application with WebSocket support
-│   ├── simple_document_processor.py  # Document processing orchestrator
-│   ├── managers/              # Business logic managers
-│   │   ├── __init__.py
-│   │   ├── qdrant_manager.py
-│   │   ├── data_manager.py
-│   │   ├── corpus_statistics_manager.py
-│   │   ├── vector_store_manager.py
-│   │   └── search_manager.py
-│   ├── logging_config.py      # Centralized logging configuration
-│   └── requirements.txt       # Python dependencies
-├── frontend/                   # Next.js frontend with comprehensive logging
-│   ├── src/pages/             # 5-screen wizard application
-│   ├── src/components/heatmap/ # Interactive visualization components
-│   ├── src/services/api.ts    # API client with logging interceptors
-│   ├── src/services/storage/  # Cross-platform storage adapters
-│   ├── src/utils/logger.ts    # User-friendly logging system
-│   ├── src/utils/heatmapData.ts # Data processing for visualizations
-│   └── src/types/index.ts     # TypeScript interfaces
-├── scripts/                    # Setup and utility scripts
-│   └── setup_qdrant.sh        # Qdrant startup and health check
-├── docker-compose.yml          # Qdrant database container with health monitoring
-├── vercel.json                # Vercel deployment configuration
-├── .env.example               # Comprehensive environment variables template
-├── .env                       # Your environment configuration (gitignored)
-└── README.md                  # This file
-```
-
-## Features
-
-### 🎯 5-Screen Wizard Application
-1. **📊 Data Loading Dashboard**: Real-time corpus overview with document statistics, health metrics, and vector database status
-2. **❓ Question Groups Overview**: Side-by-side comparison of LLM-generated vs RAGAS-generated questions with role breakdown
-3. **⚙️ Experiment Configuration**: Interactive experiment setup with real-time WebSocket streaming and progress tracking
-4. **📈 Analysis Results Dashboard**: Enhanced 3-level analysis with collapsible sections, quick actions, role-based insights, and comprehensive filtering
-5. **🗺️ Interactive Data Visualization**: Multi-perspective hexagonal heatmaps with coverage analytics, Unretrieved chunk detection, and smart performance insights
-
-### 🏗️ Technical Architecture
-- **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking (750 chars, 100 overlap)
-- **🗃️ Persistent Vector Storage**: Qdrant database with cosine similarity search, automatic collection management, and health monitoring
-- **📏 Quality Score System**: Normalized 0-10 scale with consistent thresholds (GOOD ≥7.0, WEAK ≥5.0, POOR <5.0) and color-coded indicators
-- **🆔 Chunk Traceability**: Qdrant UUID capture for enhanced debugging and search result analysis with clickable chunk IDs
-- **🗺️ Interactive Visualization**: D3.js-powered hexagonal heatmaps with multiple perspectives (Chunks-to-Questions, Chunks-to-Roles), advanced analytics, and improved layout.
-- **📊 Coverage Analytics**: Comprehensive chunk utilization tracking with Unretrieved chunk detection and impactful stats on coverage and performance.
-- **👥 Role-Based Analysis**: Complete role integration across visualization and analysis workflows
-- **⚡ Performance Optimization**: Caching, memoization, and optimized rendering for smooth user experience
-- **📡 Real-time Communication**: WebSocket streaming for live experiment progress updates
-- **📋 Comprehensive Logging**: User-friendly logging system with development/production modes
-- **🎨 Enhanced UX**: Collapsible sections, quick actions, smart insights, and context-aware statistics
-- **🎯 Responsive Design**: Mobile-friendly interface with CSS Grid and Flexbox layouts
-
-
-## Setup
-
-### Prerequisites
-1. **Docker & Docker Compose** - Required for Qdrant vector database
-2. **Node.js 18+ or 22+** - For frontend development (with nvm recommended)
-3. **Python 3.8+** - For backend development (uv package manager recommended)
-4. **OpenAI API Key** - Required for document embeddings ([Get API key](https://platform.openai.com/api-keys))
-5. **Data Files** - CSV and PDF files in `./backend/data/` folder for document processing
-
-### Quick Start
 ```bash
 # 1. Set up environment
 cp .env.example .env
@@ -82,265 +18,62 @@ cp .env.example .env
 
 # 3. Start backend
 cd backend
-uv venv
-source .venv/bin/activate
+uv venv && source .venv/bin/activate
 uv pip install -r requirements.txt
 uvicorn main:app --reload
 
 # 4. Start frontend (in new terminal)
 cd frontend
-npm install  
-npm run dev
+npm install && npm run dev
 ```
 
-### Manual Setup
+**Services:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000  
+- Qdrant Database: http://localhost:6333
 
-#### Qdrant Database
-```bash
-# Start Qdrant container
-docker-compose up -d qdrant
+## Documentation
 
-# Check container health status
-docker ps  # Shows (healthy) status
+| Documentation | Description |
+|---------------|-------------|
+| 📋 [Setup Guide](docs/setup.md) | Prerequisites, installation, and configuration |
+| 🏗️ [Architecture](docs/architecture.md) | Technical architecture and system design |
+| ⭐ [Features](docs/features.md) | Complete feature overview and capabilities |
+| 🔌 [API Reference](docs/api.md) | REST endpoints, WebSocket API, and technologies |
+| 🚀 [Cloud Deployment](docs/deployment.md) | Vercel, Railway deployment guides |
+| 🔧 [Troubleshooting](docs/troubleshooting.md) | Common issues and debugging tips |
+| 📁 [Project Structure](docs/project-structure.md) | Codebase organization and file structure |
 
-# Verify connection
-curl http://localhost:6333/
+## Prerequisites
 
-# View web UI (optional)
-open http://localhost:6333/dashboard
-```
+1. **Docker & Docker Compose** - Required for Qdrant vector database
+2. **Node.js 18+ or 22+** - For frontend development (with nvm recommended)
+3. **Python 3.8+** - For backend development (uv package manager recommended)
+4. **OpenAI API Key** - Required for document embeddings ([Get API key](https://platform.openai.com/api-keys))
+5. **Data Files** - CSV and PDF files in `./backend/data/` folder for document processing
 
-#### Backend
-```bash
-cd backend
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
+## Key Features
 
-# Test Qdrant connection (optional)
-uv run python test_qdrant.py
+- **🎯 5-Screen Wizard**: Dashboard → Questions → Experiment → Results → Heatmap
+- **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics
+- **📊 Real-time Analytics**: Coverage statistics, orphaned chunk detection, performance insights
+- **🗃️ Vector Storage**: Persistent Qdrant database with similarity search
+- **📡 Live Updates**: WebSocket streaming for experiment progress
+- **🎯 Quality Scoring**: Normalized 0-10 scale with consistent thresholds and color coding
 
-# Start server
-uvicorn main:app --reload
-```
+## Components
 
-#### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Backend (FastAPI)
+- **Document Processing**: CSV/PDF loading with LangChain chunking
+- **Vector Operations**: Qdrant database integration with OpenAI embeddings
+- **Real-time Streaming**: WebSocket experiment progress updates
+- **Comprehensive Logging**: User-friendly logging with development/production modes
 
-### Services
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **Qdrant Database**: http://localhost:6333
-- **Qdrant Web UI**: http://localhost:6333/dashboard
-
-## API Endpoints
-
-- `GET /api/corpus/status` - Real corpus metadata from processed documents
-- `GET /api/questions/llm` - LLM generated questions
-- `GET /api/questions/ragas` - RAGAS generated questions
-- `POST /api/experiment/run` - Run vector similarity experiment
-- `GET /api/results/analysis` - Analysis results with similarity scores
-- `WS /ws/experiment/stream` - Real-time experiment progress
-
-## Technologies Used
-
-### Backend
-- **FastAPI** - Modern Python web framework
-- **Qdrant** - Vector database for similarity search
-- **LangChain** - Document processing and embeddings
-- **OpenAI** - Text embeddings (text-embedding-3-small)
-
-
-### Frontend  
-- **Next.js** - React framework with TypeScript
-- **D3.js** - Interactive data visualization and scatter plots
-- **Axios** - HTTP client with logging interceptors
-- **WebSocket** - Real-time experiment streaming
-- **Custom Logging** - User-friendly logging system
-
-### Infrastructure
-- **Docker & Docker Compose** - Qdrant database containerization with health monitoring and service orchestration
-- **Health Monitoring** - TCP-based health checks for container reliability
-- **Persistent Storage** - Docker volumes for Qdrant data persistence
-- **Environment Management** - Centralized configuration with comprehensive .env.example
-
-## Cloud Deployment
-
-### Prerequisites for Cloud Deployment
-
-#### 1. Qdrant Cloud Setup (Required for both platforms)
-```bash
-# Sign up for Qdrant Cloud at https://cloud.qdrant.io
-# Create a cluster and note down:
-# - Cluster URL (e.g., https://xyz-abc-123.eu-central.aws.cloud.qdrant.io:6333)
-# - API Key (generated in the cluster dashboard)
-```
-
-### Hybrid Deployment (Recommended)
-Deploy frontend to Vercel and backend to Railway for optimal performance:
-
-#### Step 1: Deploy Backend to Railway
-
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login to Railway
-railway login
-
-# Initialize Railway project (in project root)
-railway init
-
-# Deploy backend
-railway up
-```
-
-**Railway Environment Variables Configuration:**
-Go to Railway Dashboard → Your Project → Variables and set:
-
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `QDRANT_URL` | `https://your-cluster.eu-central.aws.cloud.qdrant.io:6333` | Your Qdrant Cloud cluster URL |
-| `QDRANT_API_KEY` | `your_qdrant_cloud_api_key` | API key from Qdrant Cloud dashboard |
-| `OPENAI_API_KEY` | `sk-...` | Your OpenAI API key |
-| `QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Vector collection name |
-| `DATA_FOLDER` | `data/` | Path to data files in Railway |
-| `BACKEND_HOST` | `0.0.0.0` | Allow external connections |
-| `BACKEND_PORT` | `8000` | Port for FastAPI (Railway auto-detects) |
-| `VERCEL_FRONTEND_URL` | `https://xxxxxx.vercel.app` | Vercel frontend URL for CORS |
-| `LOG_LEVEL` | `INFO` | Logging verbosity |
-
-**Generate Public Domain URL:**
-1. Select deployed service in Railway dashboard
-2. Go to Settings → Networking → Public Networking → Generate Domain
-3. Set port to `8000` (FastAPI default)
-4. Copy the generated domain (e.g., `https://xxxxx.railway.app`)
-
-#### Step 2: Deploy Frontend to Vercel
-
-```bash
-# Ensure correct Node.js version
-source ~/.zshrc && nvm use default && nvm use default
-
-# Deploy frontend to Vercel
-vercel --yes
-```
-
-**Vercel Environment Variables Configuration:**
-Go to Vercel Dashboard → Your Project → Settings → Environment Variables and set:
-
-| Variable | Value | Environment | Description |
-|----------|-------|-------------|-------------|
-| `NEXT_PUBLIC_BACKEND_URL` | `https://xxxxx.railway.app/` | Production | Railway backend URL (from Step 1), ensure it trails with a `/` |
-| `NEXT_PUBLIC_DEPLOYMENT_ENV` | `vercel` | Production | Enables browser storage adapter |
-| `NEXT_PUBLIC_QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Production | Collection name for frontend |
-
-**Important Notes:**
-- Only `NEXT_PUBLIC_*` variables are accessible in the browser
-- Backend handles Qdrant/OpenAI connections, so frontend doesn't need those credentials
-- Redeploy frontend after setting environment variables
-
-**Benefits of Hybrid Deployment:**
-- **Vercel Frontend**: Fast CDN, excellent Next.js support
-- **Railway Backend**: Large Python dependencies, WebSocket support, no size limits
-
-### Alternative: Full-Stack Railway Deployment
-
-Deploy both frontend and backend to Railway as a single service:
-
-```bash
-# Deploy entire application to Railway
-railway login
-railway init
-railway up
-```
-
-**Railway Environment Variables Configuration (Full-Stack):**
-Go to Railway Dashboard → Your Project → Variables and set:
-
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `QDRANT_URL` | `https://your-cluster.eu-central.aws.cloud.qdrant.io:6333` | Your Qdrant Cloud cluster URL |
-| `QDRANT_API_KEY` | `your_qdrant_cloud_api_key` | API key from Qdrant Cloud dashboard |
-| `OPENAI_API_KEY` | `sk-...` | Your OpenAI API key |
-| `QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Vector collection name |
-| `DATA_FOLDER` | `backend/data/` | Path to data files |
-| `BACKEND_HOST` | `0.0.0.0` | Allow external connections |
-| `BACKEND_PORT` | `8000` | Port for FastAPI |
-| `NEXT_PUBLIC_DEPLOYMENT_ENV` | `railway` | Enables browser storage adapter |
-| `NEXT_PUBLIC_QDRANT_COLLECTION_NAME` | `student_loan_corpus` | Collection name for frontend |
-| `LOG_LEVEL` | `INFO` | Logging verbosity |
-
-**Benefits of Full-Stack Railway:**
-- **Single deployment**: Easier management, one domain
-- **WebSocket support**: Better real-time features
-- **No size limits**: Handle large Python dependencies
-- **Automatic builds**: Deploys on git push
-
-### Storage Adapters
-The application automatically adapts storage based on deployment environment:
-- **Local Development**: FileSystemStorage (saves to `experiments/` folder)
-- **Cloud Deployment**: BrowserStorage (saves to browser localStorage)
-
-## Troubleshooting Cloud Deployment
-
-### Common Issues and Solutions
-
-#### 1. Frontend Can't Connect to Backend
-**Symptoms:** API calls fail, WebSocket connection errors
-**Solutions:**
-- Verify `NEXT_PUBLIC_BACKEND_URL` is set correctly in Vercel
-- Ensure Railway backend URL includes `https://` protocol
-- Check Railway backend is deployed and responding at `/health` endpoint
-- Redeploy frontend after changing environment variables
-
-#### 2. Backend Can't Connect to Qdrant
-**Symptoms:** Vector database errors, document loading fails
-**Solutions:**
-- Verify Qdrant Cloud cluster is running
-- Check `QDRANT_URL` includes `:6333` port
-- Ensure `QDRANT_API_KEY` is correctly copied from Qdrant dashboard
-- Test connection with curl: `curl -H "api-key: YOUR_KEY" YOUR_QDRANT_URL`
-
-#### 3. Data Files Not Found
-**Symptoms:** "Data folder not found" errors
-**Solutions:**
-- Ensure data files are in `backend/data/` folder
-- For Railway: verify `DATA_FOLDER=backend/data/` (not `../data/`)
-- Check file permissions and paths in deployment logs
-
-#### 4. WebSocket Connection Issues
-**Symptoms:** Real-time updates not working
-**Solutions:**
-- Use Railway for backend (better WebSocket support than serverless)
-- Check firewall/proxy settings
-- Verify WebSocket URL matches backend URL with `wss://` protocol
-
-#### 5. Environment Variables Not Working
-**Symptoms:** Application uses default values instead of configured ones
-**Solutions:**
-- For Vercel: Only `NEXT_PUBLIC_*` variables work in browser
-- Redeploy after setting environment variables
-- Check variable names match exactly (case-sensitive)
-- For Railway: restart service after variable changes
-
-#### 6. Build/Deployment Failures
-**Symptoms:** Deployment fails during build phase
-**Solutions:**
-- Ensure Node.js version compatibility (18+ or 22+)
-- Check for missing dependencies in package.json
-- Review deployment logs for specific error messages
-- For Railway: verify Python dependencies in requirements.txt
-
-### Debugging Tips
-- **Railway Logs**: Use `railway logs` or dashboard logs tab
-- **Vercel Logs**: Check Functions tab in Vercel dashboard
-- **Qdrant Health**: Visit `https://your-cluster.qdrant.io:6333/dashboard`
-- **API Testing**: Test backend endpoints directly in browser
+### Frontend (Next.js)
+- **TypeScript Application**: Type-safe React components and API integration
+- **Interactive Visualizations**: D3.js scatter plots and analytics dashboards
+- **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts
+- **Cross-platform Storage**: Adapters for local development and cloud deployment
 
 ## Contributing
 

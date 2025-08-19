@@ -2,6 +2,8 @@
 
 FastAPI backend with real document processing, vector embeddings, and persistent storage using Qdrant.
 
+> **📖 Main Documentation**: See the [main README](../README.md) for complete setup instructions and project overview.
+
 ## Architecture
 
 ### Document Processing Pipeline

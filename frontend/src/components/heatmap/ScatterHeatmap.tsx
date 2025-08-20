@@ -146,43 +146,59 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
   }, [positionPoints.length, perspective, qualityFilter]);
 
   // Draw the scatter plot (only when data actually changes)
+  // Initialize SVG structure only once
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    
+    // Only clear and recreate structure if it doesn't exist
+    if (svg.select('.main-group').empty()) {
+      svg.selectAll('*').remove(); // Clear everything on first render only
+
+      // Use fixed dimensions for grid
+      const gridWidth = 700;
+      const gridHeight = 320;
+
+      // Create main group with minimal margins (no axes needed)
+      const g = svg.append('g')
+        .attr('class', 'main-group')
+        .attr('transform', `translate(${dimensions.margin.left},${dimensions.margin.top})`);
+
+      // Add subtle background grid (optional, for visual reference)
+      const gridSize = 50;
+      const gridLines = g.append('g')
+        .attr('class', 'background-grid')
+        .style('opacity', 0.1);
+
+      // Vertical grid lines
+      for (let x = 0; x <= gridWidth; x += gridSize) {
+        gridLines.append('line')
+          .attr('x1', x).attr('y1', 0)
+          .attr('x2', x).attr('y2', gridHeight)
+          .style('stroke', '#ccc');
+      }
+
+      // Horizontal grid lines
+      for (let y = 0; y <= gridHeight; y += gridSize) {
+        gridLines.append('line')
+          .attr('x1', 0).attr('y1', y)
+          .attr('x2', gridWidth).attr('y2', y)
+          .style('stroke', '#ccc');
+      }
+
+      // Create containers for different point types
+      g.append('g').attr('class', 'unassociated-points');
+      g.append('g').attr('class', 'associated-points');
+    }
+  }, [dimensions.margin]); // Only re-run if margins change
+
+  // Update points using data binding (efficient updates)
   useEffect(() => {
     if (!svgRef.current || positionPoints.length === 0) return;
 
     const svg = d3.select(svgRef.current);
-    
-    // Clear previous content
-    svg.selectAll('*').remove();
-
-    // Use fixed dimensions for grid
-    const gridWidth = 700;
-    const gridHeight = 320;
-
-    // Create main group with minimal margins (no axes needed)
-    const g = svg.append('g')
-      .attr('transform', `translate(${dimensions.margin.left},${dimensions.margin.top})`);
-
-    // Add subtle background grid (optional, for visual reference)
-    const gridSize = 50;
-    const gridLines = g.append('g')
-      .attr('class', 'background-grid')
-      .style('opacity', 0.1);
-
-    // Vertical grid lines
-    for (let x = 0; x <= gridWidth; x += gridSize) {
-      gridLines.append('line')
-        .attr('x1', x).attr('y1', 0)
-        .attr('x2', x).attr('y2', gridHeight)
-        .style('stroke', '#ccc');
-    }
-
-    // Horizontal grid lines
-    for (let y = 0; y <= gridHeight; y += gridSize) {
-      gridLines.append('line')
-        .attr('x1', 0).attr('y1', y)
-        .attr('x2', gridWidth).attr('y2', y)
-        .style('stroke', '#ccc');
-    }
+    const g = svg.select('.main-group');
 
     // Helper function to generate hexagon coordinates
     const generateHexagon = (cx: number, cy: number, radius: number): string => {
@@ -204,39 +220,46 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       !(p.data.type === 'unassociated-cluster' || (p.data.type === 'chunk' && p.data.isUnretrieved))
     );
 
-    // Phase 1: Render unassociated chunks first (background layer)
-    const unassociatedHexagons = g.selectAll('.unassociated-point')
-      .data(unassociatedPoints)
-      .enter()
-      .append('polygon')
-      .attr('class', 'scatter-point unassociated-point')
-      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)))
-      .attr('fill', d => getHeatmapColor(
-        d.color, 
-        true, // These are unassociated chunks
-        true
-      ))
-      .attr('opacity', d => d.opacity)
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
-      .style('cursor', 'pointer');
+    // Helper function to update points with efficient data binding
+    const updatePointGroup = (container: string, points: HeatmapPoint[], isUnassociated: boolean) => {
+      const selection = g.select(container)
+        .selectAll<SVGPolygonElement, HeatmapPoint>('.scatter-point')
+        .data(points, (d: HeatmapPoint) => `${d.id || d.screenX}-${d.screenY}`); // Key function for stable updates
 
-    // Phase 2: Render associated chunks second (foreground layer)
-    const associatedHexagons = g.selectAll('.associated-point')
-      .data(associatedPoints)
-      .enter()
-      .append('polygon')
-      .attr('class', 'scatter-point associated-point')
-      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)))
-      .attr('fill', d => getHeatmapColor(
-        d.color, 
-        false, // These are associated chunks
-        true
-      ))
-      .attr('opacity', d => d.opacity)
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
-      .style('cursor', 'pointer');
+      // Remove old points
+      selection.exit()
+        .transition()
+        .duration(200)
+        .attr('opacity', 0)
+        .remove();
+
+      // Add new points
+      const enter = selection.enter()
+        .append('polygon')
+        .attr('class', 'scatter-point')
+        .attr('opacity', 0)
+        .style('cursor', 'pointer');
+
+      // Update both new and existing points
+      const merged = selection.merge(enter);
+      
+      merged
+        .transition()
+        .duration(300)
+        .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20)))
+        .attr('fill', d => getHeatmapColor(d.color, isUnassociated, true))
+        .attr('opacity', d => d.opacity)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+
+      return merged;
+    };
+
+    // Phase 1: Update unassociated chunks (background layer)
+    const unassociatedHexagons = updatePointGroup('.unassociated-points', unassociatedPoints, true);
+
+    // Phase 2: Update associated chunks (foreground layer)  
+    const associatedHexagons = updatePointGroup('.associated-points', associatedPoints, false);
 
     // Combine both groups for event handling
     const allHexagons = g.selectAll('.scatter-point');
@@ -254,7 +277,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         d3.select(this)
           .attr('stroke-width', 3)
           .attr('stroke', '#333')
-          .attr('points', generateHexagon(heatmapPoint.screenX!, heatmapPoint.screenY!, currentRadius + 2));
+          .attr('points', generateHexagon(heatmapPoint.screenX || 0, heatmapPoint.screenY || 0, currentRadius + 2));
         
         // Show tooltip without triggering re-render
         const rect = svgRef.current!.getBoundingClientRect();
@@ -279,7 +302,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         d3.select(this)
           .attr('stroke-width', 2)
           .attr('stroke', '#fff')
-          .attr('points', generateHexagon(heatmapPoint.screenX!, heatmapPoint.screenY!, currentRadius));
+          .attr('points', generateHexagon(heatmapPoint.screenX || 0, heatmapPoint.screenY || 0, currentRadius));
       })
       .on('click', function(_, d) {
         const heatmapPoint = d as HeatmapPoint;
@@ -295,19 +318,19 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     // Add entrance animation - unassociated chunks first, then associated chunks
     // Phase 1 animation: Unassociated chunks (background layer)
     unassociatedHexagons
-      .attr('points', d => generateHexagon(d.screenX, d.screenY, 0))
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, 0))
       .transition()
       .duration(600)
-      .delay((d, i) => i * 20) // Faster animation for background
-      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)));
+      .delay((_, i) => i * 20) // Faster animation for background
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20)));
 
     // Phase 2 animation: Associated chunks (foreground layer) - start after unassociated
     associatedHexagons
-      .attr('points', d => generateHexagon(d.screenX, d.screenY, 0))
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, 0))
       .transition()
       .duration(800)
-      .delay((d, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
-      .attr('points', d => generateHexagon(d.screenX, d.screenY, getScaledSize(d.size, 6, 20)));
+      .delay((_, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20)));
 
   }, [renderKey, positionPoints, dimensions, onPointClick]);
 

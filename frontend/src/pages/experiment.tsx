@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { experimentApi, questionsApi } from '../services/api';
 import { ExperimentConfig } from '../types';
@@ -260,7 +260,7 @@ const ExperimentConfiguration: React.FC = () => {
     setIsRunning(false);
   };
 
-  const saveExperimentToBrowser = async () => {
+  const saveExperimentToBrowser = useCallback(async () => {
     try {
       const storageAdapter = createStorageAdapter();
       const timestamp = new Date().toISOString();
@@ -302,17 +302,20 @@ const ExperimentConfiguration: React.FC = () => {
       });
       console.error('❌ Auto-save error:', error);
     }
-  };
+  }, [config, results]);
 
   // Auto-save effect for Vercel deployments when experiment completes
   useEffect(() => {
     if (completed && isVercelDeployment() && results.length > 0 && !isRunning) {
       console.log(`🎯 Auto-save trigger: experiment completed with ${results.length} results`);
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         saveExperimentToBrowser();
       }, 500);
+      
+      // Cleanup timeout on unmount or re-run
+      return () => clearTimeout(timeoutId);
     }
-  }, [completed, results.length, isRunning]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [completed, results.length, isRunning, saveExperimentToBrowser]);
 
   const handleViewResults = () => {
     logNavigation('Experiment', 'Results', {

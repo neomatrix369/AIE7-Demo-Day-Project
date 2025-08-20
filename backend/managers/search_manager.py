@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
-from typing import List, Dict, Any
+import hashlib
+import time
+from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
@@ -9,13 +11,18 @@ from langchain_qdrant import QdrantVectorStore
 logger = logging.getLogger(__name__)
 
 class SearchManager:
-    """Manages search operations with vector search capabilities."""
+    """Manages search operations with vector search capabilities and caching."""
 
     def __init__(self, data_manager, qdrant_manager=None):
         self.data_manager = data_manager
         self.qdrant_manager = qdrant_manager
         self.embedding = OpenAIEmbeddings(model="text-embedding-3-small")
         self._vector_store = None
+        
+        # Search result cache with TTL
+        self._cache = {}
+        self._cache_ttl = 300  # 5 minutes TTL
+        self._max_cache_size = 100
 
     def get_vector_store(self):
         """Get or create vector store instance."""
@@ -32,6 +39,56 @@ class SearchManager:
                 self._vector_store = None
         return self._vector_store
 
+    def _get_cache_key(self, query: str, top_k: int) -> str:
+        """Generate cache key for search query."""
+        return hashlib.md5(f"{query}_{top_k}".encode()).hexdigest()
+
+    def _is_cache_valid(self, timestamp: float) -> bool:
+        """Check if cache entry is still valid."""
+        return time.time() - timestamp < self._cache_ttl
+
+    def _cleanup_cache(self):
+        """Remove expired entries and enforce size limits."""
+        current_time = time.time()
+        
+        # Remove expired entries
+        expired_keys = [
+            key for key, (_, timestamp) in self._cache.items()
+            if current_time - timestamp >= self._cache_ttl
+        ]
+        for key in expired_keys:
+            del self._cache[key]
+        
+        # Enforce size limit by removing oldest entries
+        if len(self._cache) > self._max_cache_size:
+            sorted_items = sorted(
+                self._cache.items(),
+                key=lambda x: x[1][1]  # Sort by timestamp
+            )
+            
+            # Remove oldest entries
+            excess_count = len(self._cache) - self._max_cache_size
+            for key, _ in sorted_items[:excess_count]:
+                del self._cache[key]
+
+    def _get_cached_result(self, cache_key: str) -> Optional[List[Dict[str, Any]]]:
+        """Get cached search result if valid."""
+        if cache_key in self._cache:
+            result, timestamp = self._cache[cache_key]
+            if self._is_cache_valid(timestamp):
+                logger.info(f"🚀 Using cached search result for query hash: {cache_key[:8]}...")
+                return result
+            else:
+                # Remove expired entry
+                del self._cache[cache_key]
+        return None
+
+    def _cache_result(self, cache_key: str, result: List[Dict[str, Any]]):
+        """Cache search result with timestamp."""
+        self._cleanup_cache()
+        self._cache[cache_key] = (result, time.time())
+        logger.info(f"💾 Cached search result for query hash: {cache_key[:8]}...")
+
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
         Search documents using vector similarity.
@@ -40,8 +97,14 @@ class SearchManager:
 
     def vector_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
-        Perform vector similarity search using Qdrant with chunk UUID capture.
+        Perform vector similarity search using Qdrant with chunk UUID capture and caching.
         """
+        # Check cache first
+        cache_key = self._get_cache_key(query, top_k)
+        cached_result = self._get_cached_result(cache_key)
+        if cached_result is not None:
+            return cached_result
+            
         try:
             vector_store = self.get_vector_store()
             if not vector_store:
@@ -73,6 +136,10 @@ class SearchManager:
                 })
             
             logger.info(f"📚 Vector search found {len(results)} results with chunk IDs")
+            
+            # Cache the results before returning
+            self._cache_result(cache_key, results)
+            
             return results
             
         except Exception as e:
@@ -113,3 +180,25 @@ class SearchManager:
         results = self.search_documents(query, top_k * 2)  # Get more results to filter
         filtered_results = [r for r in results if r["similarity"] >= threshold]
         return filtered_results[:top_k]
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics for monitoring and debugging."""
+        current_time = time.time()
+        valid_entries = sum(
+            1 for _, timestamp in self._cache.values()
+            if self._is_cache_valid(timestamp)
+        )
+        
+        return {
+            "total_entries": len(self._cache),
+            "valid_entries": valid_entries,
+            "expired_entries": len(self._cache) - valid_entries,
+            "cache_size_limit": self._max_cache_size,
+            "cache_ttl_seconds": self._cache_ttl,
+            "cache_usage_percent": round((len(self._cache) / self._max_cache_size) * 100, 1)
+        }
+
+    def clear_cache(self):
+        """Clear all cached search results."""
+        self._cache.clear()
+        logger.info("🗑️ Search cache cleared")

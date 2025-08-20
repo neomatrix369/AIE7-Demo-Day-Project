@@ -8,6 +8,7 @@ import ScatterHeatmap from '../components/heatmap/ScatterHeatmap';
 import HeatmapControls from '../components/heatmap/HeatmapControls';
 import HeatmapLegend from '../components/heatmap/HeatmapLegend';
 import { HeatmapPoint } from '../utils/heatmapData';
+import useApiCache from '../hooks/useApiCache';
 
 const InteractiveHeatmapVisualization: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
@@ -24,6 +25,12 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [selectedHeatmapPoint, setSelectedHeatmapPoint] = useState<HeatmapPoint | null>(null);
   const [drillDownData, setDrillDownData] = useState<string>('');
   const router = useRouter();
+  
+  // Initialize API cache with optimized settings for heatmap data
+  const { cachedRequest } = useApiCache({
+    ttl: 10 * 60 * 1000, // 10 minutes cache for heatmap data
+    maxSize: 20 // Small cache for this page's needs
+  });
 
   // Load all chunks once (static data used for chunks-to-questions perspective)
   useEffect(() => {
@@ -34,14 +41,16 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           action: 'CHUNKS_LOAD_START'
         });
         
-        const chunksData = await corpusApi.getAllChunks();
+        // Use cached request with static key for chunks
+        const chunksData = await cachedRequest('heatmap_chunks', () => corpusApi.getAllChunks());
         setAllChunks(chunksData.chunks);
         
         logSuccess(`All chunks loaded: ${chunksData.total_count} chunks`, {
           component: 'Heatmap',
           action: 'CHUNKS_LOAD_SUCCESS',
           data: {
-            total_chunks: chunksData.total_count
+            total_chunks: chunksData.total_count,
+            cached: true // Indicates this may have been cached
           }
         });
       } catch (err: any) {
@@ -57,7 +66,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
 
     // Only fetch once on mount - allChunks is static data
     fetchAllChunks();
-  }, []); // Empty dependency array - only fetch once
+  }, [cachedRequest]); // Include cachedRequest in dependencies
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -68,7 +77,8 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           action: 'RESULTS_LOAD_START'
         });
         
-        const data = await resultsApi.getAnalysis();
+        // Use cached request for analysis results
+        const data = await cachedRequest('heatmap_analysis', () => resultsApi.getAnalysis());
         setResults(data);
         
         logSuccess(`Heatmap data loaded: ${data.overall.total_questions} questions`, {
@@ -76,7 +86,8 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           action: 'RESULTS_LOAD_SUCCESS',
           data: {
             total_questions: data.overall.total_questions,
-            avg_quality_score: data.overall.avg_quality_score
+            avg_quality_score: data.overall.avg_quality_score,
+            cached: true // Indicates this may have been cached
           }
         });
         
@@ -100,7 +111,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     };
 
     fetchResults();
-  }, []);
+  }, [cachedRequest]);
 
   const handleHeatmapConfigChange = useCallback((newConfig: Partial<HeatmapConfig>) => {
     setHeatmapConfig(prev => ({ ...prev, ...newConfig }));

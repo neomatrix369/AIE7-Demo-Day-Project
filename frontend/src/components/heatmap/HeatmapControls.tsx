@@ -178,7 +178,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
           color: '#666',
           fontStyle: 'italic'
         }}>
-          💡 Hover points for details, click to drill down
+          💡 Hover points for details
         </div>
       </div>
 

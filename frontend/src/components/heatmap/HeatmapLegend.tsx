@@ -169,7 +169,7 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = React.memo(({
         <strong>💡 Interactive Features:</strong><br/>
         • Hover points for detailed information<br/>
         • Click tooltip to dismiss<br/>
-        • Click points to drill down to analysis<br/>
+        • Click points to show details about chunks<br/>
         • Use controls above to switch perspectives
       </div>
     </div>

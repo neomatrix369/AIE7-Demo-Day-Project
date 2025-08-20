@@ -677,7 +677,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
         paddingTop: '4px',
         textAlign: 'center'
       }}>
-        💡 Click tooltip to dismiss | Click point to drill down
+        💡 Click tooltip to dismiss | Click point to show chunk details
       </div>
     </div>
   );

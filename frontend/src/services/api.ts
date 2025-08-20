@@ -106,6 +106,13 @@ export const questionsApi = {
 export const experimentApi = {
   run: (config: ExperimentConfig) =>
     api.post('/experiment/run', config).then(res => res.data),
+  getExperimentConfig: (): Promise<{
+    chunk_strategy: Record<string, string>;
+    retrieval_method: Record<string, string>;
+    chunk_size: number;
+    chunk_overlap: number;
+  }> =>
+    api.get('/v1/experiment/config').then(res => res.data),
 };
 
 export const resultsApi = {

@@ -27,6 +27,7 @@ const ExperimentConfiguration: React.FC = () => {
     top_k: 5,
     similarity_threshold: 0.5
   });
+  const [experimentConfig, setExperimentConfig] = useState<{chunk_strategy: Record<string, string>, retrieval_method: Record<string, string>, chunk_size: number, chunk_overlap: number}>({chunk_strategy: {}, retrieval_method: {}, chunk_size: 0, chunk_overlap: 0});
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<StreamResult[]>([]);
@@ -38,6 +39,18 @@ const ExperimentConfiguration: React.FC = () => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchExperimentConfig = async () => {
+      try {
+        const data = await experimentApi.getExperimentConfig();
+        setExperimentConfig(data);
+      } catch (error) {
+        console.error("Failed to fetch experiment config", error);
+      }
+    };
+    fetchExperimentConfig();
+  }, []);
 
   useEffect(() => {
     if (resultsRef.current) {
@@ -366,7 +379,80 @@ const ExperimentConfiguration: React.FC = () => {
           Select question groups to test against corpus
         </p>
 
-        <div className="two-column">
+        <div className="three-column">
+          <div className="card" style={{ backgroundColor: '#f0f8ff' }}>
+            <h3>Chunking Strategy</h3>
+            <div className="form-group">
+              <select
+                id="chunk-strategy"
+                className="form-control"
+                disabled={isRunning}
+              >
+                {Object.entries(experimentConfig.chunk_strategy).map(([key, value]) => (
+                  <option key={key} value={key}>{value}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Chunk Size:</label>
+              <p>{experimentConfig.chunk_size}</p>
+            </div>
+            <div className="form-group">
+              <label>Chunk Overlap:</label>
+              <p>{experimentConfig.chunk_overlap}</p>
+            </div>
+            <div className="form-group">
+              <label>Embedding Model:</label>
+              <p>text-embedding-3-small (OpenAI)</p>
+            </div>
+          </div>
+
+          <div className="card" style={{ backgroundColor: '#f0f8ff' }}>
+            <h3>Retrieval Configuration</h3>
+            <div className="form-group">
+              <label htmlFor="top-k">Top-K Results:</label>
+              <select
+                id="top-k"
+                className="form-control"
+                value={config.top_k}
+                onChange={(e) => handleConfigChange('top_k', parseInt(e.target.value))}
+                disabled={isRunning}
+              >
+                <option value={3}>3</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="similarity-threshold">Similarity Threshold:</label>
+              <select
+                id="similarity-threshold"
+                className="form-control"
+                value={config.similarity_threshold}
+                onChange={(e) => handleConfigChange('similarity_threshold', parseFloat(e.target.value))}
+                disabled={isRunning}
+              >
+                <option value={0.3}>0.3</option>
+                <option value={0.5}>0.5</option>
+                <option value={0.7}>0.7</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="retrieval-method">Retrieval Method:</label>
+              <select
+                id="retrieval-method"
+                className="form-control"
+                disabled={isRunning}
+              >
+                {Object.entries(experimentConfig.retrieval_method).map(([key, value]) => (
+                  <option key={key} value={key}>{value}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="card" style={{ backgroundColor: '#f8f9fa' }}>
             <h3>Question Group Selection</h3>
             <div className="form-group">
@@ -412,39 +498,6 @@ const ExperimentConfiguration: React.FC = () => {
                   Run Both Groups ({loadingCounts ? '...' : totalQuestions} total questions)
                 </label>
               </div>
-            </div>
-          </div>
-
-          <div className="card" style={{ backgroundColor: '#f0f8ff' }}>
-            <h3>Retrieval Configuration</h3>
-            <div className="form-group">
-              <label htmlFor="top-k">Top-K Results:</label>
-              <select
-                id="top-k"
-                className="form-control"
-                value={config.top_k}
-                onChange={(e) => handleConfigChange('top_k', parseInt(e.target.value))}
-                disabled={isRunning}
-              >
-                <option value={3}>3</option>
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="similarity-threshold">Similarity Threshold:</label>
-              <select
-                id="similarity-threshold"
-                className="form-control"
-                value={config.similarity_threshold}
-                onChange={(e) => handleConfigChange('similarity_threshold', parseFloat(e.target.value))}
-                disabled={isRunning}
-              >
-                <option value={0.3}>0.3</option>
-                <option value={0.5}>0.5</option>
-                <option value={0.7}>0.7</option>
-              </select>
             </div>
           </div>
         </div>

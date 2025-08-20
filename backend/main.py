@@ -175,6 +175,8 @@ RAGAS_QUESTIONS = load_questions_from_file(
     os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ragas-generated.json')
 )
 
+from config.settings import CHUNK_STRATEGY, RETRIEVAL_METHOD, CHUNK_SIZE, CHUNK_OVERLAP
+
 # Pydantic models
 class ExperimentConfig(BaseModel):
     selected_groups: List[str]
@@ -199,6 +201,16 @@ async def get_corpus_status():
         # Return mock data
         logger.info("📝 Returning mock corpus status (no real documents loaded)")
         return MOCK_CORPUS_STATUS
+
+@app.get("/api/v1/experiment/config")
+async def get_experiment_config():
+    """Get experiment configuration values."""
+    return {
+        "chunk_strategy": CHUNK_STRATEGY,
+        "retrieval_method": RETRIEVAL_METHOD,
+        "chunk_size": CHUNK_SIZE,
+        "chunk_overlap": CHUNK_OVERLAP,
+    }
 
 @app.get("/api/corpus/chunks")
 async def get_all_chunks():

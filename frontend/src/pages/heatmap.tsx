@@ -127,7 +127,15 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     if (point.data.type === 'question') {
       setDrillDownData(`Question: "${point.data.questionText}"`);
     } else if (point.data.type === 'chunk') {
-      setDrillDownData(`Chunk: ${point.data.chunkId} from ${point.data.docId}`);
+      const contentPreview = point.data.content ? 
+        (point.data.content.length > 20 ? `${point.data.content.substring(0, 20)}...` : point.data.content) : 
+        'No content available';
+      setDrillDownData(`Chunk: ${point.data.chunkId} from ${point.data.docId} - "${contentPreview}"`);
+    } else if (point.data.type === 'chunk-to-role') {
+      const contentPreview = point.data.content ? 
+        (point.data.content.length > 20 ? `${point.data.content.substring(0, 20)}...` : point.data.content) : 
+        'No content available';
+      setDrillDownData(`Chunk: ${point.data.chunkId} from ${point.data.docId} - "${contentPreview}"`);
     } else {
       setDrillDownData(`Data point selected`);
     }

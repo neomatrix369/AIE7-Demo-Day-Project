@@ -644,6 +644,7 @@ def convert_experiment_results_to_analysis(experiment_results: List[Dict[str, An
                 {
                     "doc_id": doc["doc_id"],
                     "chunk_id": doc.get("chunk_id", "unknown"),
+                    "content": doc.get("content", ""),
                     "similarity": doc["similarity"],
                     "title": doc["title"]
                 } for doc in result["retrieved_docs"]
@@ -988,6 +989,7 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
             retrieved_docs.append({
                 "doc_id": result["doc_id"],
                 "chunk_id": result.get("chunk_id", "unknown"),
+                "content": result.get("content", ""),
                 "similarity": result["similarity"],
                 "title": result["title"]
             })

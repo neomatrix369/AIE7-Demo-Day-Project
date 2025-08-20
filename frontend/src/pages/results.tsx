@@ -892,6 +892,9 @@ const AnalysisResults: React.FC = () => {
                                 <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold' }}>
                                   Retrieved Documents
                                 </th>
+                                <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold', textAlign: 'center', width: '300px' }}>
+                                  Chunk Content
+                                </th>
                                 <th style={{ padding: '8px', backgroundColor: '#f8f9fa', color: '#495057', fontWeight: 'bold', textAlign: 'center', width: '140px' }}>
                                   Chunk ID
                                 </th>
@@ -905,6 +908,26 @@ const AnalysisResults: React.FC = () => {
                                 <tr key={idx} style={{ borderBottom: idx < question.retrieved_docs.length - 1 ? '1px solid #dee2e6' : 'none' }}>
                                   <td style={{ padding: '8px', verticalAlign: 'middle' }}>
                                     {doc.doc_id}
+                                  </td>
+                                  <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                                    {doc.content ? (
+                                      <div 
+                                        style={{ 
+                                          fontSize: '0.8rem',
+                                          color: '#495057',
+                                          lineHeight: '1.4',
+                                          cursor: 'help',
+                                          wordBreak: 'break-word'
+                                        }}
+                                        title={doc.content.length > 500 ? `${doc.content.substring(0, 500)}...` : doc.content}
+                                      >
+                                        {doc.content.length > 20 ? `${doc.content.substring(0, 20)}...` : doc.content}
+                                      </div>
+                                    ) : (
+                                      <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                                        No content available
+                                      </span>
+                                    )}
                                   </td>
                                   <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span 

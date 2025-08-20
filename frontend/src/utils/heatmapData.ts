@@ -22,6 +22,7 @@ export interface QuestionHeatmapData {
   retrievedChunks: Array<{
     chunkId: string;
     docId: string;
+    content: string;
     similarity: number;
     title: string;
   }>;
@@ -34,6 +35,7 @@ export interface ChunkHeatmapData {
   chunkId: string;
   docId: string;
   title: string;
+  content: string;
   retrievalFrequency: number; // How many questions retrieve this chunk
   avgSimilarity: number;
   bestQuestion: {
@@ -79,6 +81,7 @@ export interface ChunkToRoleHeatmapData {
   chunkId: string;
   docId: string;
   title: string;
+  content: string;
   totalRetrievals: number; // Total times this chunk was retrieved across all roles
   roleAccess: Array<{
     roleName: string;
@@ -290,6 +293,7 @@ export function processQuestionsToChunks(questionResults: QuestionResult[]): Hea
       retrievedChunks: retrievedDocs.map(doc => ({
         chunkId: doc.chunk_id || 'unknown',
         docId: doc.doc_id || 'unknown',
+        content: doc.content || '',
         similarity: (doc.similarity ?? 0) * 10, // Convert 0-1 to 0-10 scale
         title: doc.title || 'Unknown document'
       })),
@@ -324,6 +328,7 @@ export function processChunksToQuestions(
     chunkId: string;
     docId: string;
     title: string;
+    content: string;
     questions: Array<{
       questionId: string;
       questionText: string;
@@ -340,10 +345,14 @@ export function processChunksToQuestions(
       const chunkId = doc.chunk_id || 'unknown';
       
       if (!chunkMap.has(chunkId)) {
+        // Find content from allChunks if available
+        const allChunk = allChunks?.find(chunk => chunk.chunk_id === chunkId);
+        
         chunkMap.set(chunkId, {
           chunkId,
           docId: doc.doc_id || 'unknown',
           title: doc.title || 'Unknown document',
+          content: doc.content || allChunk?.content || '',
           questions: [],
           totalSimilarity: 0
         });
@@ -393,6 +402,7 @@ export function processChunksToQuestions(
       chunkId: chunk.chunkId,
       docId: chunk.docId,
       title: chunk.title,
+      content: chunk.content,
       retrievalFrequency: chunk.questions.length,
       avgSimilarity,
       bestQuestion: {
@@ -722,6 +732,7 @@ export function processChunksToRoles(
     chunkId: string;
     docId: string;
     title: string;
+    content: string;
     roleAccess: Map<string, {
       accessCount: number;
       totalSimilarity: number;
@@ -739,10 +750,14 @@ export function processChunksToRoles(
       const chunkKey = doc.chunk_id || 'unknown';
       
       if (!chunkAccessMap.has(chunkKey)) {
+        // Find content from allChunks if available
+        const allChunk = allChunks?.find(chunk => chunk.chunk_id === chunkKey);
+        
         chunkAccessMap.set(chunkKey, {
           chunkId: doc.chunk_id || 'unknown',
           docId: doc.doc_id || 'unknown',
           title: doc.title || 'Unknown document',
+          content: doc.content || allChunk?.content || '',
           roleAccess: new Map(),
           totalRetrievals: 0,
           totalSimilarity: 0
@@ -810,6 +825,7 @@ export function processChunksToRoles(
       chunkId: chunk.chunkId,
       docId: chunk.docId,
       title: chunk.title,
+      content: chunk.content,
       totalRetrievals: chunk.totalRetrievals,
       roleAccess: roleAccessArray,
       avgSimilarity: avgSimilarity,

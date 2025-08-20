@@ -41,6 +41,7 @@ export interface QuestionResult {
   retrieved_docs: Array<{
     doc_id: string;
     chunk_id?: string;
+    content: string;
     similarity: number;
     title: string;
   }>;

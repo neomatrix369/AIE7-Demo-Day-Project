@@ -14,6 +14,8 @@ interface StreamResult {
   avg_quality_score: number;
   retrieved_docs: Array<{
     doc_id: string;
+    chunk_id?: string;
+    content: string;
     similarity: number;
     title: string;
   }>;
@@ -110,15 +112,6 @@ const ExperimentConfiguration: React.FC = () => {
     fetchQuestionCounts();
   }, []);
 
-  // Auto-save effect for Vercel deployments when experiment completes
-  useEffect(() => {
-    if (completed && isVercelDeployment() && results.length > 0 && !isRunning) {
-      console.log(`🎯 Auto-save trigger: experiment completed with ${results.length} results`);
-      setTimeout(() => {
-        saveExperimentToBrowser();
-      }, 500);
-    }
-  }, [completed, results.length, isRunning]);
 
   const handleGroupChange = (group: string, checked: boolean) => {
     setConfig(prev => ({
@@ -310,6 +303,16 @@ const ExperimentConfiguration: React.FC = () => {
       console.error('❌ Auto-save error:', error);
     }
   };
+
+  // Auto-save effect for Vercel deployments when experiment completes
+  useEffect(() => {
+    if (completed && isVercelDeployment() && results.length > 0 && !isRunning) {
+      console.log(`🎯 Auto-save trigger: experiment completed with ${results.length} results`);
+      setTimeout(() => {
+        saveExperimentToBrowser();
+      }, 500);
+    }
+  }, [completed, results.length, isRunning]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleViewResults = () => {
     logNavigation('Experiment', 'Results', {

@@ -199,7 +199,7 @@ class DataManager:
         else:
             # Fallback for other document types
             title = f"Document from {source}" if source != "unknown" else "Unknown Document"
-            doc_id = source
+            doc_id = os.path.basename(source) if source != "unknown" else "unknown"
         
         # Add the enhanced metadata to the chunk
         chunk.metadata["doc_id"] = doc_id

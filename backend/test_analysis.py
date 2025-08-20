@@ -37,26 +37,28 @@ def test_analysis_functions():
     print("🧪 Testing analysis functions...")
     
     try:
-        # Import the functions we need to test
-        from main import convert_experiment_results_to_analysis, get_quality_status, similarity_to_quality_score, calculate_overall_metrics, calculate_per_role_metrics, build_analysis_response
+        # Import the services we need to test
+        from services.quality_score_service import QualityScoreService
+        from services.experiment_service import ExperimentService
         
         # Test quality score transformation
         print("📊 Testing quality score transformation...")
-        assert similarity_to_quality_score(0.8) == 8.0
-        assert similarity_to_quality_score(0.65) == 6.5
-        assert similarity_to_quality_score(0.5) == 5.0
+        assert QualityScoreService.similarity_to_quality_score(0.8) == 8.0
+        assert QualityScoreService.similarity_to_quality_score(0.65) == 6.5
+        assert QualityScoreService.similarity_to_quality_score(0.5) == 5.0
         print("✅ Quality score transformation tests passed")
         
         # Test quality status
         print("📊 Testing quality status...")
-        assert get_quality_status(8.0) == "good"
-        assert get_quality_status(6.0) == "weak"
-        assert get_quality_status(4.0) == "poor"
+        assert QualityScoreService.get_quality_status(8.0) == "good"
+        assert QualityScoreService.get_quality_status(6.0) == "weak"
+        assert QualityScoreService.get_quality_status(4.0) == "poor"
         print("✅ Quality status tests passed")
         
         # Test conversion
         print("🔄 Testing result conversion...")
-        converted = convert_experiment_results_to_analysis(mock_experiment_results)
+        experiment_service = ExperimentService()
+        converted = experiment_service.convert_experiment_results_to_analysis(mock_experiment_results)
         assert len(converted) == 2
         assert converted[0]["id"] == "llm_q_001"
         assert converted[0]["status"] == "good"
@@ -67,19 +69,19 @@ def test_analysis_functions():
         
         # Test metrics calculation
         print("📈 Testing metrics calculation...")
-        overall = calculate_overall_metrics(converted)
+        overall = experiment_service.calculate_overall_metrics(converted)
         assert overall["total_questions"] == 2
         assert overall["avg_quality_score"] > 0
         print("✅ Overall metrics tests passed")
         
-        per_group = calculate_per_role_metrics(converted)
+        per_group = experiment_service.calculate_per_role_metrics(converted)
         assert "llm" in per_group
         assert "ragas" in per_group
         print("✅ Per-group metrics tests passed")
         
         # Test full analysis response
         print("🏗️ Testing full analysis response...")
-        response = build_analysis_response(converted)
+        response = experiment_service.build_analysis_response(converted)
         assert "overall" in response
         assert "per_group" in response
         assert "per_question" in response

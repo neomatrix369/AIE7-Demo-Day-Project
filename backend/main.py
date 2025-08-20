@@ -15,6 +15,7 @@ from managers.data_manager import DataManager
 from managers.search_manager import SearchManager
 from services.quality_score_service import QualityScoreService
 from services.experiment_service import ExperimentService
+from services.error_response_service import ErrorResponseService, ErrorType
 from dotenv import load_dotenv
 
 # Load environment variables from root .env file
@@ -267,9 +268,16 @@ async def get_all_chunks():
         }
         
     except Exception as e:
-        logger.error(f"❌ Failed to get chunks: {str(e)}")
-        logger.error(traceback.format_exc())
-        return {"chunks": [], "total_count": 0, "error": str(e)}
+        error_response = ErrorResponseService.log_and_return_error(
+            error=e,
+            context="Failed to get corpus chunks",
+            error_type=ErrorType.INTERNAL_ERROR,
+            user_message="Failed to retrieve corpus chunks"
+        )
+        # Maintain backward compatibility
+        error_response["chunks"] = []
+        error_response["total_count"] = 0
+        return error_response
 
 @app.get("/api/questions/llm")
 async def get_llm_questions():
@@ -339,11 +347,15 @@ async def clear_experiment_results():
             os.remove(results_file)
         
         logger.info("🗑️ Cleared experiment results")
-        return {"success": True, "message": "Experiment results cleared"}
+        return ErrorResponseService.create_success_response("Experiment results cleared")
         
     except Exception as e:
-        logger.error(f"❌ Failed to clear experiment results: {e}")
-        return {"success": False, "message": f"Failed to clear results: {str(e)}"}
+        return ErrorResponseService.log_and_return_error(
+            error=e,
+            context="Failed to clear experiment results",
+            error_type=ErrorType.INTERNAL_ERROR,
+            user_message="Failed to clear experiment results"
+        )
 
 @app.post("/api/results/test")
 async def set_test_results():
@@ -415,12 +427,14 @@ async def list_experiments():
             "experiments": experiment_files
         }
     except Exception as e:
-        logger.error(f"❌ Failed to list experiments: {e}")
-        return {
-            "success": False,
-            "message": f"Failed to list experiments: {str(e)}",
-            "experiments": []
-        }
+        error_response = ErrorResponseService.log_and_return_error(
+            error=e,
+            context="Failed to list experiments",
+            error_type=ErrorType.INTERNAL_ERROR,
+            user_message="Failed to retrieve experiment list"
+        )
+        error_response["experiments"] = []  # Maintain backward compatibility
+        return error_response
 
 @app.post("/api/experiments/load")
 async def load_experiment(filename: str):
@@ -432,22 +446,22 @@ async def load_experiment(filename: str):
         if results:
             experiment_results = results
             logger.info(f"📂 Loaded experiment {filename} with {len(results)} results")
-            return {
-                "success": True,
-                "message": f"Loaded experiment {filename}",
-                "count": len(results)
-            }
+            return ErrorResponseService.create_success_response(
+                message=f"Loaded experiment {filename}",
+                data={"count": len(results)}
+            )
         else:
-            return {
-                "success": False,
-                "message": f"No results found in {filename}"
-            }
+            return ErrorResponseService.not_found_error(
+                resource="Experiment results",
+                identifier=filename
+            )
     except Exception as e:
-        logger.error(f"❌ Failed to load experiment {filename}: {e}")
-        return {
-            "success": False,
-            "message": f"Failed to load experiment: {str(e)}"
-        }
+        return ErrorResponseService.log_and_return_error(
+            error=e,
+            context=f"Failed to load experiment {filename}",
+            error_type=ErrorType.INTERNAL_ERROR,
+            user_message="Failed to load experiment"
+        )
 
 @app.delete("/api/experiments/delete")
 async def delete_experiment(filename: str):
@@ -465,16 +479,17 @@ async def delete_experiment(filename: str):
                 "message": f"Deleted experiment {filename}"
             }
         else:
-            return {
-                "success": False,
-                "message": f"Experiment file {filename} not found"
-            }
+            return ErrorResponseService.not_found_error(
+                resource="Experiment file",
+                identifier=filename
+            )
     except Exception as e:
-        logger.error(f"❌ Failed to delete experiment {filename}: {e}")
-        return {
-            "success": False,
-            "message": f"Failed to delete experiment: {str(e)}"
-        }
+        return ErrorResponseService.log_and_return_error(
+            error=e,
+            context=f"Failed to delete experiment {filename}",
+            error_type=ErrorType.INTERNAL_ERROR,
+            user_message="Failed to delete experiment"
+        )
 
 @app.websocket("/ws/experiment/stream")
 async def websocket_experiment_stream(websocket: WebSocket):

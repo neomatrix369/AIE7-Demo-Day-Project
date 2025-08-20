@@ -1,28 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { corpusApi } from '../services/api';
 import { CorpusStatus } from '../types';
-import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import { logSuccess, logInfo, logNavigation } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
+import { useApiCall } from '../hooks/useApiCall';
+import LoadingDisplay from '../components/ui/LoadingDisplay';
+import ErrorDisplay from '../components/ui/ErrorDisplay';
 
 const DataLoadingDashboard: React.FC = () => {
-  const [corpusStatus, setCorpusStatus] = useState<CorpusStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: corpusStatus, loading, error, execute } = useApiCall<CorpusStatus>();
   const router = useRouter();
 
   useEffect(() => {
     const fetchCorpusStatus = async () => {
-      try {
-        setLoading(true);
-        logInfo('Starting corpus status check', { 
-          component: 'Dashboard',
-          action: 'CORPUS_LOAD_START'
-        });
-        
-        const data = await corpusApi.getStatus();
-        setCorpusStatus(data);
-        
+      logInfo('Starting corpus status check', { 
+        component: 'Dashboard',
+        action: 'CORPUS_LOAD_START'
+      });
+      
+      const data = await execute(
+        () => corpusApi.getStatus(),
+        { 
+          component: 'Dashboard', 
+          action: 'CORPUS_LOAD', 
+          userMessage: 'Failed to load corpus status' 
+        }
+      );
+      
+      if (data) {
         logSuccess(`Corpus loaded: ${data.document_count} documents, ${data.chunk_count} chunks`, {
           component: 'Dashboard',
           action: 'CORPUS_LOAD_SUCCESS',
@@ -33,28 +39,11 @@ const DataLoadingDashboard: React.FC = () => {
             corpus_loaded: data.corpus_loaded
           }
         });
-        
-      } catch (err: any) {
-        const userMessage = 'Failed to load corpus status';
-        setError(userMessage);
-        
-        logError(`Corpus loading failed: ${userMessage}`, {
-          component: 'Dashboard',
-          action: 'CORPUS_LOAD_ERROR',
-          data: {
-            error_type: err?.code || err?.name || 'Unknown',
-            error_message: err?.message,
-            status: err?.response?.status
-          }
-        });
-        
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchCorpusStatus();
-  }, []);
+  }, [execute]);
 
   const handleProceedToQuestions = () => {
     logNavigation('Dashboard', 'Questions', {
@@ -74,41 +63,22 @@ const DataLoadingDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="card">
-        <h2>Loading Corpus Status...</h2>
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#666' }}>
-            Loading document corpus and vector database...
-          </div>
-          <div style={{ fontSize: '14px', color: '#999', marginTop: '10px' }}>
-            This may take a few moments for first-time loading
-          </div>
-        </div>
-      </div>
+      <LoadingDisplay 
+        title="Loading Corpus Status..."
+        message="Loading document corpus and vector database..."
+        subMessage="This may take a few moments for first-time loading"
+      />
     );
   }
 
   if (error || !corpusStatus) {
     return (
-      <div className="card">
-        <h2>Error Loading Corpus</h2>
-        <div style={{ color: '#dc3545', padding: '20px' }}>
-          <div style={{ marginBottom: '10px' }}>
-            {error || 'Unknown error occurred'}
-          </div>
-          <div style={{ fontSize: '14px', color: '#666' }}>
-            This may be due to the backend taking time to initialize the document corpus 
-            and vector database. Please wait a moment and refresh the page.
-          </div>
-          <button 
-            className="button button-secondary" 
-            onClick={() => window.location.reload()}
-            style={{ marginTop: '15px' }}
-          >
-            Retry Loading
-          </button>
-        </div>
-      </div>
+      <ErrorDisplay 
+        error={error}
+        title="Error Loading Corpus"
+        context="This may be due to the backend taking time to initialize the document corpus and vector database. Please wait a moment and refresh the page."
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 

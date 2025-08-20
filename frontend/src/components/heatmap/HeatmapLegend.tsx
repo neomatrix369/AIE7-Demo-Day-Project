@@ -1,13 +1,13 @@
 import React from 'react';
 import { HeatmapPerspective } from '../../types';
-import { getHeatmapColor, getScaledSize } from '../../utils/heatmapData';
+import { getScaledSize } from '../../utils/heatmapData';
 
 interface HeatmapLegendProps {
   perspective: HeatmapPerspective;
   style?: React.CSSProperties;
 }
 
-const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
+const HeatmapLegend: React.FC<HeatmapLegendProps> = React.memo(({
   perspective,
   style = {}
 }) => {
@@ -174,6 +174,8 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = ({
       </div>
     </div>
   );
-};
+});
+
+HeatmapLegend.displayName = 'HeatmapLegend';
 
 export default HeatmapLegend;

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Footer: React.FC = () => {
+const Footer: React.FC = React.memo(() => {
   return (
     <footer style={{
       backgroundColor: '#f8f9fa',
@@ -33,6 +33,8 @@ const Footer: React.FC = () => {
       </div>
     </footer>
   );
-};
+});
+
+Footer.displayName = 'Footer';
 
 export default Footer;

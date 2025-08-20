@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { logNavigation } from '../utils/logger';
 
@@ -6,21 +6,30 @@ interface NavigationHeaderProps {
   currentPage: string;
 }
 
-const NavigationHeader: React.FC<NavigationHeaderProps> = ({ currentPage }) => {
+const NavigationHeader: React.FC<NavigationHeaderProps> = React.memo(({ currentPage }) => {
   const router = useRouter();
 
-  const handleNavigation = (page: string) => {
+  const handleNavigation = useCallback((page: string) => {
     logNavigation(currentPage, page, {
       component: 'NavigationHeader',
       action: 'NAVIGATE',
       data: { from: currentPage, to: page }
     });
     router.push(`/${page}`);
-  };
+  }, [currentPage, router]);
 
-  const isActive = (page: string) => {
+  const isActive = useCallback((page: string) => {
     return router.pathname === `/${page}`;
-  };
+  }, [router.pathname]);
+
+  const navButtons = useMemo(() => [
+    { id: 'dashboard', label: '🏠 Dashboard', color: '#007bff' },
+    { id: 'questions', label: '❓ Questions', color: '#666' },
+    { id: 'experiment', label: '🧪 Run an Experiment', color: '#666' },
+    { id: 'experiments', label: '📁 Experiments', color: '#6f42c1' },
+    { id: 'results', label: '📊 Last Experiment Results', color: '#666' },
+    { id: 'heatmap', label: '🗺️ Heatmap', color: '#28a745' }
+  ], []);
 
   return (
     <div style={{
@@ -42,99 +51,29 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({ currentPage }) => {
         </div>
         
         <nav style={{ display: 'flex', gap: '15px' }}>
-          <button
-            onClick={() => handleNavigation('dashboard')}
-            style={{
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: isActive('dashboard') ? '#007bff' : 'transparent',
-              color: isActive('dashboard') ? 'white' : '#666',
-              fontWeight: isActive('dashboard') ? 'bold' : 'normal'
-            }}
-          >
-            🏠 Dashboard
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('questions')}
-            style={{
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: isActive('questions') ? '#007bff' : 'transparent',
-              color: isActive('questions') ? 'white' : '#666',
-              fontWeight: isActive('questions') ? 'bold' : 'normal'
-            }}
-          >
-            ❓ Questions
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('experiment')}
-            style={{
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: isActive('experiment') ? '#007bff' : 'transparent',
-              color: isActive('experiment') ? 'white' : '#666',
-              fontWeight: isActive('experiment') ? 'bold' : 'normal'
-            }}
-          >
-            🧪 Run an Experiment
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('experiments')}
-            style={{
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: isActive('experiments') ? '#6f42c1' : 'transparent',
-              color: isActive('experiments') ? 'white' : '#6f42c1',
-              fontWeight: isActive('experiments') ? 'bold' : 'normal'
-            }}
-          >
-            📁 Experiments
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('results')}
-            style={{
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: isActive('results') ? '#007bff' : 'transparent',
-              color: isActive('results') ? 'white' : '#666',
-              fontWeight: isActive('results') ? 'bold' : 'normal'
-            }}
-          >
-            📊 Last Experiment Results
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('heatmap')}
-            style={{
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: isActive('heatmap') ? '#28a745' : 'transparent',
-              color: isActive('heatmap') ? 'white' : '#28a745',
-              fontWeight: isActive('heatmap') ? 'bold' : 'normal'
-            }}
-          >
-            🗺️ Heatmap
-          </button>
+          {navButtons.map(({ id, label, color }) => (
+            <button
+              key={id}
+              onClick={() => handleNavigation(id)}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                backgroundColor: isActive(id) ? color : 'transparent',
+                color: isActive(id) ? 'white' : color,
+                fontWeight: isActive(id) ? 'bold' : 'normal'
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </nav>
       </div>
     </div>
   );
-};
+});
+
+NavigationHeader.displayName = 'NavigationHeader';
 
 export default NavigationHeader;

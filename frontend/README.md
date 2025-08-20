@@ -95,7 +95,7 @@ node --version   # Should show 18+ or 22+
 
 ### 2. Questions (Screen 2)  
 - **Side-by-side Comparison**: LLM vs RAGAS questions
-- **Category Breakdown**: Question types and sample previews
+- **Category Breakdown**: Role types and sample previews
 - **Statistics**: Question counts and generation status
 - **Navigation**: Smooth transitions between screens
 

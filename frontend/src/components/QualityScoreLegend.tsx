@@ -6,7 +6,7 @@ interface QualityScoreLegendProps {
   style?: React.CSSProperties;
 }
 
-const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
+const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
   format = 'horizontal',
   showTitle = true,
   style = {}
@@ -143,6 +143,8 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = ({
       </span>
     </div>
   );
-};
+});
+
+QualityScoreLegend.displayName = 'QualityScoreLegend';
 
 export default QualityScoreLegend;

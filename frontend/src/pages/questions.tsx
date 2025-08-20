@@ -133,7 +133,7 @@ const QuestionGroupsOverview: React.FC = () => {
               </div>
               <div className="stat-item" style={{ backgroundColor: 'white' }}>
                 <span className="stat-value" style={{ color: '#007bff' }}>{llmQuestions.length}</span>
-                <div className="stat-label">Question Types</div>
+                <div className="stat-label">Role Types</div>
               </div>
             </div>
 
@@ -183,7 +183,7 @@ const QuestionGroupsOverview: React.FC = () => {
               </div>
               <div className="stat-item" style={{ backgroundColor: 'white' }}>
                 <span className="stat-value" style={{ color: '#28a745' }}>{ragasQuestions.length}</span>
-                <div className="stat-label">Question Types</div>
+                <div className="stat-label">Role Types</div>
               </div>
             </div>
 

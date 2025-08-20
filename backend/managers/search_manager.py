@@ -6,6 +6,8 @@ from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
+from managers.retrieval_manager import RetrievalMethodManager
+from config.settings import RETRIEVAL_METHOD
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -177,9 +179,11 @@ class SearchManager:
         """
         Search documents and filter by similarity threshold.
         """
-        results = self.search_documents(query, top_k * 2)  # Get more results to filter
-        filtered_results = [r for r in results if r["similarity"] >= threshold]
-        return filtered_results[:top_k]
+        retrieval_manager = RetrievalMethodManager(
+            method=list(RETRIEVAL_METHOD.keys())[0],
+            search_manager=self
+        )
+        return retrieval_manager.search(query, top_k, threshold)
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics for monitoring and debugging."""

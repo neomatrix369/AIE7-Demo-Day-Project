@@ -6,6 +6,8 @@ from typing import List, Dict, Any
 from pathlib import Path
 from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from managers.chunking_manager import ChunkingStrategyManager
+from config.settings import CHUNK_STRATEGY, CHUNK_SIZE, CHUNK_OVERLAP
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -153,10 +155,12 @@ class DataManager:
         Split hybrid dataset documents into optimal chunks for vector embedding.
         Enhanced to add processed metadata (doc_id, title) to each chunk.
         """
-        logger.info(f"📄 Splitting {len(documents)} documents into chunks (size=750, overlap=100)")
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=750, chunk_overlap=100)
-        logger.info(f"text_splitter: Chunk Size: {text_splitter._chunk_size} | Chunk Overlap: {text_splitter._chunk_overlap}")
-        split_docs = text_splitter.split_documents(documents)
+        chunking_manager = ChunkingStrategyManager(
+            strategy=list(CHUNK_STRATEGY.keys())[0],
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP
+        )
+        split_docs = chunking_manager.split_documents(documents)
         
         # Enhance each chunk with processed metadata
         enhanced_chunks = []

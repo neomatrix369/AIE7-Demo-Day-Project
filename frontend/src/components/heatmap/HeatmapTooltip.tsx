@@ -1,4 +1,5 @@
 import React from 'react';
+import { getContainerRect, containerAbsolutePosition, clampToRect } from './tooltipUtils';
 import { HeatmapPoint, QuestionHeatmapData, ChunkHeatmapData, RoleHeatmapData, ChunkToRoleHeatmapData, UnassociatedClusterHeatmapData, DocumentHeatmapData } from '../../utils/heatmapData';
 import { HeatmapPerspective, TooltipPosition } from '../../types';
 import BalloonTooltip from '../ui/BalloonTooltip';
@@ -722,42 +723,11 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
   const tooltipHeight = point.data.type === 'chunk' ? 500 : 250;
   const offset = 20; // increased offset for better spacing
   
-  // Convert container-relative coordinates to absolute viewport coordinates
-  let container: HTMLElement | null = document.querySelector('.heatmap-container');
-  if (!container) {
-    // Fallback to nearest parent of the tooltip if available
-    container = document.body;
-  }
-  const containerRect = container.getBoundingClientRect();
-  
-  let left = containerRect.left + position.x + offset;
-  let top = containerRect.top + position.y + offset;
-  
-  // Bounds use the container instead of the whole window so we don't overshoot the component
-  const boundRight = containerRect.left + containerRect.width;
-  const boundBottom = containerRect.top + containerRect.height;
-  
-  // Adjust horizontal position if tooltip would go off right edge
-  if (left + tooltipWidth > boundRight - 30) { // 30px safety margin
-    left = containerRect.left + position.x - tooltipWidth - offset;
-  }
-  
-  // Adjust vertical position if tooltip would go off bottom edge
-  if (top + tooltipHeight > boundBottom - 30) { // 30px safety margin
-    top = containerRect.top + position.y - tooltipHeight - offset;
-  }
-  
-  // Ensure tooltip doesn't go off left/top edges of the container
-  if (left < containerRect.left + 10) {
-    left = containerRect.left + 10;
-  }
-  if (top < containerRect.top + 10) {
-    top = containerRect.top + 10;
-  }
-  
-  // Final safety check - clamp inside container
-  if (left + tooltipWidth > boundRight) left = boundRight - tooltipWidth - 10;
-  if (top + tooltipHeight > boundBottom) top = boundBottom - tooltipHeight - 10;
+  const containerRect = getContainerRect('.heatmap-container') || document.body.getBoundingClientRect();
+  const abs = containerAbsolutePosition(containerRect, position.x, position.y, offset);
+  const clamped = clampToRect(abs.left, abs.top, tooltipWidth, tooltipHeight, containerRect, 10);
+  let left = clamped.left;
+  let top = clamped.top;
   
   // Debug logging for tooltip positioning
   if (point.data.type === 'chunk') {

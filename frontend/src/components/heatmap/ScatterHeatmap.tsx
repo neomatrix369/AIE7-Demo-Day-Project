@@ -13,6 +13,8 @@ import {
   filterPointsByQuality 
 } from '../../utils/heatmapData';
 import HeatmapTooltip from './HeatmapTooltip';
+import { renderOwnerChunks, generateHexagonPoints } from './renderUtils';
+import { computeGridPositions } from './positionUtils';
 
 interface ScatterHeatmapProps {
   questionResults: QuestionResult[];
@@ -116,6 +118,10 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     const canvasWidth = innerWidth;
     const canvasHeight = innerHeight;
     
+    // Use shared grid positioning for grid-like perspectives
+    const gridify = (pts: HeatmapPoint[]) =>
+      computeGridPositions(pts, canvasWidth, canvasHeight, { margin: 30, jitter: 60 });
+
     return heatmapPoints.map((point, index) => {
       if (perspective === 'chunks-to-questions') {
         // For chunks-to-questions view, use the pre-calculated positioning (center/perimeter layout)
@@ -142,30 +148,9 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
           screenY: Math.max(20, Math.min(canvasHeight - 20, y))
         };
       } else if (perspective === 'documents-to-chunks' || perspective === 'questions-to-chunks') { // This will handle 'documents-to-chunks' and 'questions-to-chunks'
-        // For questions view, use the original grid-based scatter approach
-        const cols = Math.ceil(Math.sqrt(heatmapPoints.length));
-        const rows = Math.ceil(heatmapPoints.length / cols);
-        
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-        
-        // Use deterministic "randomness" based on point ID for consistent positioning
-        const seed = point.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const pseudoRandX = ((seed * 9301 + 49297) % 233280) / 233280 - 0.5;
-        const pseudoRandY = ((seed * 7927 + 12345) % 217728) / 217728 - 0.5;
-        
-        // Add deterministic jitter for more natural scatter
-        const jitterX = pseudoRandX * 60;
-        const jitterY = pseudoRandY * 60;
-        
-        const x = (col / Math.max(cols - 1, 1)) * (canvasWidth - 60) + 30 + jitterX;
-        const y = (row / Math.max(rows - 1, 1)) * (canvasHeight - 60) + 30 + jitterY;
-        
-        return {
-          ...point,
-          screenX: Math.max(20, Math.min(canvasWidth - 20, x)),
-          screenY: Math.max(20, Math.min(canvasHeight - 20, y))
-        };
+        // Delegate to shared grid positioning
+        const gridPoints = gridify(heatmapPoints);
+        return gridPoints[index];
       }
       
       // Fallback for any unexpected perspective values
@@ -252,17 +237,8 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     g.selectAll('[class^="document-chunks-"]').remove();
     console.log('🧹 Cleared existing points and document chunks before rendering new perspective');
 
-    // Helper function to generate hexagon coordinates
-    const generateHexagon = (cx: number, cy: number, radius: number): string => {
-      const points = [];
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i; // 60 degrees apart
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        points.push(`${x},${y}`);
-      }
-      return points.join(' ');
-    };
+    // Use shared hexagon generator
+    const generateHexagon = generateHexagonPoints;
 
     // Separate points by type for sequential rendering
     const unassociatedPoints = positionPoints.filter(p => 
@@ -287,442 +263,36 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       }))
     });
 
-    // Helper function to generate small hexagon for chunks
-    const generateChunkHexagon = (cx: number, cy: number, radius: number): string => {
-      const points = [];
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i; // 60 degrees apart
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        points.push(`${x},${y}`);
-      }
-      return points.join(' ');
-    };
+    const generateChunkHexagon = generateHexagonPoints;
 
-    // Helper function to render chunks inside document hexagons
+    // Unified owner (document/role) chunk rendering
     const renderDocumentChunks = (documentPoint: HeatmapPoint, parentG: d3.Selection<SVGGElement, unknown, null, undefined>) => {
-      if (documentPoint.data.type !== 'document') return;
-      
-      const docData = documentPoint.data as import('../../utils/heatmapData').DocumentHeatmapData;
-      const docRadius = getScaledSize(documentPoint.size, minSize, maxSize);
-      const centerX = documentPoint.screenX || 0;
-      const centerY = documentPoint.screenY || 0;
-      
-      // Create a group for this document's chunks
-      const chunkGroup = parentG.append('g')
-        .attr('class', `document-chunks-${documentPoint.id}`);
-      
-      // Calculate chunk positions - show proportional number of chunks
-      const chunks = docData.chunks;
-      const chunkCount = chunks.length;
-      const maxChunksToShow = Math.min(chunkCount, Math.max(8, Math.floor(chunkCount * 0.6))); // Show 60% of chunks, min 8
-      const chunkRadius = Math.max(8, docRadius * 0.12); // Much bigger chunks - 12% of document radius
-      
-      // Separate retrieved and unretrieved chunks for better organization
-      const retrievedChunks = chunks.filter(chunk => !chunk.isUnretrieved).slice(0, Math.floor(maxChunksToShow * 0.7));
-      const unretrievedChunks = chunks.filter(chunk => chunk.isUnretrieved).slice(0, maxChunksToShow - retrievedChunks.length);
-      
-      // Combine chunks with retrieved chunks first, then unretrieved chunks
-      const organizedChunks = [...retrievedChunks, ...unretrievedChunks];
-      
-      organizedChunks.forEach((chunk, index) => {
-        // Calculate safe spacing to prevent overlapping - increased spacing
-        const chunkSpacing = chunkRadius * 3.0; // Increased minimum distance between chunk centers
-        const availableRadius = docRadius * 0.65; // Reduced to 65% of document radius for chunk area to add more space
-        
-        // Calculate maximum chunks per ring based on circumference and chunk spacing
-        const getMaxChunksForRadius = (radius: number) => {
-          if (radius <= 0) return 1; // Center position
-          const circumference = 2 * Math.PI * radius;
-          return Math.max(1, Math.floor(circumference / chunkSpacing));
-        };
-        
-        // Place chunks in rings, starting from center
-        let chunkX: number = centerX;
-        let chunkY: number = centerY;
-        let remainingChunks = index + 1; // Current chunk position (1-based)
-        let currentRadius = 0;
-        let ringIndex = 0;
-        
-        // Find which ring this chunk belongs to
-        while (remainingChunks > 0) {
-          const maxChunksInRing = getMaxChunksForRadius(currentRadius);
-          if (remainingChunks <= maxChunksInRing) {
-            // This chunk goes in the current ring
-            if (currentRadius === 0) {
-              // Center position
-              chunkX = centerX;
-              chunkY = centerY;
-            } else {
-              // Calculate angle for this chunk in the ring
-              const angleStep = (2 * Math.PI) / maxChunksInRing;
-              const angle = (remainingChunks - 1) * angleStep;
-              chunkX = centerX + currentRadius * Math.cos(angle);
-              chunkY = centerY + currentRadius * Math.sin(angle);
-            }
-            break;
-          } else {
-            // Move to next ring
-            remainingChunks -= maxChunksInRing;
-            ringIndex++;
-            currentRadius = Math.min(availableRadius, (ringIndex * chunkSpacing * 0.8));
-          }
-        }
-        
-        // Color coding: green for retrieved chunks, gray for unassociated
-        const chunkColor = chunk.isUnretrieved ? '#9e9e9e' : getHeatmapColor(chunk.avgSimilarity, false, true);
-        const chunkOpacity = chunk.isUnretrieved ? 0.6 : 0.9;
-        
-        // Create hexagonal chunk instead of circle
-        const chunkHexagon = chunkGroup.append('polygon')
-          .attr('points', generateChunkHexagon(chunkX, chunkY, chunkRadius))
-          .attr('fill', chunkColor)
-          .attr('opacity', chunkOpacity)
-          .attr('stroke', '#fff')
-          .attr('stroke-width', 2) // Thicker stroke for better visibility
-          .attr('class', 'chunk-hexagon')
-          .style('cursor', 'pointer')
-          .style('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))'); // Add shadow for depth
-          
-        // Add tooltip and click interaction for chunks
-        chunkHexagon
-          .on('mouseover', function(event, d) {
-            // Add hover effect - make chunk bigger and brighter
-            d3.select(this)
-              .transition()
-              .duration(150)
-              .attr('points', generateChunkHexagon(chunkX, chunkY, chunkRadius * 1.2))
-              .attr('stroke-width', 3)
-              .style('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))');
-            
-            // Show tooltip for chunk
-            console.log('🔍 Chunk mouseover triggered', chunk.chunkId);
-            if (showTooltips) {
-              console.log('✅ Setting chunk tooltip data');
-              setTooltipData({
-                id: `chunk_${chunk.chunkId}`,
-                x: chunkX,
-                y: chunkY,
-                size: chunkRadius * 2,
-                color: chunk.avgSimilarity,
-                opacity: chunkOpacity,
-                screenX: chunkX,
-                screenY: chunkY,
-                data: {
-                  type: 'chunk' as const,
-                  chunkId: chunk.chunkId,
-                  docId: docData.docId,
-                  title: docData.title,
-                  content: chunk.content,
-                  retrievalFrequency: chunk.retrievalFrequency,
-                  avgSimilarity: chunk.avgSimilarity,
-                  bestQuestion: chunk.bestRetrievingQuestion,
-                  retrievingQuestions: [],
-                  isUnretrieved: chunk.isUnretrieved
-                }
-              } as HeatmapPoint);
-              
-              // Use SVG-relative coordinates for tooltip positioning (same as main hexagons)
-              const rect = svgRef.current!.getBoundingClientRect();
-              const tooltipX = event.clientX - rect.left;
-              const tooltipY = event.clientY - rect.top;
-              
-              console.log('🔍 Chunk tooltip position:', {
-                clientX: event.clientX,
-                clientY: event.clientY,
-                svgRelativeX: tooltipX,
-                svgRelativeY: tooltipY,
-                viewportWidth: window.innerWidth,
-                viewportHeight: window.innerHeight,
-                chunkId: chunk.chunkId
-              });
-              
-              setTooltipPosition({
-                x: tooltipX,
-                y: tooltipY,
-                visible: true
-              });
-            }
-          })
-          .on('mouseout', function() {
-            // Reset hover effect
-            d3.select(this)
-              .transition()
-              .duration(150)
-              .attr('points', generateChunkHexagon(chunkX, chunkY, chunkRadius))
-              .attr('stroke-width', 2)
-              .style('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
-              
-            setTooltipData(null);
-            setTooltipPosition(prev => ({ ...prev, visible: false }));
-          })
-          .on('click', function(event, d) {
-            event.stopPropagation(); // Prevent document hexagon click
-            if (onPointClick) {
-              onPointClick({
-                id: `chunk_${chunk.chunkId}`,
-                x: chunkX,
-                y: chunkY,
-                size: chunkRadius * 2,
-                color: chunk.avgSimilarity,
-                opacity: chunkOpacity,
-                screenX: chunkX,
-                screenY: chunkY,
-                data: {
-                  type: 'chunk' as const,
-                  chunkId: chunk.chunkId,
-                  docId: docData.docId,
-                  title: docData.title,
-                  content: chunk.content,
-                  retrievalFrequency: chunk.retrievalFrequency,
-                  avgSimilarity: chunk.avgSimilarity,
-                  bestQuestion: chunk.bestRetrievingQuestion,
-                  retrievingQuestions: [],
-                  isUnretrieved: chunk.isUnretrieved
-                }
-              } as HeatmapPoint);
-            }
-          });
+      renderOwnerChunks(documentPoint, parentG, {
+        showTooltips,
+        svgRef,
+        getScaledSize,
+        getHeatmapColor,
+        minSize,
+        maxSize,
+        setTooltipData,
+        setTooltipPosition,
+        onPointClick
       });
-      
-      // Add a text indicator showing total chunk count for clarity
-      chunkGroup.append('text')
-        .attr('x', centerX)
-        .attr('y', centerY + docRadius * 0.85)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', Math.max(10, docRadius * 0.12)) // Larger font for larger hexagons
-        .attr('fill', '#444')
-        .attr('font-weight', 'bold')
-        .text(chunks.length > maxChunksToShow ? `${maxChunksToShow} of ${chunks.length} chunks` : `${chunks.length} chunks`);
-      
-      // Add document title in the center
-      chunkGroup.append('text')
-        .attr('x', centerX)
-        .attr('y', centerY - docRadius * 0.2)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', Math.max(8, docRadius * 0.08))
-        .attr('fill', '#333')
-        .attr('font-weight', 'bold')
-        .text(docData.title.length > 15 ? `${docData.title.substring(0, 15)}...` : docData.title);
     };
 
     // Helper function to render chunks inside role hexagons (same as documents)
     const renderRoleChunks = (rolePoint: HeatmapPoint, parentG: d3.Selection<SVGGElement, unknown, null, undefined>) => {
-      if (rolePoint.data.type !== 'role') return;
-      
-      const roleData = rolePoint.data as import('../../utils/heatmapData').RoleHeatmapData;
-      const roleRadius = getScaledSize(rolePoint.size, minSize, maxSize);
-      const centerX = rolePoint.screenX || 0;
-      const centerY = rolePoint.screenY || 0;
-      
-      // Create a group for this role's chunks
-      const chunkGroup = parentG.append('g')
-        .attr('class', `role-chunks-${roleData.roleId}`)
-        .style('pointer-events', 'all');
-      
-      // Calculate chunk positions - show proportional number of chunks
-      const chunks = roleData.chunks;
-      const chunkCount = chunks.length;
-      const maxChunksToShow = Math.min(chunkCount, Math.max(8, Math.floor(chunkCount * 0.6))); // Show 60% of chunks, min 8
-      const chunkRadius = Math.max(8, roleRadius * 0.12); // Much bigger chunks - 12% of role radius
-      
-      // Calculate chunk spacing to prevent overlapping - increased spacing
-      const chunkSpacing = chunkRadius * 3.0; // Increased minimum distance between chunk centers
-      const availableRadius = roleRadius * 0.65; // Reduced to 65% of role radius for chunk area to add more space
-      
-      // Calculate maximum chunks per ring based on circumference and chunk spacing
-      const getMaxChunksForRadius = (radius: number) => {
-        if (radius <= 0) return 1; // Center position
-        const circumference = 2 * Math.PI * radius;
-        return Math.max(1, Math.floor(circumference / chunkSpacing));
-      };
-      
-      chunks.slice(0, maxChunksToShow).forEach((chunk, index) => {
-        // Place chunks in rings, starting from center
-        let chunkX: number = centerX;
-        let chunkY: number = centerY;
-        let remainingChunks = index + 1; // Current chunk position (1-based)
-        let currentRadius = 0;
-        let ringIndex = 0;
-        
-        // Find which ring this chunk belongs to
-        while (remainingChunks > 0) {
-          const maxChunksInRing = getMaxChunksForRadius(currentRadius);
-          if (remainingChunks <= maxChunksInRing) {
-            // This chunk goes in the current ring
-            if (currentRadius === 0) {
-              // Center position
-              chunkX = centerX;
-              chunkY = centerY;
-            } else {
-              // Calculate angle for this chunk in the ring
-              const angleStep = (2 * Math.PI) / maxChunksInRing;
-              const angle = (remainingChunks - 1) * angleStep;
-              chunkX = centerX + currentRadius * Math.cos(angle);
-              chunkY = centerY + currentRadius * Math.sin(angle);
-            }
-            break;
-          } else {
-            // Move to next ring
-            remainingChunks -= maxChunksInRing;
-            ringIndex++;
-            currentRadius = Math.min(availableRadius, (ringIndex * chunkSpacing * 0.8));
-          }
-        }
-        
-        // Color coding: green for retrieved chunks, gray for unassociated
-        const chunkColor = chunk.isUnretrieved ? '#9e9e9e' : getHeatmapColor(chunk.avgSimilarity, false, true);
-        const chunkOpacity = chunk.isUnretrieved ? 0.6 : 0.9;
-        
-        // Create hexagonal chunk instead of circle
-        const chunkHexagon = chunkGroup.append('polygon')
-          .attr('points', generateChunkHexagon(chunkX, chunkY, chunkRadius))
-          .attr('fill', chunkColor)
-          .attr('opacity', chunkOpacity)
-          .attr('stroke', '#fff')
-          .attr('stroke-width', 2) // Thicker stroke for better visibility
-          .attr('class', 'chunk-hexagon')
-          .style('cursor', 'pointer')
-          .style('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))'); // Add shadow for depth
-          
-        // Add tooltip and click interaction for chunks
-        chunkHexagon
-          .on('mouseover', function(event, d) {
-            // Add hover effect - make chunk bigger and brighter
-            d3.select(this)
-              .transition()
-              .duration(150)
-              .attr('points', generateChunkHexagon(chunkX, chunkY, chunkRadius * 1.2))
-              .attr('stroke-width', 3)
-              .style('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))');
-            
-            // Show tooltip for chunk
-            console.log('🔍 Chunk mouseover triggered', chunk.chunkId);
-            if (showTooltips) {
-              console.log('✅ Setting chunk tooltip data');
-              setTooltipData({
-                id: `chunk_${chunk.chunkId}`,
-                x: chunkX,
-                y: chunkY,
-                size: chunkRadius * 2,
-                color: chunk.avgSimilarity,
-                opacity: chunkOpacity,
-                screenX: chunkX,
-                screenY: chunkY,
-                data: {
-                  type: 'chunk',
-                  chunkId: chunk.chunkId,
-                  content: chunk.content,
-                  docId: chunk.docId,
-                  title: chunk.title,
-                  retrievalFrequency: chunk.retrievalFrequency,
-                  avgSimilarity: chunk.avgSimilarity,
-                  isUnretrieved: chunk.isUnretrieved,
-                  bestQuestion: chunk.bestRetrievingQuestion ? {
-                    questionId: chunk.bestRetrievingQuestion.questionId,
-                    questionText: chunk.bestRetrievingQuestion.questionText,
-                    similarity: chunk.bestRetrievingQuestion.similarity,
-                    roleName: chunk.bestRetrievingQuestion.source
-                  } : {
-                    questionId: 'unknown',
-                    questionText: 'No retrieving question',
-                    similarity: 0,
-                    roleName: 'Unknown'
-                  },
-                  retrievingQuestions: chunk.bestRetrievingQuestion ? [{
-                    questionId: chunk.bestRetrievingQuestion.questionId,
-                    questionText: chunk.bestRetrievingQuestion.questionText,
-                    source: chunk.bestRetrievingQuestion.source,
-                    similarity: chunk.bestRetrievingQuestion.similarity,
-                    roleName: chunk.bestRetrievingQuestion.source
-                  }] : []
-                }
-              });
-              // Use SVG-relative coordinates for tooltip positioning (same as main hexagons)
-              const rect = svgRef.current!.getBoundingClientRect();
-              setTooltipPosition({
-                x: event.clientX - rect.left,
-                y: event.clientY - rect.top,
-                visible: true
-              });
-            }
-          })
-          .on('mouseout', function() {
-            // Reset hover effect
-            d3.select(this)
-              .transition()
-              .duration(150)
-              .attr('points', generateChunkHexagon(chunkX, chunkY, chunkRadius))
-              .attr('stroke-width', 2)
-              .style('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
-              
-            setTooltipData(null);
-            setTooltipPosition(prev => ({ ...prev, visible: false }));
-          })
-          .on('click', function(event, d) {
-            event.stopPropagation(); // Prevent role hexagon click
-            if (onPointClick) {
-              onPointClick({
-                id: `chunk_${chunk.chunkId}`,
-                x: chunkX,
-                y: chunkY,
-                size: chunkRadius * 2,
-                color: chunk.avgSimilarity,
-                opacity: chunkOpacity,
-                screenX: chunkX,
-                screenY: chunkY,
-                data: {
-                  type: 'chunk',
-                  chunkId: chunk.chunkId,
-                  content: chunk.content,
-                  docId: chunk.docId,
-                  title: chunk.title,
-                  retrievalFrequency: chunk.retrievalFrequency,
-                  avgSimilarity: chunk.avgSimilarity,
-                  isUnretrieved: chunk.isUnretrieved,
-                  bestQuestion: chunk.bestRetrievingQuestion ? {
-                    questionId: chunk.bestRetrievingQuestion.questionId,
-                    questionText: chunk.bestRetrievingQuestion.questionText,
-                    similarity: chunk.bestRetrievingQuestion.similarity,
-                    roleName: chunk.bestRetrievingQuestion.source
-                  } : {
-                    questionId: 'unknown',
-                    questionText: 'No retrieving question',
-                    similarity: 0,
-                    roleName: 'Unknown'
-                  },
-                  retrievingQuestions: chunk.bestRetrievingQuestion ? [{
-                    questionId: chunk.bestRetrievingQuestion.questionId,
-                    questionText: chunk.bestRetrievingQuestion.questionText,
-                    source: chunk.bestRetrievingQuestion.source,
-                    similarity: chunk.bestRetrievingQuestion.similarity,
-                    roleName: chunk.bestRetrievingQuestion.source
-                  }] : []
-                }
-              });
-            }
-          });
+      renderOwnerChunks(rolePoint, parentG, {
+        showTooltips,
+        svgRef,
+        getScaledSize,
+        getHeatmapColor,
+        minSize,
+        maxSize,
+        setTooltipData,
+        setTooltipPosition,
+        onPointClick
       });
-      
-      // Add a text indicator showing total chunk count for clarity
-      chunkGroup.append('text')
-        .attr('x', centerX)
-        .attr('y', centerY + roleRadius * 0.85)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', Math.max(10, roleRadius * 0.12)) // Larger font for larger hexagons
-        .attr('fill', '#444')
-        .attr('font-weight', 'bold')
-        .text(chunks.length > maxChunksToShow ? `${maxChunksToShow} of ${chunks.length} chunks` : `${chunks.length} chunks`);
-      
-      // Add role title in the center
-      chunkGroup.append('text')
-        .attr('x', centerX)
-        .attr('y', centerY - roleRadius * 0.2)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', Math.max(8, roleRadius * 0.08))
-        .attr('fill', '#333')
-        .attr('font-weight', 'bold')
-        .text(roleData.roleName.length > 15 ? `${roleData.roleName.substring(0, 15)}...` : roleData.roleName);
     };
 
     // Helper function to update points with efficient data binding

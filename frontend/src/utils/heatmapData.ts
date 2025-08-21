@@ -9,7 +9,7 @@ export interface HeatmapPoint {
   opacity: number;
   screenX?: number;
   screenY?: number;
-  data: QuestionHeatmapData | ChunkHeatmapData | RoleHeatmapData | ChunkToRoleHeatmapData | UnassociatedClusterHeatmapData;
+  data: QuestionHeatmapData | ChunkHeatmapData | RoleHeatmapData | ChunkToRoleHeatmapData | UnassociatedClusterHeatmapData | DocumentHeatmapData;
 }
 
 export interface QuestionHeatmapData {
@@ -56,23 +56,33 @@ export interface ChunkHeatmapData {
 
 export interface RoleHeatmapData {
   type: 'role';
+  roleId: string;
   roleName: string;
-  questionCount: number; // How many questions this role has
-  avgQualityScore: number;
-  totalChunksRetrieved: number; // Total unique chunks retrieved by all questions from this role
-  topChunks: Array<{
+  chunkCount: number; // Number of chunks accessible to this role
+  chunks: Array<{
     chunkId: string;
+    content: string;
     docId: string;
     title: string;
-    retrievalCount: number; // How many questions from this role retrieved this chunk
+    retrievalFrequency: number; // How many questions from this role retrieved this chunk
     avgSimilarity: number;
+    isUnretrieved: boolean;
+    bestRetrievingQuestion?: {
+      questionId: string;
+      questionText: string;
+      similarity: number;
+      source: string;
+    };
   }>;
-  questions: Array<{
+  totalRetrievals: number; // Total times any chunk was retrieved by this role
+  avgSimilarity: number; // Average similarity across all chunks for this role
+  unassociatedChunkCount: number; // Number of chunks that were never retrieved by this role
+  topRetrievingQuestions: Array<{
     questionId: string;
     questionText: string;
     source: string;
-    qualityScore: number;
     chunksRetrieved: number;
+    avgSimilarity: number;
   }>;
 }
 
@@ -118,6 +128,37 @@ export interface UnassociatedClusterHeatmapData {
     chunkCount: number;
   }>;
   centerPosition: { x: number; y: number }; // Cluster center coordinates
+}
+
+export interface DocumentHeatmapData {
+  type: 'document';
+  docId: string;
+  title: string;
+  chunkCount: number; // Number of chunks in this document
+  chunks: Array<{
+    chunkId: string;
+    content: string;
+    retrievalFrequency: number; // How many questions retrieved this chunk
+    avgSimilarity: number;
+    isUnretrieved: boolean;
+    bestRetrievingQuestion?: {
+      questionId: string;
+      questionText: string;
+      similarity: number;
+      roleName?: string;
+    };
+  }>;
+  totalRetrievals: number; // Total times any chunk from this document was retrieved
+  avgSimilarity: number; // Average similarity across all chunks in this document
+  unassociatedChunkCount: number; // Number of chunks that were never retrieved
+  topRetrievingQuestions: Array<{
+    questionId: string;
+    questionText: string;
+    source: string;
+    roleName?: string;
+    chunksRetrieved: number;
+    avgSimilarity: number;
+  }>;
 }
 
 /**
@@ -207,16 +248,16 @@ function groupUnassociatedChunks(
     position: { x: number; y: number };
   }> = [];
 
-  // Define cluster positions around the perimeter in a strategic pattern
+  // Define cluster positions at the very edges to completely avoid overlap with document clusters
   const clusterPositions = [
-    // Top edge
-    { x: 15, y: 10 }, { x: 35, y: 8 }, { x: 65, y: 8 }, { x: 85, y: 10 },
-    // Right edge  
-    { x: 90, y: 25 }, { x: 92, y: 50 }, { x: 90, y: 75 },
-    // Bottom edge
-    { x: 85, y: 90 }, { x: 65, y: 92 }, { x: 35, y: 92 }, { x: 15, y: 90 },
-    // Left edge
-    { x: 8, y: 75 }, { x: 10, y: 50 }, { x: 8, y: 25 }
+    // Top edge - at the very top
+    { x: 5, y: 1 }, { x: 20, y: 0.5 }, { x: 40, y: 0.2 }, { x: 60, y: 0.5 }, { x: 80, y: 1 }, { x: 95, y: 1.5 },
+    // Right edge - at the very right
+    { x: 98, y: 10 }, { x: 99, y: 30 }, { x: 98, y: 50 }, { x: 99, y: 70 }, { x: 98, y: 90 },
+    // Bottom edge - at the very bottom
+    { x: 95, y: 98.5 }, { x: 80, y: 99 }, { x: 60, y: 99.5 }, { x: 40, y: 99 }, { x: 20, y: 98.5 }, { x: 5, y: 98 },
+    // Left edge - at the very left
+    { x: 1.5, y: 90 }, { x: 0.5, y: 70 }, { x: 1.5, y: 50 }, { x: 0.5, y: 30 }, { x: 1.5, y: 10 }
   ];
 
   // Use only the number of clusters we need
@@ -278,21 +319,21 @@ function groupUnassociatedChunks(
     // Scale factor: 5x the minimum associated chunk size
     const scaleFactor = minAssociatedChunkSize * 5.0;
     
-    // Final size: proportion-based scaling starting from 5x minimum associated size
-    const proportionalSize = scaleFactor * (0.5 + (chunkProportion * 10)); // Multiply by 10 to make proportion more visible
+    // Final size: much smaller to reduce dominance
+    const proportionalSize = scaleFactor * (0.3 + (chunkProportion * 5)); // Reduced multiplier to make clusters smaller
     
     // Cluster intensity for color variation
     const maxClusterSize = Math.max(...clusters.map(c => c.chunks.length), 1);
     const clusterIntensity = clusterChunkCount / maxClusterSize;
-    const visibleColor = 5.0 + (clusterIntensity * 2.0); // Range: 5.0 to 7.0 for good visibility
+    const visibleColor = 4.0 + (clusterIntensity * 1.5); // Reduced range: 4.0 to 5.5 for less dominance
 
     return {
       id: cluster.id,
       x: cluster.position.x,
       y: cluster.position.y,
-      size: Math.max(1.2, Math.min(proportionalSize / 3, 2.0)), // Normalize to 1.2-2.0 range for getScaledSize compatibility
-      color: visibleColor, // Color range optimized for visibility
-      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
+      size: Math.max(0.8, Math.min(proportionalSize / 4, 1.5)), // Smaller size range: 0.8-1.5
+      color: visibleColor, // Reduced color range for less dominance
+      opacity: 0.6, // Reduced opacity to make them less prominent
       data: clusterData
     };
   });
@@ -470,32 +511,14 @@ export function processChunksToQuestions(
   const retrievedChunks = Array.from(chunkMap.values());
   
   // Create clustered unassociated chunks if allChunks data is provided
-  let clusteredUnassociatedPoints: HeatmapPoint[] = [];
+
   
   // Handle case where no chunks are found
-  if (retrievedChunks.length === 0 && clusteredUnassociatedPoints.length === 0) {
+  if (retrievedChunks.length === 0) {
     return [];
   }
 
   const maxRetrievalFrequency = Math.max(...retrievedChunks.map(c => c.questions.length), 1);
-
-  // Update unassociated chunks to use proper size comparison
-  if (allChunks) {
-    const retrievedChunkIds = new Set(retrievedChunks.map(c => c.chunkId));
-    const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
-    
-    // Calculate minimum associated chunk size (from our size calculation above)
-    const minAssociatedSize = 0.6; // This matches our Math.max(0.6, ...) in chunk size calculation
-    
-    // Group unassociated chunks into clusters with proper size comparison
-    clusteredUnassociatedPoints = groupUnassociatedChunks(
-      unassociatedChunks, 
-      12, 
-      maxRetrievalFrequency, 
-      retrievedChunks.length,
-      minAssociatedSize
-    );
-  }
 
   // Create retrieved chunk points
   const retrievedChunkPoints: HeatmapPoint[] = retrievedChunks.map((chunk) => {
@@ -546,19 +569,13 @@ export function processChunksToQuestions(
     };
   });
 
-  // Phase 1: Clustered unassociated chunks are already positioned around perimeter
-  // (positions are set in groupUnassociatedChunks function)
-  
-  // Phase 2: Position associated chunks using common positioning logic
+  // Position all chunks using simple grid layout
   positionAssociatedChunks(retrievedChunkPoints);
-
-  // Combine all points for collision detection - clustered unassociated chunks first (background layer)
-  const allPoints = [...clusteredUnassociatedPoints, ...retrievedChunkPoints];
   
   // Apply collision detection and spacing optimization
-  optimizePointSpacing(allPoints);
+  optimizePointSpacing(retrievedChunkPoints);
   
-  return allPoints;
+  return retrievedChunkPoints;
 }
 
 /**
@@ -731,8 +748,8 @@ export function filterPointsByQuality(
       const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'weak' : 'poor';
       return status === threshold;
     } else if (point.data.type === 'role') {
-      // For roles, determine status based on avgQualityScore
-      const score = point.data.avgQualityScore;
+      // For roles, determine status based on avgSimilarity
+      const score = point.data.avgSimilarity;
       const status = score >= 7.0 ? 'good' : score >= 5.0 ? 'weak' : 'poor';
       return status === threshold;
     } else if (point.data.type === 'chunk-to-role') {
@@ -747,265 +764,556 @@ export function filterPointsByQuality(
   });
 }
 
+
 /**
  * Process questions data for Roles-to-Chunks perspective
- * Groups questions by their role and analyzes chunk retrieval patterns per role
+ * Each role hexagon contains multiple chunks accessed by that role, following Documents-to-Chunks pattern
  */
-export function processRolesToChunks(questionResults: QuestionResult[]): HeatmapPoint[] {
-  // Group questions by role
-  const roleGroups = new Map<string, QuestionResult[]>();
-  
-  questionResults.forEach(question => {
-    const roleName = question.role_name || 'Unknown Role';
-    if (!roleGroups.has(roleName)) {
-      roleGroups.set(roleName, []);
-    }
-    roleGroups.get(roleName)!.push(question);
-  });
-
-  const rolePoints: HeatmapPoint[] = [];
-  const roleNames = Array.from(roleGroups.keys()).sort();
-  
-  roleNames.forEach((roleName, roleIndex) => {
-    const questions = roleGroups.get(roleName)!;
-    
-    // Calculate role metrics
-    const avgQualityScore = questions.reduce((sum, q) => sum + (q.quality_score || 0), 0) / questions.length;
-    
-    // Analyze chunks retrieved by this role
-    const chunkAnalysis = new Map<string, {
-      chunkId: string;
-      docId: string;
-      title: string;
-      retrievalCount: number;
-      totalSimilarity: number;
-      questions: Array<{questionId: string; questionText: string; source: string; similarity: number}>;
-    }>();
-    
-    questions.forEach(question => {
-      (question.retrieved_docs || []).forEach(doc => {
-        const chunkKey = doc.chunk_id || 'unknown';
-        if (!chunkAnalysis.has(chunkKey)) {
-          chunkAnalysis.set(chunkKey, {
-            chunkId: doc.chunk_id || 'unknown',
-            docId: doc.doc_id || 'unknown',
-            title: doc.title || 'Unknown document',
-            retrievalCount: 0,
-            totalSimilarity: 0,
-            questions: []
-          });
-        }
-        
-        const chunk = chunkAnalysis.get(chunkKey)!;
-        chunk.retrievalCount++;
-        chunk.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
-        chunk.questions.push({
-          questionId: question.id || 'unknown',
-          questionText: question.text || 'Unknown question',
-          source: question.source || 'unknown',
-          similarity: (doc.similarity || 0) * 10 // Convert to 0-10 scale
-        });
-      });
-    });
-    
-    // Prepare top chunks (sorted by retrieval frequency and similarity)
-    const topChunks = Array.from(chunkAnalysis.values())
-      .sort((a, b) => {
-        const aScore = a.retrievalCount * (a.totalSimilarity / a.retrievalCount);
-        const bScore = b.retrievalCount * (b.totalSimilarity / b.retrievalCount);
-        return bScore - aScore;
-      })
-      .slice(0, 10) // Top 10 chunks
-      .map(chunk => ({
-        chunkId: chunk.chunkId,
-        docId: chunk.docId,
-        title: chunk.title,
-        retrievalCount: chunk.retrievalCount,
-        avgSimilarity: chunk.totalSimilarity / chunk.retrievalCount // Already in 0-10 scale
-      }));
-
-    const roleData: RoleHeatmapData = {
-      type: 'role',
-      roleName: roleName,
-      questionCount: questions.length,
-      avgQualityScore: avgQualityScore,
-      totalChunksRetrieved: chunkAnalysis.size,
-      topChunks: topChunks,
-      questions: questions.map(q => ({
-        questionId: q.id || 'unknown',
-        questionText: q.text || 'Unknown question',
-        source: q.source || 'unknown',
-        qualityScore: q.quality_score || 0,
-        chunksRetrieved: (q.retrieved_docs || []).length
-      }))
-    };
-
-    rolePoints.push({
-      id: `role_${roleName}`,
-      x: roleIndex * 50, // Space roles horizontally
-      y: avgQualityScore * 10, // Position based on average quality score
-      size: Math.max(0.6, Math.min(1.2, questions.length / 10 * (0.8 + (avgQualityScore / 10) * 0.2))), // Size based on question count and quality
-      color: avgQualityScore, // Color based on average quality score
-      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
-      data: roleData
-    });
-  });
-
-  // Apply spacing optimization to prevent overlaps
-  optimizePointSpacing(rolePoints);
-  
-  return rolePoints;
-}
-
-/**
- * Process questions data for Chunks-to-Roles perspective
- * Shows how chunks are accessed by different user roles
- */
-export function processChunksToRoles(
+export function processRolesToChunks(
   questionResults: QuestionResult[],
   allChunks?: Array<{chunk_id: string; doc_id: string; title: string; content: string}>
 ): HeatmapPoint[] {
-  // Build chunk access map grouped by chunk ID
-  const chunkAccessMap = new Map<string, {
-    chunkId: string;
-    docId: string;
-    title: string;
-    content: string;
-    roleAccess: Map<string, {
-      accessCount: number;
+  // Build role map with chunk information (following Documents-to-Chunks pattern)
+  const roleMap = new Map<string, {
+    roleId: string;
+    roleName: string;
+    chunks: Map<string, {
+      chunkId: string;
+      content: string;
+      docId: string;
+      title: string;
+      retrievalFrequency: number;
       totalSimilarity: number;
-      questions: Array<{questionId: string; questionText: string; source: string; similarity: number}>;
+      questions: Array<{questionId: string; questionText: string; similarity: number; source: string}>;
     }>;
     totalRetrievals: number;
     totalSimilarity: number;
   }>();
 
-  // Process all questions to build chunk access patterns
+  // Initialize roles from retrieved chunks
   questionResults.forEach(question => {
     const roleName = question.role_name || 'Unknown Role';
-    
     (question.retrieved_docs || []).forEach(doc => {
+      const roleKey = roleName;
       const chunkKey = doc.chunk_id || 'unknown';
       
-      if (!chunkAccessMap.has(chunkKey)) {
-        // Find content from allChunks if available
-        const allChunk = allChunks?.find(chunk => chunk.chunk_id === chunkKey);
-        
-        chunkAccessMap.set(chunkKey, {
-          chunkId: doc.chunk_id || 'unknown',
-          docId: doc.doc_id || 'unknown',
-          title: doc.title || 'Unknown document',
-          content: doc.content || allChunk?.content || '',
-          roleAccess: new Map(),
+      if (!roleMap.has(roleKey)) {
+        roleMap.set(roleKey, {
+          roleId: roleName.toLowerCase().replace(/\s+/g, '_'),
+          roleName: roleName,
+          chunks: new Map(),
           totalRetrievals: 0,
           totalSimilarity: 0
         });
       }
       
-      const chunk = chunkAccessMap.get(chunkKey)!;
+      const role = roleMap.get(roleKey)!;
       
-      if (!chunk.roleAccess.has(roleName)) {
-        chunk.roleAccess.set(roleName, {
-          accessCount: 0,
+      if (!role.chunks.has(chunkKey)) {
+        role.chunks.set(chunkKey, {
+          chunkId: doc.chunk_id || 'unknown',
+          content: doc.content || '',
+          docId: doc.doc_id || 'unknown',
+          title: doc.title || 'Unknown document',
+          retrievalFrequency: 0,
           totalSimilarity: 0,
           questions: []
         });
       }
       
-      const roleData = chunk.roleAccess.get(roleName)!;
-      roleData.accessCount++;
-      roleData.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
-      roleData.questions.push({
+      const chunk = role.chunks.get(chunkKey)!;
+      chunk.retrievalFrequency++;
+      chunk.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
+      chunk.questions.push({
         questionId: question.id || 'unknown',
         questionText: question.text || 'Unknown question',
-        source: question.source || 'unknown',
-        similarity: (doc.similarity || 0) * 10 // Convert to 0-10 scale
+        similarity: (doc.similarity || 0) * 10, // Convert to 0-10 scale
+        source: question.source || 'unknown'
       });
       
-      chunk.totalRetrievals++;
-      chunk.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
+      role.totalRetrievals++;
+      role.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
     });
   });
 
-  // Process retrieved chunks with role access
-  const processedChunks = Array.from(chunkAccessMap.values());
-  const retrievedChunkPoints: HeatmapPoint[] = [];
-  const maxTotalRetrievals = Math.max(...processedChunks.map(c => c.totalRetrievals), 1);
-
-  // Create clustered unassociated chunks if allChunks data is provided
-  let clusteredUnassociatedPoints: HeatmapPoint[] = [];
-  
+  // Add unassociated chunks to their respective roles based on document associations
   if (allChunks) {
-    const retrievedChunkIds = new Set(Array.from(chunkAccessMap.keys()));
+    const retrievedChunkIds = new Set<string>();
+    roleMap.forEach(role => {
+      role.chunks.forEach((_, chunkId) => retrievedChunkIds.add(chunkId));
+    });
+
     const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
     
-    // Calculate minimum associated chunk size (from our size calculation below)
-    const minAssociatedSize = 0.6; // This matches our Math.max(0.6, ...) in chunk size calculation
+    // Group unassociated chunks by document and distribute them to roles that have chunks from the same document
+    const documentToRoles = new Map<string, Set<string>>();
+    roleMap.forEach(role => {
+      role.chunks.forEach(chunk => {
+        if (!documentToRoles.has(chunk.docId)) {
+          documentToRoles.set(chunk.docId, new Set());
+        }
+        documentToRoles.get(chunk.docId)!.add(role.roleName);
+      });
+    });
     
-    // Group unassociated chunks into clusters with proper size comparison
-    clusteredUnassociatedPoints = groupUnassociatedChunks(
-      unassociatedChunks, 
-      12, 
-      maxTotalRetrievals, 
-      processedChunks.length,
-      minAssociatedSize
-    );
+    // First, add unassociated chunks to roles that have chunks from the same document
+    const distributedChunks = new Set<string>();
+    unassociatedChunks.forEach(chunk => {
+      const docId = chunk.doc_id;
+      const rolesForDoc = documentToRoles.get(docId);
+      
+      if (rolesForDoc && rolesForDoc.size > 0) {
+        // Add to the first role that has chunks from this document
+        const targetRoleName = Array.from(rolesForDoc)[0];
+        const targetRole = roleMap.get(targetRoleName);
+        
+        if (targetRole) {
+          targetRole.chunks.set(chunk.chunk_id, {
+            chunkId: chunk.chunk_id,
+            content: chunk.content,
+            docId: chunk.doc_id,
+            title: chunk.title,
+            retrievalFrequency: 0,
+            totalSimilarity: 0,
+            questions: []
+          });
+          distributedChunks.add(chunk.chunk_id);
+        }
+      }
+    });
+    
+    // Create a separate "Unassociated" role for remaining unassociated chunks
+    const remainingUnassociatedChunks = unassociatedChunks.filter(chunk => !distributedChunks.has(chunk.chunk_id));
+    
+    if (remainingUnassociatedChunks.length > 0) {
+      const unassociatedRoleName = 'Unassociated Chunks';
+      roleMap.set(unassociatedRoleName, {
+        roleId: 'unassociated_chunks',
+        roleName: unassociatedRoleName,
+        chunks: new Map(),
+        totalRetrievals: 0,
+        totalSimilarity: 0
+      });
+      
+      const unassociatedRole = roleMap.get(unassociatedRoleName)!;
+      remainingUnassociatedChunks.forEach(chunk => {
+        unassociatedRole.chunks.set(chunk.chunk_id, {
+          chunkId: chunk.chunk_id,
+          content: chunk.content,
+          docId: chunk.doc_id,
+          title: chunk.title,
+          retrievalFrequency: 0,
+          totalSimilarity: 0,
+          questions: []
+        });
+      });
+    }
   }
 
-  processedChunks.forEach((chunk) => {
-    // Handle chunks with role access
-    const roleAccessArray = Array.from(chunk.roleAccess.entries()).map(([roleName, data]) => ({
-      roleName,
-      accessCount: data.accessCount,
-      avgSimilarity: data.totalSimilarity / data.accessCount, // Already in 0-10 scale
-      sampleQuestions: data.questions.slice(0, 3) // Top 3 questions
-    }));
+  // Calculate maximums for normalization
+  const maxChunkCount = Math.max(...Array.from(roleMap.values()).map(role => role.chunks.size), 1);
 
-    // Find dominant role (role with most accesses)
-    const dominantRoleEntry = roleAccessArray.reduce((max, current) => 
-      current.accessCount > max.accessCount ? current : max
-    );
+  // Convert to HeatmapPoint array
+  const points: HeatmapPoint[] = Array.from(roleMap.entries()).map(([_, role]) => {
+    // Process chunks for this role
+    const chunks = Array.from(role.chunks.entries()).map(([_, chunk]) => {
+      const avgSimilarity = chunk.retrievalFrequency > 0 ? chunk.totalSimilarity / chunk.retrievalFrequency : 0;
+      const bestQuestion = chunk.questions.length > 0 
+        ? chunk.questions.reduce((best, q) => q.similarity > best.similarity ? q : best, chunk.questions[0])
+        : undefined;
+        
+      return {
+        chunkId: chunk.chunkId,
+        content: chunk.content,
+        docId: chunk.docId,
+        title: chunk.title,
+        retrievalFrequency: chunk.retrievalFrequency,
+        avgSimilarity: avgSimilarity,
+        isUnretrieved: chunk.retrievalFrequency === 0,
+        bestRetrievingQuestion: bestQuestion ? {
+          questionId: bestQuestion.questionId,
+          questionText: bestQuestion.questionText,
+          similarity: bestQuestion.similarity,
+          source: bestQuestion.source
+        } : undefined
+      };
+    });
 
-    const avgSimilarity = chunk.totalSimilarity / chunk.totalRetrievals; // Already in 0-10 scale
+    // Find top retrieving questions for this role
+    const questionRetrieval = new Map<string, {questionId: string; questionText: string; source: string; chunksRetrieved: number; totalSimilarity: number}>();
+    
+    role.chunks.forEach(chunk => {
+      chunk.questions.forEach(q => {
+        if (!questionRetrieval.has(q.questionId)) {
+          questionRetrieval.set(q.questionId, {
+            questionId: q.questionId,
+            questionText: q.questionText,
+            source: q.source,
+            chunksRetrieved: 0,
+            totalSimilarity: 0
+          });
+        }
+        const qData = questionRetrieval.get(q.questionId)!;
+        qData.chunksRetrieved++;
+        qData.totalSimilarity += q.similarity;
+      });
+    });
 
-    const chunkData: ChunkToRoleHeatmapData = {
-      type: 'chunk-to-role',
-      chunkId: chunk.chunkId,
-      docId: chunk.docId,
-      title: chunk.title,
-      content: chunk.content,
-      totalRetrievals: chunk.totalRetrievals,
-      roleAccess: roleAccessArray,
+    const topRetrievingQuestions = Array.from(questionRetrieval.values())
+      .map(q => ({
+        questionId: q.questionId,
+        questionText: q.questionText,
+        source: q.source,
+        chunksRetrieved: q.chunksRetrieved,
+        avgSimilarity: q.chunksRetrieved > 0 ? q.totalSimilarity / q.chunksRetrieved : 0
+      }))
+      .sort((a, b) => b.chunksRetrieved - a.chunksRetrieved || b.avgSimilarity - a.avgSimilarity)
+      .slice(0, 5);
+
+    const avgSimilarity = role.totalRetrievals > 0 ? role.totalSimilarity / role.totalRetrievals : 0;
+    const unassociatedChunkCount = chunks.filter(c => c.isUnretrieved).length;
+    
+    const roleData: RoleHeatmapData = {
+      type: 'role',
+      roleId: role.roleId,
+      roleName: role.roleName,
+      chunkCount: chunks.length,
+      chunks: chunks,
+      totalRetrievals: role.totalRetrievals,
       avgSimilarity: avgSimilarity,
-      dominantRole: {
-        roleName: dominantRoleEntry.roleName,
-        accessCount: dominantRoleEntry.accessCount,
-        percentage: Math.round((dominantRoleEntry.accessCount / chunk.totalRetrievals) * 100)
-      },
-      isUnretrieved: false
+      unassociatedChunkCount: unassociatedChunkCount,
+      topRetrievingQuestions: topRetrievingQuestions
     };
 
-    retrievedChunkPoints.push({
-      id: `chunk_${chunk.chunkId}`,
+    // Size DIRECTLY proportional to chunk count
+    const chunkCountRatio = chunks.length / maxChunkCount;
+    const hexagonSize = 3.0 + (chunkCountRatio * 5.0);
+
+    return {
+      id: `role_${role.roleId}`,
       x: 0, // Will be positioned later
-      y: 0, // Will be positioned later
-      size: Math.max(0.6, Math.min(1.2, chunk.totalRetrievals / maxTotalRetrievals * (0.8 + (avgSimilarity / 10) * 0.2))), // Size based on retrievals and similarity
+      y: 0, // Will be positioned later  
+      size: hexagonSize,
       color: avgSimilarity, // Color based on average similarity
-      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
-      data: chunkData
+      opacity: role.totalRetrievals > 0 ? 0.8 : 0.6,
+      data: roleData
+    };
+  });
+
+  // Position roles with improved spacing and special handling for unassociated role
+  const maxSize = Math.max(...points.map(p => p.size));
+  
+  // Separate unassociated role from regular roles
+  const regularRoles = points.filter(p => p.data.type === 'role' && p.data.roleName !== 'Unassociated Chunks');
+  const unassociatedRole = points.find(p => p.data.type === 'role' && p.data.roleName === 'Unassociated Chunks');
+  
+  // Position regular roles in a grid layout with better spacing
+  const aspectRatio = 0.8;
+  const cols = Math.min(Math.ceil(Math.sqrt(regularRoles.length * aspectRatio)), 3);
+  const rows = Math.ceil(regularRoles.length / cols);
+  
+  const marginX = Math.max(20, maxSize * 3); // Increased margin
+  const marginY = Math.max(20, maxSize * 3); // Increased margin
+  
+  const availableWidth = 100 - (marginX * 2);
+  const availableHeight = 100 - (marginY * 2);
+  
+  // Add extra spacing between clusters
+  const extraSpacing = 20; // Increased extra spacing
+  const xSpacing = cols > 1 ? (availableWidth + extraSpacing) / (cols - 1) : 0;
+  const ySpacing = rows > 1 ? (availableHeight + extraSpacing) / (rows - 1) : 0;
+  
+  regularRoles.forEach((point, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    
+    // Center the grid in the available space
+    const startX = marginX + (availableWidth - (cols - 1) * xSpacing) / 2;
+    const startY = marginY + (availableHeight - (rows - 1) * ySpacing) / 2;
+    
+    const jitterX = (Math.random() - 0.5) * (point.size * 0.3);
+    const jitterY = (Math.random() - 0.5) * (point.size * 0.3);
+    
+    point.x = startX + (col * xSpacing) + jitterX;
+    point.y = startY + (row * ySpacing) + jitterY;
+    
+    point.x = Math.max(marginX, Math.min(100 - marginX, point.x));
+    point.y = Math.max(marginY, Math.min(100 - marginY, point.y));
+  });
+  
+  // Position unassociated role at the bottom-right if it exists
+  if (unassociatedRole) {
+    unassociatedRole.x = 85; // Position at bottom-right
+    unassociatedRole.y = 85;
+  }
+
+  // Apply spacing optimization  
+  optimizePointSpacing(points);
+  
+  return points;
+}
+/**
+ * Process questions data for Documents-to-Chunks perspective
+ * Each document hexagon contains multiple chunks, including unassociated chunks
+ */
+export function processDocumentsToChunks(
+  questionResults: QuestionResult[],
+  allChunks?: Array<{chunk_id: string; doc_id: string; title: string; content: string}>
+): HeatmapPoint[] {
+  // Build document map with chunk information
+  const documentMap = new Map<string, {
+    docId: string;
+    title: string;
+    chunks: Map<string, {
+      chunkId: string;
+      content: string;
+      retrievalFrequency: number;
+      totalSimilarity: number;
+      questions: Array<{questionId: string; questionText: string; similarity: number; roleName?: string}>;
+    }>;
+    totalRetrievals: number;
+    totalSimilarity: number;
+  }>();
+
+  // Initialize documents from retrieved chunks
+  questionResults.forEach(question => {
+    (question.retrieved_docs || []).forEach(doc => {
+      const docKey = doc.doc_id || 'unknown';
+      const chunkKey = doc.chunk_id || 'unknown';
+      
+      if (!documentMap.has(docKey)) {
+        documentMap.set(docKey, {
+          docId: doc.doc_id || 'unknown',
+          title: doc.title || 'Unknown document',
+          chunks: new Map(),
+          totalRetrievals: 0,
+          totalSimilarity: 0
+        });
+      }
+      
+      const document = documentMap.get(docKey)!;
+      
+      if (!document.chunks.has(chunkKey)) {
+        document.chunks.set(chunkKey, {
+          chunkId: doc.chunk_id || 'unknown',
+          content: doc.content || '',
+          retrievalFrequency: 0,
+          totalSimilarity: 0,
+          questions: []
+        });
+      }
+      
+      const chunk = document.chunks.get(chunkKey)!;
+      chunk.retrievalFrequency++;
+      chunk.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
+      chunk.questions.push({
+        questionId: question.id || 'unknown',
+        questionText: question.text || 'Unknown question',
+        similarity: (doc.similarity || 0) * 10,
+        roleName: question.role_name
+      });
+      
+      document.totalRetrievals++;
+      document.totalSimilarity += (doc.similarity || 0) * 10;
     });
   });
 
-  // Phase 1: Clustered unassociated chunks are already positioned around perimeter
-  // (positions are set in groupUnassociatedChunks function)
-  
-  // Phase 2: Position associated chunks using common positioning logic
-  positionAssociatedChunks(retrievedChunkPoints);
+  // Add unassociated chunks from allChunks to their respective documents
+  if (allChunks) {
+    allChunks.forEach(chunk => {
+      const docKey = chunk.doc_id;
+      const chunkKey = chunk.chunk_id;
+      
+      // Check if this chunk was already processed (retrieved by a question)
+      let chunkExists = false;
+      for (const doc of Array.from(documentMap.values())) {
+        if (doc.chunks.has(chunkKey)) {
+          chunkExists = true;
+          break;
+        }
+      }
+      
+      if (!chunkExists) {
+        // This is an unassociated chunk
+        if (!documentMap.has(docKey)) {
+          documentMap.set(docKey, {
+            docId: chunk.doc_id,
+            title: chunk.title,
+            chunks: new Map(),
+            totalRetrievals: 0,
+            totalSimilarity: 0
+          });
+        }
+        
+        const document = documentMap.get(docKey)!;
+        document.chunks.set(chunkKey, {
+          chunkId: chunk.chunk_id,
+          content: chunk.content,
+          retrievalFrequency: 0,
+          totalSimilarity: 0,
+          questions: []
+        });
+      }
+    });
+  }
 
-  const finalPoints = [...clusteredUnassociatedPoints, ...retrievedChunkPoints];
+  // Calculate max values for normalization
+  const maxTotalRetrievals = Math.max(...Array.from(documentMap.values()).map(doc => doc.totalRetrievals), 1);
+  const maxChunkCount = Math.max(...Array.from(documentMap.values()).map(doc => doc.chunks.size), 1);
+
+  console.log('📋 Documents found:', {
+    totalDocuments: documentMap.size,
+    documentIds: Array.from(documentMap.keys()),
+    documentDetails: Array.from(documentMap.entries()).map(([id, doc]) => ({
+      docId: id,
+      title: doc.title,
+      chunkCount: doc.chunks.size,
+      totalRetrievals: doc.totalRetrievals
+    }))
+  });
+
+  // Convert to HeatmapPoint array
+  const points: HeatmapPoint[] = Array.from(documentMap.entries()).map(([docId, document], index) => {
+    // Process chunks for this document
+    const chunks = Array.from(document.chunks.entries()).map(([chunkId, chunk]) => {
+      const avgSimilarity = chunk.retrievalFrequency > 0 ? chunk.totalSimilarity / chunk.retrievalFrequency : 0;
+      const bestQuestion = chunk.questions.length > 0 
+        ? chunk.questions.reduce((best, q) => q.similarity > best.similarity ? q : best, chunk.questions[0])
+        : undefined;
+        
+      return {
+        chunkId: chunk.chunkId,
+        content: chunk.content,
+        retrievalFrequency: chunk.retrievalFrequency,
+        avgSimilarity: avgSimilarity,
+        isUnretrieved: chunk.retrievalFrequency === 0,
+        bestRetrievingQuestion: bestQuestion ? {
+          questionId: bestQuestion.questionId,
+          questionText: bestQuestion.questionText,
+          similarity: bestQuestion.similarity,
+          roleName: bestQuestion.roleName
+        } : undefined
+      };
+    });
+
+    // Find top retrieving questions for this document
+    const questionRetrieval = new Map<string, {questionId: string; questionText: string; source: string; roleName?: string; chunksRetrieved: number; totalSimilarity: number}>();
+    
+    document.chunks.forEach(chunk => {
+      chunk.questions.forEach(q => {
+        if (!questionRetrieval.has(q.questionId)) {
+          const question = questionResults.find(qr => qr.id === q.questionId);
+          questionRetrieval.set(q.questionId, {
+            questionId: q.questionId,
+            questionText: q.questionText,
+            source: question?.source || 'unknown',
+            roleName: q.roleName,
+            chunksRetrieved: 0,
+            totalSimilarity: 0
+          });
+        }
+        const qData = questionRetrieval.get(q.questionId)!;
+        qData.chunksRetrieved++;
+        qData.totalSimilarity += q.similarity;
+      });
+    });
+
+    const topRetrievingQuestions = Array.from(questionRetrieval.values())
+      .map(q => ({
+        questionId: q.questionId,
+        questionText: q.questionText,
+        source: q.source,
+        roleName: q.roleName,
+        chunksRetrieved: q.chunksRetrieved,
+        avgSimilarity: q.chunksRetrieved > 0 ? q.totalSimilarity / q.chunksRetrieved : 0
+      }))
+      .sort((a, b) => b.chunksRetrieved - a.chunksRetrieved || b.avgSimilarity - a.avgSimilarity)
+      .slice(0, 5);
+
+    const avgSimilarity = document.totalRetrievals > 0 ? document.totalSimilarity / document.totalRetrievals : 0;
+    const unassociatedChunkCount = chunks.filter(c => c.isUnretrieved).length;
+    
+    const documentData: DocumentHeatmapData = {
+      type: 'document',
+      docId: document.docId,
+      title: document.title,
+      chunkCount: chunks.length,
+      chunks: chunks,
+      totalRetrievals: document.totalRetrievals,
+      avgSimilarity: avgSimilarity,
+      unassociatedChunkCount: unassociatedChunkCount,
+      topRetrievingQuestions: topRetrievingQuestions
+    };
+
+    // Size DIRECTLY proportional to chunk count - simplified linear scaling
+    const chunkCountRatio = chunks.length / maxChunkCount;
+    
+    // Simple linear sizing: more chunks = proportionally larger hexagon
+    // Range: 3.0 to 8.0 (reasonable size difference without extreme variations)
+    const hexagonSize = 3.0 + (chunkCountRatio * 5.0);
+
+    return {
+      id: `document_${document.docId}`,
+      x: 0, // Will be positioned later
+      y: 0, // Will be positioned later  
+      size: hexagonSize,
+      color: avgSimilarity, // Color based on average similarity
+      opacity: document.totalRetrievals > 0 ? 0.8 : 0.6, // Slightly higher opacity for documents with only unassociated chunks
+      data: documentData
+    };
+  });
+
+  // Position documents with much more aggressive separation from unassociated clusters
+  const maxSize = Math.max(...points.map(p => p.size));
   
-  // Apply spacing optimization
-  optimizePointSpacing(finalPoints);
+  // Reserve much more space for unassociated clusters around the perimeter
+  const perimeterMargin = Math.max(35, maxSize * 6); // Much larger margin for complete separation
   
-  return finalPoints;
+  // Calculate available space in the center for document clusters
+  const availableWidth = 100 - (perimeterMargin * 2);
+  const availableHeight = 100 - (perimeterMargin * 2);
+  
+  // Use a very spread out grid layout for documents
+  const cols = Math.min(Math.ceil(Math.sqrt(points.length)), 2); // Reduce to 2 columns for maximum spacing
+  const rows = Math.ceil(points.length / cols);
+  
+  // Add much more extra spacing between clusters
+  const extraSpacing = 30; // Much more additional space between clusters
+  const xSpacing = cols > 1 ? (availableWidth + extraSpacing) / (cols - 1) : 0;
+  const ySpacing = rows > 1 ? (availableHeight + extraSpacing) / (rows - 1) : 0;
+  
+  points.forEach((point, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    
+    // Center the grid in the available space
+    const startX = perimeterMargin + (availableWidth - (cols - 1) * xSpacing) / 2;
+    const startY = perimeterMargin + (availableHeight - (rows - 1) * ySpacing) / 2;
+    
+    // Add minimal jitter to prevent perfect alignment
+    const jitterX = (Math.random() - 0.5) * (point.size * 0.3);
+    const jitterY = (Math.random() - 0.5) * (point.size * 0.3);
+    
+    point.x = startX + (col * xSpacing) + jitterX;
+    point.y = startY + (row * ySpacing) + jitterY;
+    
+    // Ensure points stay within the reserved center area
+    point.x = Math.max(perimeterMargin, Math.min(100 - perimeterMargin, point.x));
+    point.y = Math.max(perimeterMargin, Math.min(100 - perimeterMargin, point.y));
+  });
+
+  // Apply spacing optimization  
+  optimizePointSpacing(points);
+  
+  console.log('✨ Final document points:', points.length, points.map(p => ({
+    id: p.id,
+    docId: p.data.type === 'document' ? p.data.docId : 'not-document',
+    title: p.data.type === 'document' ? p.data.title : 'not-document',
+    size: p.size,
+    chunkCount: p.data.type === 'document' ? p.data.chunkCount : 0,
+    retrievedChunks: p.data.type === 'document' ? p.data.chunks.filter(c => !c.isUnretrieved).length : 0,
+    unassociatedChunks: p.data.type === 'document' ? p.data.unassociatedChunkCount : 0
+  })));
+  
+  return points;
 }

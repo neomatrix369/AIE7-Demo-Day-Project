@@ -17,7 +17,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [chunkError, setChunkError] = useState<string | null>(null);
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    perspective: 'chunks-to-questions',
+    perspective: 'documents-to-chunks',
     qualityFilter: 'all',
     showTooltips: true,
     pointSize: 'medium',
@@ -208,6 +208,32 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     });
     return uniqueRoles.size;
   }, [results]);
+
+  // Calculate total documents for heatmap controls (documents with chunks)
+  const totalDocuments = React.useMemo(() => {
+    if (!results || !allChunks) return 0;
+    
+    // Build document map exactly like the heatmap visualization does
+    const documentMap = new Map<string, boolean>();
+    
+    // Add documents from retrieved chunks
+    results.per_question.forEach(question => {
+      (question.retrieved_docs || []).forEach(doc => {
+        if (doc.doc_id) {
+          documentMap.set(doc.doc_id, true);
+        }
+      });
+    });
+    
+    // Add documents from all chunks (for unassociated chunks)
+    allChunks.forEach(chunk => {
+      if (chunk.doc_id) {
+        documentMap.set(chunk.doc_id, true);
+      }
+    });
+    
+    return documentMap.size;
+  }, [results, allChunks]);
 
   // Calculate Unretrieved chunk statistics
   const chunkCoverageStats = React.useMemo(() => {
@@ -417,7 +443,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           </div>
 
           {/* Perspective-specific Coverage Statistics */}
-          {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'chunks-to-roles') && (
+          {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'roles-to-chunks') && (
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
@@ -453,8 +479,8 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 </div>
               </div>
 
-              {/* Unique Roles Card (only for chunks-to-roles) */}
-              {heatmapConfig.perspective === 'chunks-to-roles' && (
+              {/* Unique Roles Card (only for roles-to-chunks) */}
+              {heatmapConfig.perspective === 'roles-to-chunks' && (
                 <div style={{ backgroundColor: '#fff8dc', border: '2px solid #b8860b', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
                   <h4 style={{ margin: '0 0 8px 0', color: '#5c4b00', fontSize: '0.9rem' }}>👥 User Roles</h4>
                   <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
@@ -505,7 +531,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
               )}
 
               {/* Coverage Efficiency (for chunk views) */}
-              {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'chunks-to-roles') && (
+              {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'roles-to-chunks') && (
                 <div style={{ backgroundColor: '#f0fff0', border: '2px solid #28a745', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
                   <h4 style={{ margin: '0 0 8px 0', color: '#155724', fontSize: '0.9rem' }}>🎯 Efficiency</h4>
                   <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
@@ -535,6 +561,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           totalQuestions={results.overall.total_questions}
           totalChunks={totalChunks}
           totalRoles={totalRoles}
+          totalDocuments={totalDocuments}
           onRefresh={handleRefresh}
         />
 
@@ -664,9 +691,9 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                     </>
                   ) : selectedHeatmapPoint.data.type === 'role' ? (
                     <>
-                      <strong>Avg Quality Score:</strong> {selectedHeatmapPoint.data.avgQualityScore.toFixed(1)}<br/>
-                      <strong>Questions:</strong> {selectedHeatmapPoint.data.questionCount}<br/>
-                      <strong>Unique Chunks:</strong> {selectedHeatmapPoint.data.totalChunksRetrieved}
+                      <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
+                      <strong>Total Retrievals:</strong> {selectedHeatmapPoint.data.totalRetrievals}<br/>
+                      <strong>Chunks Accessible:</strong> {selectedHeatmapPoint.data.chunkCount}
                     </>
                   ) : selectedHeatmapPoint.data.type === 'chunk-to-role' ? (
                     <>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { HeatmapPoint, QuestionHeatmapData, ChunkHeatmapData, RoleHeatmapData, ChunkToRoleHeatmapData, UnassociatedClusterHeatmapData } from '../../utils/heatmapData';
+import { HeatmapPoint, QuestionHeatmapData, ChunkHeatmapData, RoleHeatmapData, ChunkToRoleHeatmapData, UnassociatedClusterHeatmapData, DocumentHeatmapData } from '../../utils/heatmapData';
 import { HeatmapPerspective, TooltipPosition } from '../../types';
 import BalloonTooltip from '../ui/BalloonTooltip';
 
@@ -28,6 +28,82 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
     if (score >= 7.0) return 'GOOD';
     if (score >= 5.0) return 'WEAK';
     return 'POOR';
+  };
+
+  const renderDocumentTooltip = (data: DocumentHeatmapData) => {
+    const retrievedChunks = data.chunks.filter(c => !c.isUnretrieved);
+    const unassociatedChunks = data.chunks.filter(c => c.isUnretrieved);
+
+    return (
+      <div>
+        <div style={{ 
+          fontWeight: 'bold', 
+          fontSize: '1.1rem', 
+          marginBottom: '8px',
+          borderBottom: '1px solid #e9ecef',
+          paddingBottom: '6px',
+          color: '#495057'
+        }}>
+          📄 {data.title}
+        </div>
+        
+        <div style={{ marginBottom: '10px' }}>
+          <strong style={{ color: '#495057' }}>Document Overview:</strong>
+          <div style={{ marginLeft: '10px', fontSize: '0.9rem', color: '#6c757d' }}>
+            • Total Chunks: <strong>{data.chunkCount}</strong><br/>
+            • Retrieved Chunks: <strong style={{ color: '#28a745' }}>{retrievedChunks.length}</strong><br/>
+            • Unassociated Chunks: <strong style={{ color: '#6c757d' }}>{unassociatedChunks.length}</strong><br/>
+            • Total Retrievals: <strong>{data.totalRetrievals}</strong>
+          </div>
+        </div>
+
+        {data.avgSimilarity > 0 && (
+          <div style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#495057' }}>Average Quality Score:</strong>
+            <span style={{ 
+              color: getStatusColor(data.avgSimilarity),
+              fontWeight: 'bold',
+              marginLeft: '6px'
+            }}>
+              {data.avgSimilarity.toFixed(1)}/10 ({getStatusText(data.avgSimilarity)})
+            </span>
+          </div>
+        )}
+
+        {data.topRetrievingQuestions.length > 0 && (
+          <div style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#495057' }}>Top Retrieving Questions:</strong>
+            {data.topRetrievingQuestions.slice(0, 3).map((q, index) => (
+              <div key={index} style={{ 
+                marginLeft: '10px', 
+                fontSize: '0.85rem',
+                color: '#495057',
+                borderLeft: '2px solid #007bff',
+                paddingLeft: '8px',
+                marginTop: '4px',
+                backgroundColor: '#f8f9fa',
+                padding: '4px 8px',
+                borderRadius: '3px'
+              }}>
+                {q.questionText.length > 50 ? `${q.questionText.substring(0, 50)}...` : q.questionText}
+                <div style={{ fontSize: '0.75rem', color: '#6c757d', marginTop: '2px' }}>
+                  {q.roleName && `${q.roleName} • `}{q.chunksRetrieved} chunks • Score: {q.avgSimilarity.toFixed(1)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {unassociatedChunks.length > 0 && (
+          <div>
+            <strong style={{ color: '#6c757d' }}>Unassociated Chunks:</strong>
+            <div style={{ marginLeft: '10px', fontSize: '0.9rem', color: '#6c757d' }}>
+              {unassociatedChunks.length} chunks never retrieved by any question
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderQuestionTooltip = (data: QuestionHeatmapData) => (
@@ -346,87 +422,82 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
     );
   };
 
-  const renderRoleTooltip = (data: RoleHeatmapData) => (
-    <div>
-      <div style={{ 
-        fontWeight: 'bold', 
-        fontSize: '0.9rem',
-        marginBottom: '8px',
-        color: '#333',
-        borderBottom: '1px solid #eee',
-        paddingBottom: '5px'
-      }}>
-        👥 {data.roleName}
-      </div>
-
-      <div style={{ marginBottom: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>Avg Quality Score:</span>
-          <span style={{ 
-            color: getStatusColor(data.avgQualityScore || 0),
-            fontWeight: 'bold',
-            fontSize: '0.8rem'
-          }}>
-            {(data.avgQualityScore || 0).toFixed(1)} ({getStatusText(data.avgQualityScore || 0)})
-          </span>
+  const renderRoleTooltip = (data: RoleHeatmapData) => {
+    const retrievedChunks = data.chunks.filter(c => !c.isUnretrieved);
+    const unassociatedChunks = data.chunks.filter(c => c.isUnretrieved);
+    return (
+      <div>
+        <div style={{ 
+          fontWeight: 'bold', 
+          fontSize: '1.1rem', 
+          marginBottom: '8px',
+          borderBottom: '1px solid #e9ecef',
+          paddingBottom: '6px',
+          color: '#495057'
+        }}>
+          👥 {data.roleName}
         </div>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '0.8rem' }}>Questions:</span>
-          <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{data.questionCount}</span>
+        <div style={{ marginBottom: '10px' }}>
+          <strong style={{ color: '#495057' }}>Role Overview:</strong>
+          <div style={{ marginLeft: '10px', fontSize: '0.9rem', color: '#6c757d' }}>
+            • Total Chunks: <strong>{data.chunkCount}</strong><br/>
+            • Retrieved Chunks: <strong style={{ color: '#28a745' }}>{retrievedChunks.length}</strong><br/>
+            • Unassociated Chunks: <strong style={{ color: '#6c757d' }}>{unassociatedChunks.length}</strong><br/>
+            • Total Retrievals: <strong>{data.totalRetrievals}</strong>
+          </div>
         </div>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '0.8rem' }}>Unique Chunks:</span>
-          <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{data.totalChunksRetrieved}</span>
-        </div>
-      </div>
-
-      {data.topChunks.length > 0 && (
-        <div style={{ borderTop: '1px solid #eee', paddingTop: '6px' }}>
-          <strong style={{ fontSize: '0.8rem' }}>Top Retrieved Chunks:</strong>
-          <div style={{ marginTop: '4px' }}>
-            {data.topChunks.slice(0, 3).map((chunk, idx) => (
-              <div key={idx} style={{ 
-                fontSize: '0.75rem',
-                padding: '3px 0',
-                color: '#666',
+        {data.avgSimilarity > 0 && (
+          <div style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#495057' }}>Average Quality Score:</strong>
+            <span style={{ 
+              color: getStatusColor(data.avgSimilarity),
+              fontWeight: 'bold',
+              marginLeft: '6px'
+            }}>
+              {data.avgSimilarity.toFixed(1)}/10 ({getStatusText(data.avgSimilarity)})
+            </span>
+          </div>
+        )}
+        
+        {data.topRetrievingQuestions.length > 0 && (
+          <div style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#495057' }}>Top Retrieving Questions:</strong>
+            {data.topRetrievingQuestions.slice(0, 3).map((q, index) => (
+              <div key={index} style={{ 
+                marginLeft: '10px', 
+                fontSize: '0.85rem',
+                color: '#495057',
                 borderLeft: '2px solid #007bff',
-                paddingLeft: '6px',
-                marginBottom: '3px'
+                paddingLeft: '8px',
+                marginTop: '4px',
+                backgroundColor: '#f8f9fa',
+                padding: '4px 8px',
+                borderRadius: '3px'
               }}>
                 <div style={{ fontWeight: 'bold' }}>
-                  {chunk.title.length > 40 ? `${chunk.title.substring(0, 40)}...` : chunk.title}
+                  {q.questionText.length > 60 ? `${q.questionText.substring(0, 60)}...` : q.questionText}
                 </div>
-                <div>Retrieved {chunk.retrievalCount}x, Avg Similarity: {(chunk.avgSimilarity || 0).toFixed(2)}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '2px' }}>
+                  {q.source.toUpperCase()} • {q.chunksRetrieved} chunks • Avg Score: {q.avgSimilarity.toFixed(1)}/10
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {data.questions.length > 0 && (
-        <div style={{ borderTop: '1px solid #eee', paddingTop: '6px' }}>
-          <strong style={{ fontSize: '0.8rem' }}>
-            Sample Questions ({data.questions.length} total):
-          </strong>
-          <div style={{ marginTop: '4px' }}>
-            {data.questions.slice(0, 2).map((question, idx) => (
-              <div key={idx} style={{ 
-                fontSize: '0.75rem',
-                padding: '3px 0',
-                color: '#666',
-                marginBottom: '3px'
-              }}>
-                <div>{question.questionText.length > 60 ? `${question.questionText.substring(0, 60)}...` : question.questionText}</div>
-                <div><strong>Quality:</strong> {(question.qualityScore || 0).toFixed(1)}, <strong>Chunks:</strong> {question.chunksRetrieved}</div>
-              </div>
-            ))}
+        {unassociatedChunks.length > 0 && (
+          <div>
+            <strong style={{ color: '#6c757d' }}>Unassociated Chunks:</strong>
+            <div style={{ marginLeft: '10px', fontSize: '0.9rem', color: '#6c757d' }}>
+              {unassociatedChunks.length} chunks never retrieved by any question from this role
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   const renderClusterTooltip = (data: UnassociatedClusterHeatmapData) => (
     <div>
@@ -645,13 +716,67 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
     }
   };
 
+  // Calculate tooltip position to keep it within viewport
+  const tooltipWidth = 350; // maxWidth
+  // Use much larger height estimation for chunk tooltips which can be very tall
+  const tooltipHeight = point.data.type === 'chunk' ? 500 : 250;
+  const offset = 20; // increased offset for better spacing
+  
+  // Convert container-relative coordinates to absolute viewport coordinates
+  let container: HTMLElement | null = document.querySelector('.heatmap-container');
+  if (!container) {
+    // Fallback to nearest parent of the tooltip if available
+    container = document.body;
+  }
+  const containerRect = container.getBoundingClientRect();
+  
+  let left = containerRect.left + position.x + offset;
+  let top = containerRect.top + position.y + offset;
+  
+  // Bounds use the container instead of the whole window so we don't overshoot the component
+  const boundRight = containerRect.left + containerRect.width;
+  const boundBottom = containerRect.top + containerRect.height;
+  
+  // Adjust horizontal position if tooltip would go off right edge
+  if (left + tooltipWidth > boundRight - 30) { // 30px safety margin
+    left = containerRect.left + position.x - tooltipWidth - offset;
+  }
+  
+  // Adjust vertical position if tooltip would go off bottom edge
+  if (top + tooltipHeight > boundBottom - 30) { // 30px safety margin
+    top = containerRect.top + position.y - tooltipHeight - offset;
+  }
+  
+  // Ensure tooltip doesn't go off left/top edges of the container
+  if (left < containerRect.left + 10) {
+    left = containerRect.left + 10;
+  }
+  if (top < containerRect.top + 10) {
+    top = containerRect.top + 10;
+  }
+  
+  // Final safety check - clamp inside container
+  if (left + tooltipWidth > boundRight) left = boundRight - tooltipWidth - 10;
+  if (top + tooltipHeight > boundBottom) top = boundBottom - tooltipHeight - 10;
+  
+  // Debug logging for tooltip positioning
+  if (point.data.type === 'chunk') {
+    console.log('🔍 Tooltip positioning debug (container-relative):', {
+      originalPosition: { x: position.x, y: position.y },
+      calculatedPosition: { left, top },
+      container: { left: containerRect.left, top: containerRect.top, width: containerRect.width, height: containerRect.height },
+      tooltipSize: { width: tooltipWidth, height: tooltipHeight },
+      type: point.data.type
+    });
+  }
+
   return (
     <div
       onClick={handleTooltipClick}
       style={{
-        position: 'absolute',
-        left: position.x + 10,
-        top: position.y - 10,
+        position: 'fixed',
+        left: left,
+        top: top,
         backgroundColor: 'white',
         border: '1px solid #ccc',
         borderRadius: '6px',
@@ -662,14 +787,14 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
         maxWidth: '350px',
         minWidth: '250px',
         lineHeight: '1.4',
-        // Ensure tooltip doesn't go off screen
-        transform: position.x > window.innerWidth - 400 ? 'translateX(-100%)' : 'none',
         // Optimize rendering performance
         willChange: 'transform',
         cursor: 'pointer' // Show it's clickable
       }}
     >
-      {point.data.type === 'question' 
+      {point.data.type === 'document' 
+        ? renderDocumentTooltip(point.data as DocumentHeatmapData)
+        : point.data.type === 'question' 
         ? renderQuestionTooltip(point.data as QuestionHeatmapData)
         : point.data.type === 'chunk'
         ? renderChunkTooltip(point.data as ChunkHeatmapData)

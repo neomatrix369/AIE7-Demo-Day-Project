@@ -7,6 +7,7 @@ interface HeatmapControlsProps {
   totalQuestions: number;
   totalChunks: number;
   totalRoles: number;
+  totalDocuments: number;
   onRefresh?: () => void;
 }
 
@@ -16,6 +17,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
   totalQuestions,
   totalChunks,
   totalRoles,
+  totalDocuments,
   onRefresh
 }) => {
   const handlePerspectiveChange = (perspective: HeatmapPerspective) => {
@@ -53,18 +55,33 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
         </h4>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
-            className={config.perspective === 'chunks-to-roles' ? 'button' : 'button button-secondary'}
+            className={config.perspective === 'documents-to-chunks' ? 'button' : 'button button-secondary'}
             style={{ 
               padding: '8px 16px',
               fontSize: '0.85rem',
-              backgroundColor: config.perspective === 'chunks-to-roles' ? '#007bff' : '#6c757d',
+              backgroundColor: config.perspective === 'documents-to-chunks' ? '#007bff' : '#6c757d',
               minWidth: '160px'
             }}
-            onClick={() => handlePerspectiveChange('chunks-to-roles')}
+            onClick={() => handlePerspectiveChange('documents-to-chunks')}
           >
-            📄 Chunks → Roles
+            📋 Documents → Chunks
             <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
-              ({totalChunks} chunks analyzed)
+              ({totalDocuments} documents analysed)
+            </div>
+          </button>
+          <button
+            className={config.perspective === 'roles-to-chunks' ? 'button' : 'button button-secondary'}
+            style={{ 
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              backgroundColor: config.perspective === 'roles-to-chunks' ? '#007bff' : '#6c757d',
+              minWidth: '160px'
+            }}
+            onClick={() => handlePerspectiveChange('roles-to-chunks')}
+          >
+            🎭 Roles → Chunks
+            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
+              ({totalRoles} roles analysed)
             </div>
           </button>
           <button
@@ -82,29 +99,12 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
               ({totalChunks} retrieved chunks)
             </div>
           </button>
-          {/* Hide Roles → Chunks button */}
-          <button
-            className={config.perspective === 'roles-to-chunks' ? 'button' : 'button button-secondary'}
-            style={{ 
-              padding: '8px 16px',
-              fontSize: '0.85rem',
-              backgroundColor: config.perspective === 'roles-to-chunks' ? '#007bff' : '#6c757d',
-              minWidth: '160px',
-              display: 'none' // Make invisible
-            }}
-            onClick={() => handlePerspectiveChange('roles-to-chunks')}
-          >
-            👥 Roles → Chunks
-            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
-              ({totalRoles} user roles)
-            </div>
-          </button>
         </div>
         <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '8px' }}>
-          {config.perspective === 'chunks-to-questions'
+          {config.perspective === 'documents-to-chunks'
+            ? 'View document hexagon blocks containing multiple chunks, including unassociated chunks that were never retrieved'
+            : config.perspective === 'chunks-to-questions'
             ? 'View how document chunks are retrieved by different questions (includes Unretrieved chunks that were never retrieved)'
-            : config.perspective === 'chunks-to-roles'
-            ? 'View how document chunks are accessed by different user roles and analyze role-based usage patterns'
             : config.perspective === 'roles-to-chunks'
             ? 'View how different user roles access document chunks and analyze retrieval patterns by role'
             : 'View how questions map to document chunks they retrieve'
@@ -222,19 +222,19 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
             <strong> Position</strong> = center cluster (retrieved) vs edge scatter (Unretrieved). 
             <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Auto-spaced to prevent overlaps while maintaining center/edge distribution.</span>
           </>
-        ) : config.perspective === 'chunks-to-roles' ? (
-          <>
-            <strong>📊 Data Points:</strong> Each point represents a document chunk analyzed by role usage. 
-            <strong> Size</strong> = total retrievals across roles (smaller for Unretrieved), <strong>Color</strong> = average similarity, 
-            <strong> Position</strong> = center cluster (accessed) vs edge scatter (Unretrieved). 
-            <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows which roles access which chunks and dominant usage patterns.</span>
-          </>
         ) : config.perspective === 'roles-to-chunks' ? (
           <>
             <strong>📊 Data Points:</strong> Each point represents a user role grouped by performance. 
             <strong> Size</strong> = number of questions from role, <strong>Color</strong> = average quality score, 
             <strong> Position</strong> = horizontal role distribution with quality-based vertical positioning. 
             <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows chunk retrieval patterns and effectiveness by user role.</span>
+          </>
+        ) : config.perspective === 'documents-to-chunks' ? (
+          <>
+            <strong>📊 Data Points:</strong> Each hexagon represents a document containing multiple chunks. 
+            <strong> Size</strong> = total chunk count and retrieval frequency, <strong>Color</strong> = average similarity across document, 
+            <strong> Position</strong> = optimized spacing with hexagonal clustering. 
+            <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows document-level chunk distribution including unassociated chunks.</span>
           </>
         ) : (
           <>

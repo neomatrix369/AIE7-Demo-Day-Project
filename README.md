@@ -55,7 +55,7 @@ npm install && npm run dev
 ## Key Features
 
 - **🎯 5-Screen Wizard**: Dashboard → Questions → Experiment → Results → Heatmap
-- **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics and smart positioning
+- **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics (Documents→Chunks, Roles→Chunks) and smart collision detection
 - **📊 Real-time Analytics**: Coverage statistics, unretrieved chunk detection, performance insights
 - **🗃️ Vector Storage**: Persistent Qdrant database with similarity search and real-time connectivity checks
 - **📡 Live Updates**: WebSocket streaming for experiment progress with comprehensive error handling

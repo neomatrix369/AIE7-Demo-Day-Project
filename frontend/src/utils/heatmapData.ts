@@ -184,7 +184,9 @@ function positionAssociatedChunks(retrievedChunkPoints: HeatmapPoint[]): void {
  */
 function groupUnassociatedChunks(
   unassociatedChunks: Array<{chunk_id: string; doc_id: string; title: string; content: string}>,
-  targetClusterCount: number = 12
+  targetClusterCount: number = 12,
+  maxAssociatedChunkFrequency: number = 1,
+  totalAssociatedChunks: number = 1
 ): HeatmapPoint[] {
   if (unassociatedChunks.length === 0) return [];
 
@@ -256,17 +258,29 @@ function groupUnassociatedChunks(
       centerPosition: cluster.position
     };
 
-    // Size based on number of chunks (larger clusters = bigger hexagons)
-    const maxChunksPerCluster = Math.max(...clusters.map(c => c.chunks.length), 1);
-    const normalizedSize = cluster.chunks.length / maxChunksPerCluster;
+    // Size based on proportion of chunks this cluster represents compared to all chunks
+    const clusterChunkCount = cluster.chunks.length;
+    const totalChunks = totalAssociatedChunks + unassociatedChunks.length;
+    const proportionalSize = clusterChunkCount / Math.max(totalChunks, 1);
+    
+    // Scale to reasonable visual range (multiply by factor to make visible)
+    const scaledSize = proportionalSize * Math.max(totalChunks / 10, 2.0);
+
+    // Color intensity based on cluster size - always visible with variable intensity
+    const maxClusterSize = Math.max(...clusters.map(c => c.chunks.length), 1);
+    const clusterIntensity = clusterChunkCount / maxClusterSize;
+    
+    // Map to visible color range: 4.5 (orange baseline) to 7.5 (green, strong intensity)
+    // This ensures all unassociated chunks are visible and distinguishable from poor associated chunks
+    const visibleColor = 4.5 + (clusterIntensity * 3.0);
 
     return {
       id: cluster.id,
       x: cluster.position.x,
       y: cluster.position.y,
-      size: Math.max(0.3, normalizedSize * 0.8), // Cluster size based on chunk count
-      color: 0, // Grey color for unassociated
-      opacity: 0.4, // Lower opacity for background layer
+      size: Math.max(0.3, Math.min(scaledSize, 1.5)), // Size represents actual chunk proportion, capped for readability
+      color: visibleColor, // Dynamic color based on cluster chunk count (4.5-7.5 range)
+      opacity: Math.max(0.7, 0.5 + (clusterIntensity * 0.3)), // Variable opacity (0.7-0.8) for additional visual cue
       data: clusterData
     };
   });
@@ -375,20 +389,26 @@ export function processChunksToQuestions(
   // Create clustered unassociated chunks if allChunks data is provided
   let clusteredUnassociatedPoints: HeatmapPoint[] = [];
   
-  if (allChunks) {
-    const retrievedChunkIds = new Set(retrievedChunks.map(c => c.chunkId));
-    const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
-    
-    // Group unassociated chunks into clusters instead of individual points
-    clusteredUnassociatedPoints = groupUnassociatedChunks(unassociatedChunks);
-  }
-  
   // Handle case where no chunks are found
   if (retrievedChunks.length === 0 && clusteredUnassociatedPoints.length === 0) {
     return [];
   }
 
   const maxRetrievalFrequency = Math.max(...retrievedChunks.map(c => c.questions.length), 1);
+
+  // Update unassociated chunks to use proper size comparison
+  if (allChunks) {
+    const retrievedChunkIds = new Set(retrievedChunks.map(c => c.chunkId));
+    const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
+    
+    // Group unassociated chunks into clusters with proper size comparison
+    clusteredUnassociatedPoints = groupUnassociatedChunks(
+      unassociatedChunks, 
+      12, 
+      maxRetrievalFrequency, 
+      retrievedChunks.length
+    );
+  }
 
   // Create retrieved chunk points
   const retrievedChunkPoints: HeatmapPoint[] = retrievedChunks.map((chunk) => {
@@ -537,8 +557,18 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
  * Get color based on quality score (0-10 scale) or intensity (0-1 scale)
  */
 export function getHeatmapColor(value: number, isUnretrieved: boolean = false, isQualityScore: boolean = false): string {
-  // Special color for Unretrieved chunks and clusters
-  if (isUnretrieved || value === 0) return '#6c757d'; // Grey for Unretrieved chunks and clusters
+  // For unassociated chunks, use a visible color scheme based on intensity
+  if (isUnretrieved) {
+    // Unassociated chunks use values 4.5-7.5 for visibility
+    // Map to progressively darker/more intense colors
+    if (value >= 6.5) return '#795548'; // Dark brown for high intensity clusters
+    if (value >= 5.5) return '#8d6e63'; // Medium brown for mid intensity  
+    if (value >= 4.5) return '#a1887f'; // Light brown for low intensity
+    return '#bcaaa4'; // Very light brown for minimal intensity (fallback)
+  }
+  
+  // Default zero value handling
+  if (value === 0) return '#e0e0e0'; // Light grey for true zero values
   
   if (isQualityScore) {
     // Quality score scale (0-10): use actual thresholds
@@ -789,6 +819,11 @@ export function processChunksToRoles(
     });
   });
 
+  // Process retrieved chunks with role access
+  const processedChunks = Array.from(chunkAccessMap.values());
+  const retrievedChunkPoints: HeatmapPoint[] = [];
+  const maxTotalRetrievals = Math.max(...processedChunks.map(c => c.totalRetrievals), 1);
+
   // Create clustered unassociated chunks if allChunks data is provided
   let clusteredUnassociatedPoints: HeatmapPoint[] = [];
   
@@ -796,13 +831,14 @@ export function processChunksToRoles(
     const retrievedChunkIds = new Set(Array.from(chunkAccessMap.keys()));
     const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
     
-    // Group unassociated chunks into clusters instead of individual points
-    clusteredUnassociatedPoints = groupUnassociatedChunks(unassociatedChunks);
+    // Group unassociated chunks into clusters with proper size comparison
+    clusteredUnassociatedPoints = groupUnassociatedChunks(
+      unassociatedChunks, 
+      12, 
+      maxTotalRetrievals, 
+      processedChunks.length
+    );
   }
-
-  // Process retrieved chunks with role access
-  const processedChunks = Array.from(chunkAccessMap.values());
-  const retrievedChunkPoints: HeatmapPoint[] = [];
 
   processedChunks.forEach((chunk) => {
     // Handle chunks with role access
@@ -841,7 +877,7 @@ export function processChunksToRoles(
       id: `chunk_${chunk.chunkId}`,
       x: 0, // Will be positioned later
       y: 0, // Will be positioned later
-      size: Math.max(0.3, Math.min(1.2, chunk.totalRetrievals / 5)), // Size based on total retrievals
+      size: Math.max(0.3, Math.min(1.2, chunk.totalRetrievals / maxTotalRetrievals)), // Size based on total retrievals
       color: avgSimilarity, // Color based on average similarity
       opacity: Math.max(0.7, avgSimilarity / 10),
       data: chunkData

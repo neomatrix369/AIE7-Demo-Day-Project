@@ -53,21 +53,6 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
         </h4>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
-            className={config.perspective === 'chunks-to-questions' ? 'button' : 'button button-secondary'}
-            style={{ 
-              padding: '8px 16px',
-              fontSize: '0.85rem',
-              backgroundColor: config.perspective === 'chunks-to-questions' ? '#007bff' : '#6c757d',
-              minWidth: '160px'
-            }}
-            onClick={() => handlePerspectiveChange('chunks-to-questions')}
-          >
-            📄 Chunks → Questions
-            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
-              ({totalChunks} retrieved chunks)
-            </div>
-          </button>
-          <button
             className={config.perspective === 'chunks-to-roles' ? 'button' : 'button button-secondary'}
             style={{ 
               padding: '8px 16px',
@@ -80,6 +65,21 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
             📄 Chunks → Roles
             <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
               ({totalChunks} chunks analyzed)
+            </div>
+          </button>
+          <button
+            className={config.perspective === 'chunks-to-questions' ? 'button' : 'button button-secondary'}
+            style={{ 
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              backgroundColor: config.perspective === 'chunks-to-questions' ? '#007bff' : '#6c757d',
+              minWidth: '160px'
+            }}
+            onClick={() => handlePerspectiveChange('chunks-to-questions')}
+          >
+            📄 Chunks → Questions
+            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
+              ({totalChunks} retrieved chunks)
             </div>
           </button>
           {/* Hide Roles → Chunks button */}

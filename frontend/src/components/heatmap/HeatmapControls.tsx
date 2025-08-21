@@ -7,6 +7,7 @@ interface HeatmapControlsProps {
   totalQuestions: number;
   totalChunks: number;
   totalRoles: number;
+  onRefresh?: () => void;
 }
 
 const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
@@ -14,7 +15,8 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
   onConfigChange,
   totalQuestions,
   totalChunks,
-  totalRoles
+  totalRoles,
+  onRefresh
 }) => {
   const handlePerspectiveChange = (perspective: HeatmapPerspective) => {
     onConfigChange({ perspective });
@@ -170,6 +172,28 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
             <strong>💬 Tooltips</strong>
           </label>
         </div>
+
+        {/* Refresh Button */}
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.85rem',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            title="Refresh visualization"
+          >
+            🔄 Refresh
+          </button>
+        )}
 
         {/* Help Text */}
         <div style={{ 

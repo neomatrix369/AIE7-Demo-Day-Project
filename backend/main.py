@@ -194,13 +194,35 @@ class QuestionResult(BaseModel):
 @app.get("/api/corpus/status")
 async def get_corpus_status():
     """Get corpus status - real data if available, otherwise mock data."""
-    if documents_loaded:
-        # Return real corpus statistics
-        return doc_processor.get_corpus_stats()
+    
+    # Check database connectivity
+    database_connected = False
+    database_error = None
+    
+    try:
+        # Test Qdrant connection
+        collections = qdrant_manager.client.get_collections()
+        database_connected = True
+        logger.info("✅ Database connectivity verified")
+    except Exception as e:
+        database_connected = False
+        database_error = str(e)
+        logger.warning(f"⚠️ Database connectivity issue: {e}")
+    
+    if documents_loaded and database_connected:
+        # Return real corpus statistics with connectivity info
+        corpus_stats = doc_processor.get_corpus_stats()
+        corpus_stats["database_connected"] = True
+        corpus_stats["database_error"] = None
+        return corpus_stats
     else:
-        # Return mock data
-        logger.info("📝 Returning mock corpus status (no real documents loaded)")
-        return MOCK_CORPUS_STATUS
+        # Return mock data with connectivity status
+        logger.info("📝 Returning mock corpus status (documents not loaded or database not connected)")
+        mock_status = MOCK_CORPUS_STATUS.copy()
+        mock_status["database_connected"] = database_connected
+        mock_status["database_error"] = database_error
+        mock_status["documents_loaded"] = documents_loaded
+        return mock_status
 
 @app.get("/api/v1/experiment/config")
 async def get_experiment_config():
@@ -284,11 +306,13 @@ async def get_all_chunks():
             error=e,
             context="Failed to get corpus chunks",
             error_type=ErrorType.INTERNAL_ERROR,
-            user_message="Failed to retrieve corpus chunks"
+            user_message="Failed to retrieve corpus chunks. Please ensure Qdrant database is running and accessible."
         )
         # Maintain backward compatibility
         error_response["chunks"] = []
         error_response["total_count"] = 0
+        error_response["database_connected"] = False
+        error_response["database_error"] = str(e)
         return error_response
 
 @app.get("/api/questions/llm")

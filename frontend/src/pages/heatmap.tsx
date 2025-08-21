@@ -15,6 +15,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [allChunks, setAllChunks] = useState<Array<{chunk_id: string; doc_id: string; title: string; content: string}> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chunkError, setChunkError] = useState<string | null>(null);
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
     perspective: 'chunks-to-questions',
     qualityFilter: 'all',
@@ -24,6 +25,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   });
   const [selectedHeatmapPoint, setSelectedHeatmapPoint] = useState<HeatmapPoint | null>(null);
   const [drillDownData, setDrillDownData] = useState<string>('');
+  const [refreshKey, setRefreshKey] = useState<number>(0);
   const router = useRouter();
   
   // Initialize API cache with optimized settings for heatmap data
@@ -54,11 +56,16 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           }
         });
       } catch (err: any) {
+        const errorMessage = err.response?.data?.user_message || err.message || 'Failed to load chunk data';
+        setChunkError(errorMessage);
+        
         logError('Failed to load all chunks', {
           component: 'Heatmap',
           action: 'CHUNKS_LOAD_ERROR',
           data: {
-            error: err.message
+            error: err.message,
+            status: err.response?.status,
+            database_connected: err.response?.data?.database_connected
           }
         });
       }
@@ -168,6 +175,14 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     router.push('/dashboard');
   };
 
+  const handleRefresh = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+    logInfo('Heatmap visualization refreshed', {
+      component: 'Heatmap',
+      action: 'REFRESH_VISUALIZATION'
+    });
+  }, []);
+
   // Calculate total chunks for heatmap controls
   const totalChunks = React.useMemo(() => {
     if (!results) return 0;
@@ -197,11 +212,12 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   // Calculate Unretrieved chunk statistics
   const chunkCoverageStats = React.useMemo(() => {
     if (!results || !allChunks) return { 
-      totalChunks: 0, 
-      retrievedChunks: 0, 
-      UnretrievedChunks: 0, 
-      coveragePercentage: 0,
-      UnretrievedPercentage: 0
+      totalChunks: null, // Use null to indicate data not available
+      retrievedChunks: null, 
+      UnretrievedChunks: null, 
+      coveragePercentage: null,
+      UnretrievedPercentage: null,
+      isDataAvailable: false
     };
 
     const retrievedChunkIds = new Set();
@@ -224,7 +240,8 @@ const InteractiveHeatmapVisualization: React.FC = () => {
       retrievedChunks,
       UnretrievedChunks,
       coveragePercentage,
-      UnretrievedPercentage
+      UnretrievedPercentage,
+      isDataAvailable: true
     };
   }, [results, allChunks]);
 
@@ -390,9 +407,11 @@ const InteractiveHeatmapVisualization: React.FC = () => {
               <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem' }}>📄 Total Chunks</h4>
               <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                 <span style={{ color: '#0c7cd5', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
-                  {chunkCoverageStats.totalChunks}
+                  {chunkCoverageStats.isDataAvailable ? chunkCoverageStats.totalChunks : '⏳'}
                 </span>
-                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Document Chunks Available</div>
+                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                  {chunkCoverageStats.isDataAvailable ? 'Document Chunks Available' : 'Loading chunk data...'}
+                </div>
               </div>
             </div>
           </div>
@@ -409,10 +428,12 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 <h4 style={{ margin: '0 0 8px 0', color: '#0056b3', fontSize: '0.9rem' }}>📊 Chunk Coverage</h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span style={{ color: '#007bff', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {chunkCoverageStats.coveragePercentage}%
+                    {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.coveragePercentage}%` : '⏳'}
                   </span>
                   <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                    {chunkCoverageStats.retrievedChunks} of {chunkCoverageStats.totalChunks} Chunks Retrieved
+                    {chunkCoverageStats.isDataAvailable 
+                      ? `${chunkCoverageStats.retrievedChunks} of ${chunkCoverageStats.totalChunks} Chunks Retrieved`
+                      : 'Calculating coverage...'}
                   </div>
                 </div>
               </div>
@@ -422,10 +443,12 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 <h4 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '0.9rem' }}>🔍 Unretrieved Chunks</h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span style={{ color: '#6c757d', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {chunkCoverageStats.UnretrievedPercentage}%
+                    {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.UnretrievedPercentage}%` : '⏳'}
                   </span>
                   <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                    {chunkCoverageStats.UnretrievedChunks} Chunks Never Retrieved
+                    {chunkCoverageStats.isDataAvailable 
+                      ? `${chunkCoverageStats.UnretrievedChunks} Chunks Never Retrieved`
+                      : 'Loading unretrieved data...'}
                   </div>
                 </div>
               </div>
@@ -487,12 +510,16 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                   <h4 style={{ margin: '0 0 8px 0', color: '#155724', fontSize: '0.9rem' }}>🎯 Efficiency</h4>
                   <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                     <span style={{ color: '#28a745', fontSize: '1.4rem', fontWeight: 'bold', display: 'block' }}>
-                      {chunkCoverageStats.coveragePercentage > 80 ? '🏆' : chunkCoverageStats.coveragePercentage > 60 ? '👍' : '⚠️'}
+                      {chunkCoverageStats.isDataAvailable 
+                        ? (chunkCoverageStats.coveragePercentage! > 80 ? '🏆' : chunkCoverageStats.coveragePercentage! > 60 ? '👍' : '⚠️')
+                        : '⏳'}
                     </span>
                     <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                      {chunkCoverageStats.coveragePercentage > 80 ? 'Excellent Coverage' 
-                       : chunkCoverageStats.coveragePercentage > 60 ? 'Good Coverage' 
-                       : 'Coverage Needs Improvement'}
+                      {chunkCoverageStats.isDataAvailable
+                        ? (chunkCoverageStats.coveragePercentage! > 80 ? 'Excellent Coverage' 
+                           : chunkCoverageStats.coveragePercentage! > 60 ? 'Good Coverage' 
+                           : 'Coverage Needs Improvement')
+                        : 'Calculating efficiency...'}
                     </div>
                   </div>
                 </div>
@@ -508,6 +535,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           totalQuestions={results.overall.total_questions}
           totalChunks={totalChunks}
           totalRoles={totalRoles}
+          onRefresh={handleRefresh}
         />
 
         {/* Main Visualization Area */}
@@ -521,16 +549,57 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           
           {/* Heatmap Visualization */}
           <div className="card" style={{ padding: '10px' }}>
-            <ScatterHeatmap
-              questionResults={results.per_question}
-              perspective={heatmapConfig.perspective}
-              qualityFilter={heatmapConfig.qualityFilter}
-              onPointClick={heatmapConfig.showTooltips ? handleHeatmapPointClick : undefined}
-              width={780}
-              height={460}
-              allChunks={allChunks || undefined}
-              totalChunks={chunkCoverageStats.totalChunks}
-            />
+            {!chunkCoverageStats.isDataAvailable ? (
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                height: '460px',
+                color: chunkError ? '#dc3545' : '#666',
+                backgroundColor: chunkError ? '#fff5f5' : '#f8f9fa',
+                border: `2px dashed ${chunkError ? '#f5c6cb' : '#dee2e6'}`,
+                borderRadius: '8px'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>
+                  {chunkError ? '⚠️' : '⏳'}
+                </div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>
+                  {chunkError ? 'Database Connection Issue' : 'Loading Heatmap Data'}
+                </div>
+                <div style={{ fontSize: '1rem', textAlign: 'center' }}>
+                  {chunkError ? (
+                    <>
+                      {chunkError}
+                      <br />
+                      <small style={{ color: '#999' }}>
+                        Please ensure Qdrant database is running: <code>./scripts/setup_qdrant.sh</code>
+                      </small>
+                    </>
+                  ) : (
+                    <>
+                      Waiting for database connection and chunk data...
+                      <br />
+                      <small style={{ color: '#999' }}>
+                        Please ensure Qdrant database is running and accessible
+                      </small>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <ScatterHeatmap
+                key={refreshKey}
+                questionResults={results.per_question}
+                perspective={heatmapConfig.perspective}
+                qualityFilter={heatmapConfig.qualityFilter}
+                onPointClick={heatmapConfig.showTooltips ? handleHeatmapPointClick : undefined}
+                width={780}
+                height={460}
+                allChunks={allChunks || undefined}
+                totalChunks={chunkCoverageStats.totalChunks!}
+              />
+            )}
           </div>
           
           {/* Legend and Actions Panel */}

@@ -186,9 +186,19 @@ function groupUnassociatedChunks(
   unassociatedChunks: Array<{chunk_id: string; doc_id: string; title: string; content: string}>,
   targetClusterCount: number = 12,
   maxAssociatedChunkFrequency: number = 1,
-  totalAssociatedChunks: number = 1
+  totalAssociatedChunks: number = 1,
+  minAssociatedChunkSize: number = 0.6
 ): HeatmapPoint[] {
-  if (unassociatedChunks.length === 0) return [];
+  console.log('🔍 groupUnassociatedChunks called:', {
+    unassociatedCount: unassociatedChunks.length,
+    targetClusters: targetClusterCount,
+    totalAssociated: totalAssociatedChunks
+  });
+  
+  if (unassociatedChunks.length === 0) {
+    console.log('⚠️ No unassociated chunks found, returning empty array');
+    return [];
+  }
 
   // Create grid-based clusters around the perimeter
   const clusters: Array<{
@@ -258,32 +268,105 @@ function groupUnassociatedChunks(
       centerPosition: cluster.position
     };
 
-    // Size based on proportion of chunks this cluster represents compared to all chunks
+    // Calculate size based on proportion to total chunks and make 5x larger than smallest associated
     const clusterChunkCount = cluster.chunks.length;
     const totalChunks = totalAssociatedChunks + unassociatedChunks.length;
-    const proportionalSize = clusterChunkCount / Math.max(totalChunks, 1);
     
-    // Scale to reasonable visual range (multiply by factor to make visible)
-    const scaledSize = proportionalSize * Math.max(totalChunks / 10, 2.0);
-
-    // Color intensity based on cluster size - always visible with variable intensity
+    // Base size: proportion of chunks this cluster represents
+    const chunkProportion = clusterChunkCount / Math.max(totalChunks, 1);
+    
+    // Scale factor: 5x the minimum associated chunk size
+    const scaleFactor = minAssociatedChunkSize * 5.0;
+    
+    // Final size: proportion-based scaling starting from 5x minimum associated size
+    const proportionalSize = scaleFactor * (0.5 + (chunkProportion * 10)); // Multiply by 10 to make proportion more visible
+    
+    // Cluster intensity for color variation
     const maxClusterSize = Math.max(...clusters.map(c => c.chunks.length), 1);
     const clusterIntensity = clusterChunkCount / maxClusterSize;
-    
-    // Map to visible color range: 4.5 (orange baseline) to 7.5 (green, strong intensity)
-    // This ensures all unassociated chunks are visible and distinguishable from poor associated chunks
-    const visibleColor = 4.5 + (clusterIntensity * 3.0);
+    const visibleColor = 5.0 + (clusterIntensity * 2.0); // Range: 5.0 to 7.0 for good visibility
 
     return {
       id: cluster.id,
       x: cluster.position.x,
       y: cluster.position.y,
-      size: Math.max(0.3, Math.min(scaledSize, 1.5)), // Size represents actual chunk proportion, capped for readability
-      color: visibleColor, // Dynamic color based on cluster chunk count (4.5-7.5 range)
-      opacity: Math.max(0.7, 0.5 + (clusterIntensity * 0.3)), // Variable opacity (0.7-0.8) for additional visual cue
+      size: Math.max(1.2, Math.min(proportionalSize / 3, 2.0)), // Normalize to 1.2-2.0 range for getScaledSize compatibility
+      color: visibleColor, // Color range optimized for visibility
+      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
       data: clusterData
     };
   });
+  
+  const heatmapPoints = clusters.map(cluster => {
+    // Calculate size based on proportion to total chunks and make 5x larger than smallest associated
+    const clusterChunkCount = cluster.chunks.length;
+    const totalChunks = totalAssociatedChunks + unassociatedChunks.length;
+    
+    // Base size: proportion of chunks this cluster represents
+    const chunkProportion = clusterChunkCount / Math.max(totalChunks, 1);
+    
+    // Scale factor: 5x the minimum associated chunk size
+    const scaleFactor = minAssociatedChunkSize * 5.0;
+    
+    // Final size: proportion-based scaling starting from 5x minimum associated size
+    const proportionalSize = scaleFactor * (0.5 + (chunkProportion * 10)); // Multiply by 10 to make proportion more visible
+    
+    // Cluster intensity for color variation
+    const maxClusterSize = Math.max(...clusters.map(c => c.chunks.length), 1);
+    const clusterIntensity = clusterChunkCount / maxClusterSize;
+    const visibleColor = 5.0 + (clusterIntensity * 2.0); // Range: 5.0 to 7.0 for good visibility
+    
+    // Group chunks by document for breakdown
+    const documentBreakdown = new Map<string, { title: string; count: number }>();
+    cluster.chunks.forEach(chunk => {
+      const docKey = chunk.doc_id;
+      if (!documentBreakdown.has(docKey)) {
+        documentBreakdown.set(docKey, { title: chunk.title, count: 0 });
+      }
+      documentBreakdown.get(docKey)!.count++;
+    });
+
+    const clusterData: UnassociatedClusterHeatmapData = {
+      type: 'unassociated-cluster',
+      clusterId: cluster.id,
+      chunkCount: cluster.chunks.length,
+      chunks: cluster.chunks.map(chunk => ({
+        chunkId: chunk.chunk_id,
+        docId: chunk.doc_id,
+        title: chunk.title
+      })),
+      documentBreakdown: Array.from(documentBreakdown.entries()).map(([docId, data]) => ({
+        docId,
+        title: data.title,
+        chunkCount: data.count
+      })),
+      centerPosition: cluster.position
+    };
+
+    return {
+      id: cluster.id,
+      x: cluster.position.x,
+      y: cluster.position.y,
+      size: Math.max(1.2, Math.min(proportionalSize / 3, 2.0)), // Normalize to 1.2-2.0 range for getScaledSize compatibility
+      color: visibleColor, // Color range optimized for visibility
+      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
+      data: clusterData
+    };
+  });
+  
+  console.log('✅ Created unassociated chunk points:', {
+    pointCount: heatmapPoints.length,
+    points: heatmapPoints.map(p => ({
+      id: p.id,
+      x: p.x,
+      y: p.y,
+      size: p.size,
+      color: p.color,
+      type: p.data.type
+    }))
+  });
+  
+  return heatmapPoints;
 }
 
 /**
@@ -321,9 +404,9 @@ export function processQuestionsToChunks(questionResults: QuestionResult[]): Hea
       id: question.id || `question_${index}`,
       x: index, // Question index on x-axis
       y: questionData.avgSimilarity * 10, // Average similarity (0-10 scale) on y-axis
-      size: Math.max(0.3, (questionData.chunkFrequency / maxChunkFrequency) * 1.0), // Size based on chunk frequency
+      size: Math.max(0.6, (questionData.chunkFrequency / maxChunkFrequency) * 1.0 * (0.8 + (qualityScore / 10) * 0.2)), // Size based on frequency and quality
       color: qualityScore, // Pass actual quality score (0-10 scale)
-      opacity: Math.max(0.6, qualityScore / 10), // Opacity based on quality score
+      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
       data: questionData
     };
   });
@@ -401,18 +484,35 @@ export function processChunksToQuestions(
     const retrievedChunkIds = new Set(retrievedChunks.map(c => c.chunkId));
     const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
     
+    // Calculate minimum associated chunk size (from our size calculation above)
+    const minAssociatedSize = 0.6; // This matches our Math.max(0.6, ...) in chunk size calculation
+    
     // Group unassociated chunks into clusters with proper size comparison
     clusteredUnassociatedPoints = groupUnassociatedChunks(
       unassociatedChunks, 
       12, 
       maxRetrievalFrequency, 
-      retrievedChunks.length
+      retrievedChunks.length,
+      minAssociatedSize
     );
   }
 
   // Create retrieved chunk points
   const retrievedChunkPoints: HeatmapPoint[] = retrievedChunks.map((chunk) => {
     const avgSimilarity = chunk.totalSimilarity / chunk.questions.length;
+    
+    if (Math.random() < 0.05) { // Log 5% for debugging
+      console.log('📊 Chunk similarity debug:', {
+        chunkId: chunk.chunkId,
+        totalSimilarity: chunk.totalSimilarity,
+        questionCount: chunk.questions.length,
+        avgSimilarity,
+        sampleQuestions: chunk.questions.slice(0, 2).map(q => ({
+          id: q.questionId,
+          similarity: q.similarity
+        }))
+      });
+    }
     const bestQuestion = chunk.questions.reduce((best, current) => 
       current.similarity > best.similarity ? current : best
     );
@@ -439,9 +539,9 @@ export function processChunksToQuestions(
       id: chunk.chunkId,
       x: 0, // Will be calculated later
       y: 0, // Will be calculated later
-      size: Math.max(0.4, (chunkData.retrievalFrequency / maxRetrievalFrequency) * 1.0),
+      size: Math.max(0.6, (chunkData.retrievalFrequency / maxRetrievalFrequency) * 1.0 * (0.8 + (avgSimilarity / 10) * 0.2)),
       color: avgSimilarity, // Pass actual average similarity (0-10 scale)
-      opacity: Math.max(0.7, avgSimilarity / 10),
+      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
       data: chunkData
     };
   });
@@ -557,29 +657,33 @@ function optimizePointSpacing(points: HeatmapPoint[]): void {
  * Get color based on quality score (0-10 scale) or intensity (0-1 scale)
  */
 export function getHeatmapColor(value: number, isUnretrieved: boolean = false, isQualityScore: boolean = false): string {
-  // For unassociated chunks, use a visible color scheme based on intensity
+  // For unassociated chunks, use darker brown colors for better visibility
   if (isUnretrieved) {
-    // Unassociated chunks use values 4.5-7.5 for visibility
-    // Map to progressively darker/more intense colors
-    if (value >= 6.5) return '#795548'; // Dark brown for high intensity clusters
-    if (value >= 5.5) return '#8d6e63'; // Medium brown for mid intensity  
-    if (value >= 4.5) return '#a1887f'; // Light brown for low intensity
-    return '#bcaaa4'; // Very light brown for minimal intensity (fallback)
+    // Unassociated chunks use values 5.0-7.0 for visibility
+    // Use darker brown shades that are clearly visible
+    const normalizedIntensity = Math.max(0, Math.min(1, (value - 5.0) / 2.0)); // Normalize 5.0-7.0 to 0-1
+    
+    // Use darker brown colors with good contrast
+    if (normalizedIntensity >= 0.7) return '#5d4037'; // Dark brown for high intensity
+    if (normalizedIntensity >= 0.4) return '#6d4c41'; // Medium-dark brown
+    if (normalizedIntensity >= 0.2) return '#795548'; // Standard brown
+    return '#8d6e63'; // Light brown but still visible
   }
   
   // Default zero value handling
   if (value === 0) return '#e0e0e0'; // Light grey for true zero values
   
+  // Ensure all colors are visible and distinct - simplified approach
   if (isQualityScore) {
-    // Quality score scale (0-10): use actual thresholds
-    if (value >= 7.0) return '#28a745'; // Green for good (≥7.0)
-    if (value >= 5.0) return '#e67e22'; // Orange for weak (5.0-7.0)
-    return '#dc3545'; // Red for poor (<5.0)
+    // Quality score scale (0-10) - use bright, visible colors
+    if (value >= 7.0) return '#2e7d32'; // Bright green for good (≥7.0)
+    if (value >= 5.0) return '#ff8f00'; // Bright orange for weak (5.0-7.0) 
+    return '#d32f2f'; // Bright red for poor (<5.0)
   } else {
-    // Intensity scale (0-1): use proportional thresholds
-    if (value >= 0.7) return '#28a745'; // Green for good
-    if (value >= 0.5) return '#e67e22'; // Orange for weak
-    return '#dc3545'; // Red for poor
+    // Intensity scale (0-1) - use bright, visible colors
+    if (value >= 0.7) return '#2e7d32'; // Bright green for good
+    if (value >= 0.5) return '#ff8f00'; // Bright orange for weak
+    return '#d32f2f'; // Bright red for poor
   }
 }
 
@@ -690,7 +794,7 @@ export function processRolesToChunks(questionResults: QuestionResult[]): Heatmap
         
         const chunk = chunkAnalysis.get(chunkKey)!;
         chunk.retrievalCount++;
-        chunk.totalSimilarity += (doc.similarity || 0);
+        chunk.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
         chunk.questions.push({
           questionId: question.id || 'unknown',
           questionText: question.text || 'Unknown question',
@@ -713,7 +817,7 @@ export function processRolesToChunks(questionResults: QuestionResult[]): Heatmap
         docId: chunk.docId,
         title: chunk.title,
         retrievalCount: chunk.retrievalCount,
-        avgSimilarity: (chunk.totalSimilarity / chunk.retrievalCount) * 10 // Convert to 0-10 scale
+        avgSimilarity: chunk.totalSimilarity / chunk.retrievalCount // Already in 0-10 scale
       }));
 
     const roleData: RoleHeatmapData = {
@@ -736,9 +840,9 @@ export function processRolesToChunks(questionResults: QuestionResult[]): Heatmap
       id: `role_${roleName}`,
       x: roleIndex * 50, // Space roles horizontally
       y: avgQualityScore * 10, // Position based on average quality score
-      size: Math.max(0.4, Math.min(1.2, questions.length / 10)), // Size based on question count
+      size: Math.max(0.6, Math.min(1.2, questions.length / 10 * (0.8 + (avgQualityScore / 10) * 0.2))), // Size based on question count and quality
       color: avgQualityScore, // Color based on average quality score
-      opacity: Math.max(0.7, avgQualityScore / 10), // Opacity based on quality score
+      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
       data: roleData
     });
   });
@@ -806,7 +910,7 @@ export function processChunksToRoles(
       
       const roleData = chunk.roleAccess.get(roleName)!;
       roleData.accessCount++;
-      roleData.totalSimilarity += (doc.similarity || 0);
+      roleData.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
       roleData.questions.push({
         questionId: question.id || 'unknown',
         questionText: question.text || 'Unknown question',
@@ -815,7 +919,7 @@ export function processChunksToRoles(
       });
       
       chunk.totalRetrievals++;
-      chunk.totalSimilarity += (doc.similarity || 0);
+      chunk.totalSimilarity += (doc.similarity || 0) * 10; // Convert to 0-10 scale
     });
   });
 
@@ -831,12 +935,16 @@ export function processChunksToRoles(
     const retrievedChunkIds = new Set(Array.from(chunkAccessMap.keys()));
     const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
     
+    // Calculate minimum associated chunk size (from our size calculation below)
+    const minAssociatedSize = 0.6; // This matches our Math.max(0.6, ...) in chunk size calculation
+    
     // Group unassociated chunks into clusters with proper size comparison
     clusteredUnassociatedPoints = groupUnassociatedChunks(
       unassociatedChunks, 
       12, 
       maxTotalRetrievals, 
-      processedChunks.length
+      processedChunks.length,
+      minAssociatedSize
     );
   }
 
@@ -845,7 +953,7 @@ export function processChunksToRoles(
     const roleAccessArray = Array.from(chunk.roleAccess.entries()).map(([roleName, data]) => ({
       roleName,
       accessCount: data.accessCount,
-      avgSimilarity: (data.totalSimilarity / data.accessCount) * 10, // Convert to 0-10 scale
+      avgSimilarity: data.totalSimilarity / data.accessCount, // Already in 0-10 scale
       sampleQuestions: data.questions.slice(0, 3) // Top 3 questions
     }));
 
@@ -854,7 +962,7 @@ export function processChunksToRoles(
       current.accessCount > max.accessCount ? current : max
     );
 
-    const avgSimilarity = (chunk.totalSimilarity / chunk.totalRetrievals) * 10; // Convert to 0-10 scale
+    const avgSimilarity = chunk.totalSimilarity / chunk.totalRetrievals; // Already in 0-10 scale
 
     const chunkData: ChunkToRoleHeatmapData = {
       type: 'chunk-to-role',
@@ -877,9 +985,9 @@ export function processChunksToRoles(
       id: `chunk_${chunk.chunkId}`,
       x: 0, // Will be positioned later
       y: 0, // Will be positioned later
-      size: Math.max(0.3, Math.min(1.2, chunk.totalRetrievals / maxTotalRetrievals)), // Size based on total retrievals
+      size: Math.max(0.6, Math.min(1.2, chunk.totalRetrievals / maxTotalRetrievals * (0.8 + (avgSimilarity / 10) * 0.2))), // Size based on retrievals and similarity
       color: avgSimilarity, // Color based on average similarity
-      opacity: Math.max(0.7, avgSimilarity / 10),
+      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
       data: chunkData
     });
   });

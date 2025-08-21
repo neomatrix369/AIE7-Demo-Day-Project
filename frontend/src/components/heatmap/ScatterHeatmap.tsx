@@ -84,9 +84,9 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
   const positionPoints = useMemo(() => {
     if (heatmapPoints.length === 0) return [];
     
-    // Use fixed canvas size for consistent positioning
-    const canvasWidth = 700;
-    const canvasHeight = 320;
+    // Use actual inner dimensions for correct positioning
+    const canvasWidth = innerWidth;
+    const canvasHeight = innerHeight;
     
     return heatmapPoints.map((point, index) => {
       if (perspective === 'chunks-to-questions' || perspective === 'chunks-to-roles') {
@@ -95,10 +95,28 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         const x = (point.x / 100) * (canvasWidth - 60) + 30;
         const y = (point.y / 100) * (canvasHeight - 60) + 30;
         
+        const finalX = Math.max(20, Math.min(canvasWidth - 20, x));
+        const finalY = Math.max(20, Math.min(canvasHeight - 20, y));
+        
+        if (Math.random() < 0.02) { // Log 2% for debugging positioning
+          console.log('📍 Position mapping (chunks view):', {
+            id: point.id,
+            originalX: point.x,
+            originalY: point.y,
+            canvasSize: `${canvasWidth}x${canvasHeight}`,
+            calculatedX: x,
+            calculatedY: y,
+            finalX,
+            finalY,
+            size: point.size,
+            color: point.color
+          });
+        }
+        
         return {
           ...point,
-          screenX: Math.max(20, Math.min(canvasWidth - 20, x)),
-          screenY: Math.max(20, Math.min(canvasHeight - 20, y))
+          screenX: finalX,
+          screenY: finalY
         };
       } else if (perspective === 'roles-to-chunks') {
         // For roles view, use horizontal spacing with quality-based vertical positioning
@@ -138,7 +156,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         };
       }
     });
-  }, [heatmapPoints, perspective]);
+  }, [heatmapPoints, perspective, innerWidth, innerHeight]);
 
   // Stable render key to prevent unnecessary re-renders
   const renderKey = useMemo(() => {
@@ -156,9 +174,9 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     if (svg.select('.main-group').empty()) {
       svg.selectAll('*').remove(); // Clear everything on first render only
 
-      // Use fixed dimensions for grid
-      const gridWidth = 700;
-      const gridHeight = 320;
+      // Use actual inner dimensions for grid
+      const gridWidth = innerWidth;
+      const gridHeight = innerHeight;
 
       // Create main group with minimal margins (no axes needed)
       const g = svg.append('g')
@@ -191,7 +209,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       g.append('g').attr('class', 'unassociated-points');
       g.append('g').attr('class', 'associated-points');
     }
-  }, [dimensions.margin]); // Only re-run if margins change
+  }, [dimensions.margin, innerWidth, innerHeight]); // Re-run if margins or dimensions change
 
   // Update points using data binding (efficient updates)
   useEffect(() => {
@@ -219,6 +237,21 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     const associatedPoints = positionPoints.filter(p => 
       !(p.data.type === 'unassociated-cluster' || (p.data.type === 'chunk' && p.data.isUnretrieved))
     );
+    
+    console.log('🎯 ScatterHeatmap rendering:', {
+      totalPoints: positionPoints.length,
+      unassociatedCount: unassociatedPoints.length,
+      associatedCount: associatedPoints.length,
+      sampleAssociated: associatedPoints.slice(0, 5).map(p => ({
+        id: p.id,
+        type: p.data.type,
+        x: p.screenX,
+        y: p.screenY,
+        size: p.size,
+        color: p.color,
+        opacity: p.opacity
+      }))
+    });
 
     // Helper function to update points with efficient data binding
     const updatePointGroup = (container: string, points: HeatmapPoint[], isUnassociated: boolean) => {
@@ -246,8 +279,33 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       merged
         .transition()
         .duration(300)
-        .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20)))
-        .attr('fill', d => getHeatmapColor(d.color, isUnassociated, true))
+        .attr('points', d => {
+          const points = generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20));
+          if (Math.random() < 0.1) { // Log 10% of hexagons for debugging
+            console.log('🔸 Creating hexagon:', {
+              id: d.id,
+              x: d.screenX,
+              y: d.screenY,
+              size: d.size,
+              scaledSize: getScaledSize(d.size, 6, 20),
+              color: d.color,
+              opacity: d.opacity,
+              points: points.substring(0, 20) + '...'
+            });
+          }
+          return points;
+        })
+        .attr('fill', d => {
+          const color = getHeatmapColor(d.color, isUnassociated, true);
+          if (Math.random() < 0.1) { // Log 10% for debugging
+            console.log('🎨 Color calculation:', {
+              inputColor: d.color,
+              isUnassociated,
+              resultColor: color
+            });
+          }
+          return color;
+        })
         .attr('opacity', d => d.opacity)
         .attr('stroke', '#fff')
         .attr('stroke-width', 2);

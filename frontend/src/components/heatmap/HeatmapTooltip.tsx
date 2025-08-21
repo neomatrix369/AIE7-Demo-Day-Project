@@ -1,6 +1,7 @@
 import React from 'react';
 import { HeatmapPoint, QuestionHeatmapData, ChunkHeatmapData, RoleHeatmapData, ChunkToRoleHeatmapData, UnassociatedClusterHeatmapData } from '../../utils/heatmapData';
 import { HeatmapPerspective, TooltipPosition } from '../../types';
+import BalloonTooltip from '../ui/BalloonTooltip';
 
 interface HeatmapTooltipProps {
   point: HeatmapPoint;
@@ -232,23 +233,28 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
 
         <div style={{ marginBottom: '8px' }}>
           <strong>Content:</strong>
-          <div style={{ 
-            fontSize: '0.85rem',
-            padding: '4px 8px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '3px',
-            marginTop: '3px',
-            maxWidth: '300px',
-            lineHeight: '1.3',
-            cursor: 'help'
-          }}
-          title={data.content && data.content.length > 500 ? `${data.content.substring(0, 500)}...` : data.content || 'No content available'}>
-            {data.content ? (
-              data.content.length > 20 ? `${data.content.substring(0, 20)}...` : data.content
-            ) : (
-              <span style={{ color: '#6c757d', fontStyle: 'italic' }}>No content available</span>
-            )}
-          </div>
+          <BalloonTooltip
+            content={data.content || 'No content available'}
+            maxWidth={500}
+            cursor="help"
+            position="bottom"
+          >
+            <div style={{ 
+              fontSize: '0.85rem',
+              padding: '4px 8px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '3px',
+              marginTop: '3px',
+              maxWidth: '300px',
+              lineHeight: '1.3'
+            }}>
+              {data.content ? (
+                data.content.length > 20 ? `${data.content.substring(0, 20)}...` : data.content
+              ) : (
+                <span style={{ color: '#6c757d', fontStyle: 'italic' }}>No content available</span>
+              )}
+            </div>
+          </BalloonTooltip>
         </div>
 
         <div style={{ marginBottom: '6px' }}>
@@ -516,23 +522,28 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
 
       <div style={{ marginBottom: '8px' }}>
         <strong>Content:</strong>
-        <div style={{ 
-          fontSize: '0.85rem',
-          padding: '4px 8px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '3px',
-          marginTop: '3px',
-          maxWidth: '300px',
-          lineHeight: '1.3',
-          cursor: 'help'
-        }}
-        title={data.content && data.content.length > 500 ? `${data.content.substring(0, 500)}...` : data.content || 'No content available'}>
-          {data.content ? (
-            data.content.length > 20 ? `${data.content.substring(0, 20)}...` : data.content
-          ) : (
-            <span style={{ color: '#6c757d', fontStyle: 'italic' }}>No content available</span>
-          )}
-        </div>
+        <BalloonTooltip
+          content={data.content || 'No content available'}
+          maxWidth={500}
+          cursor="help"
+          position="bottom"
+        >
+          <div style={{ 
+            fontSize: '0.85rem',
+            padding: '4px 8px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '3px',
+            marginTop: '3px',
+            maxWidth: '300px',
+            lineHeight: '1.3'
+          }}>
+            {data.content ? (
+              data.content.length > 20 ? `${data.content.substring(0, 20)}...` : data.content
+            ) : (
+              <span style={{ color: '#6c757d', fontStyle: 'italic' }}>No content available</span>
+            )}
+          </div>
+        </BalloonTooltip>
       </div>
 
       {data.isUnretrieved ? (

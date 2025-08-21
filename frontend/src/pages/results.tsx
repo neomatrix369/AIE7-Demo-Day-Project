@@ -5,6 +5,7 @@ import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
+import BalloonTooltip from '../components/ui/BalloonTooltip';
 import { createStorageAdapter } from '../services/storage';
 
 const AnalysisResults: React.FC = () => {
@@ -911,18 +912,22 @@ const AnalysisResults: React.FC = () => {
                                   </td>
                                   <td style={{ padding: '8px', verticalAlign: 'middle' }}>
                                     {doc.content ? (
-                                      <div 
-                                        style={{ 
-                                          fontSize: '0.8rem',
-                                          color: '#495057',
-                                          lineHeight: '1.4',
-                                          cursor: 'help',
-                                          wordBreak: 'break-word'
-                                        }}
-                                        title={doc.content.length > 500 ? `${doc.content.substring(0, 500)}...` : doc.content}
+                                      <BalloonTooltip
+                                        content={doc.content.length > 500 ? `${doc.content.substring(0, 500)}...` : doc.content}
+                                        maxWidth={400}
+                                        cursor="help"
                                       >
-                                        {doc.content.length > 20 ? `${doc.content.substring(0, 20)}...` : doc.content}
-                                      </div>
+                                        <div 
+                                          style={{ 
+                                            fontSize: '0.8rem',
+                                            color: '#495057',
+                                            lineHeight: '1.4',
+                                            wordBreak: 'break-word'
+                                          }}
+                                        >
+                                          {doc.content.length > 20 ? `${doc.content.substring(0, 20)}...` : doc.content}
+                                        </div>
+                                      </BalloonTooltip>
                                     ) : (
                                       <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '0.8rem' }}>
                                         No content available
@@ -930,18 +935,22 @@ const AnalysisResults: React.FC = () => {
                                     )}
                                   </td>
                                   <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
-                                    <span 
-                                      style={{ 
-                                        fontFamily: 'monospace',
-                                        fontSize: '0.75rem',
-                                        color: '#6c757d',
-                                        cursor: 'pointer'
-                                      }}
-                                      title={`Full chunk ID: ${doc.chunk_id || 'unknown'}`}
-                                      onClick={() => navigator.clipboard?.writeText(doc.chunk_id || 'unknown')}
+                                    <BalloonTooltip
+                                      content={`Full chunk ID: ${doc.chunk_id || 'unknown'}\n\nClick to copy to clipboard`}
+                                      maxWidth={350}
+                                      cursor="pointer"
                                     >
-                                      {doc.chunk_id && doc.chunk_id.length > 8 ? `${doc.chunk_id.substring(0, 8)}...` : (doc.chunk_id || 'unknown')}
-                                    </span>
+                                      <span 
+                                        style={{ 
+                                          fontFamily: 'monospace',
+                                          fontSize: '0.75rem',
+                                          color: '#6c757d'
+                                        }}
+                                        onClick={() => navigator.clipboard?.writeText(doc.chunk_id || 'unknown')}
+                                      >
+                                        {doc.chunk_id && doc.chunk_id.length > 8 ? `${doc.chunk_id.substring(0, 8)}...` : (doc.chunk_id || 'unknown')}
+                                      </span>
+                                    </BalloonTooltip>
                                   </td>
                                   <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span style={{ 

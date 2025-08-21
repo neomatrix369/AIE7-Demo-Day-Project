@@ -23,6 +23,8 @@ interface ScatterHeatmapProps {
   height?: number;
   allChunks?: Array<{chunk_id: string; doc_id: string; title: string; content: string}>;
   totalChunks?: number;
+  showTooltips?: boolean;
+  pointSize?: 'small' | 'medium' | 'large';
 }
 
 const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
@@ -33,7 +35,9 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
   width = 800,
   height = 400,
   allChunks,
-  totalChunks
+  totalChunks,
+  showTooltips = true,
+  pointSize = 'medium',
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltipData, setTooltipData] = useState<HeatmapPoint | null>(null);
@@ -158,10 +162,17 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     });
   }, [heatmapPoints, perspective, innerWidth, innerHeight]);
 
+  useEffect(() => {
+    if (!showTooltips) {
+      setTooltipData(null);
+      setTooltipPosition({ x: 0, y: 0, visible: false });
+    }
+  }, [showTooltips]);
+
   // Stable render key to prevent unnecessary re-renders
   const renderKey = useMemo(() => {
-    return `${positionPoints.length}-${perspective}-${qualityFilter}`;
-  }, [positionPoints.length, perspective, qualityFilter]);
+    return `${positionPoints.length}-${perspective}-${qualityFilter}-${pointSize}`;
+  }, [positionPoints.length, perspective, qualityFilter, pointSize]);
 
   // Draw the scatter plot (only when data actually changes)
   // Initialize SVG structure only once
@@ -280,14 +291,14 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         .transition()
         .duration(300)
         .attr('points', d => {
-          const points = generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20));
+          const points = generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, pointSize));
           if (Math.random() < 0.1) { // Log 10% of hexagons for debugging
             console.log('🔸 Creating hexagon:', {
               id: d.id,
               x: d.screenX,
               y: d.screenY,
               size: d.size,
-              scaledSize: getScaledSize(d.size, 6, 20),
+              scaledSize: getScaledSize(d.size, pointSize),
               color: d.color,
               opacity: d.opacity,
               points: points.substring(0, 20) + '...'
@@ -325,13 +336,14 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     // Add event listeners that only modify styles, not the entire DOM
     allHexagons
       .on('mouseover', function(event, d) {
+        if (!showTooltips) return;
         const heatmapPoint = d as HeatmapPoint;
         // Hide any existing tooltip first
         setTooltipPosition(prev => ({ ...prev, visible: false }));
         setTooltipData(null);
         
         // Only modify the specific hexagon's styles
-        const currentRadius = getScaledSize(heatmapPoint.size, 6, 20);
+        const currentRadius = getScaledSize(heatmapPoint.size, pointSize);
         d3.select(this)
           .attr('stroke-width', 3)
           .attr('stroke', '#333')
@@ -354,9 +366,10 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         });
       })
       .on('mouseout', function(_, d) {
+        if (!showTooltips) return;
         const heatmapPoint = d as HeatmapPoint;
         // Only modify the specific hexagon's styles
-        const currentRadius = getScaledSize(heatmapPoint.size, 6, 20);
+        const currentRadius = getScaledSize(heatmapPoint.size, pointSize);
         d3.select(this)
           .attr('stroke-width', 2)
           .attr('stroke', '#fff')
@@ -380,7 +393,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .transition()
       .duration(600)
       .delay((_, i) => i * 20) // Faster animation for background
-      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20)));
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, pointSize)));
 
     // Phase 2 animation: Associated chunks (foreground layer) - start after unassociated
     associatedHexagons
@@ -388,7 +401,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .transition()
       .duration(800)
       .delay((_, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
-      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, 6, 20)));
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, pointSize)));
 
   }, [renderKey, positionPoints, dimensions, onPointClick]);
 

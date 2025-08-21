@@ -598,6 +598,8 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 height={460}
                 allChunks={allChunks || undefined}
                 totalChunks={chunkCoverageStats.totalChunks!}
+                showTooltips={heatmapConfig.showTooltips}
+                pointSize={heatmapConfig.pointSize}
               />
             )}
           </div>

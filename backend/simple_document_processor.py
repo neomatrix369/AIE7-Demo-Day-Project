@@ -45,7 +45,7 @@ class SimpleDocumentProcessor:
             self.vector_store_manager.initialize_vector_store_if_needed(combined_docs)
             self._documents_loaded = True
 
-        return self.corpus_stats_manager.get_corpus_stats(csv_docs, pdf_docs, combined_docs)
+        return self.corpus_stats_manager.get_corpus_stats(csv_docs, pdf_docs, combined_docs, self.qdrant_manager)
 
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """

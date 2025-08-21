@@ -14,7 +14,7 @@ class CorpusStatisticsManager:
     def __init__(self):
         self._corpus_stats_cache = None
 
-    def get_corpus_stats(self, csv_docs: List[Dict[str, Any]], pdf_docs: List[Dict[str, Any]], combined_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def get_corpus_stats(self, csv_docs: List[Dict[str, Any]], pdf_docs: List[Dict[str, Any]], combined_docs: List[Dict[str, Any]], qdrant_manager=None) -> Dict[str, Any]:
         """
         Generate corpus statistics with caching to avoid expensive recomputation.
         """
@@ -27,7 +27,7 @@ class CorpusStatisticsManager:
             self._corpus_stats_cache = self._create_empty_corpus_stats()
             return self._corpus_stats_cache
         
-        stats = self._calculate_corpus_statistics(csv_docs, pdf_docs, combined_docs)
+        stats = self._calculate_corpus_statistics(csv_docs, pdf_docs, combined_docs, qdrant_manager)
         self._corpus_stats_cache = self._create_corpus_stats_response(stats, csv_docs, pdf_docs)
         return self._corpus_stats_cache
 
@@ -49,7 +49,8 @@ class CorpusStatisticsManager:
 
     def _calculate_corpus_statistics(self, csv_docs: List[Dict[str, Any]], 
                                    pdf_docs: List[Dict[str, Any]], 
-                                   combined_docs: List[Dict[str, Any]]) -> Dict[str, Any]:
+                                   combined_docs: List[Dict[str, Any]],
+                                   qdrant_manager=None) -> Dict[str, Any]:
         """
         Calculate basic corpus statistics.
         """
@@ -57,16 +58,26 @@ class CorpusStatisticsManager:
         total_content_length = sum(len(getattr(doc, 'page_content', '')) for doc in combined_docs)
         total_size_mb = total_content_length / (1024 * 1024)
         avg_doc_length = total_content_length // total_docs if total_docs > 0 else 0
-        estimated_chunks = max(total_docs, total_content_length // 750)
         
-        logger.info(f"📊 Stats computed: {total_docs} docs, {estimated_chunks} chunks")
+        # Get actual chunk count from Qdrant if available, otherwise estimate
+        if qdrant_manager and hasattr(qdrant_manager, 'get_collection_info'):
+            try:
+                actual_chunks = qdrant_manager.get_collection_info().points_count
+                logger.info(f"📊 Stats computed: {total_docs} docs, {actual_chunks} actual chunks (from Qdrant)")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to get actual chunk count from Qdrant: {e}")
+                actual_chunks = max(total_docs, total_content_length // 750)
+                logger.info(f"📊 Stats computed: {total_docs} docs, {actual_chunks} estimated chunks")
+        else:
+            actual_chunks = max(total_docs, total_content_length // 750)
+            logger.info(f"📊 Stats computed: {total_docs} docs, {actual_chunks} estimated chunks")
         
         return {
             "total_docs": total_docs,
             "total_content_length": total_content_length,
             "total_size_mb": total_size_mb,
             "avg_doc_length": avg_doc_length,
-            "estimated_chunks": estimated_chunks
+            "estimated_chunks": actual_chunks
         }
 
     def _create_corpus_stats_response(self, stats: Dict[str, Any], 

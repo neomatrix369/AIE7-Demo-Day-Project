@@ -115,3 +115,13 @@ class QdrantManager:
         except Exception as e:
             logger.error(f"❌ Failed to initialize collection: {e}")
             return False
+
+    def get_collection_info(self):
+        """
+        Get collection information including points count.
+        """
+        try:
+            return self.client.get_collection(self.collection_name)
+        except Exception as e:
+            logger.error(f"❌ Failed to get collection info: {e}")
+            raise

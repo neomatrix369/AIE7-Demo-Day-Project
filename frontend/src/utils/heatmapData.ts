@@ -691,28 +691,10 @@ export function getHeatmapColor(value: number, isUnretrieved: boolean = false, i
  * Get size scaling for scatter points
  */
 export function getScaledSize(
-  normalizedSize: number, 
-  pointSize: 'small' | 'medium' | 'large' = 'medium'
+  normalizedSize: number,
+  minSize: number = 8,
+  maxSize: number = 24
 ): number {
-  let minSize: number;
-  let maxSize: number;
-
-  switch (pointSize) {
-    case 'small':
-      minSize = 4;
-      maxSize = 12;
-      break;
-    case 'large':
-      minSize = 12;
-      maxSize = 36;
-      break;
-    case 'medium':
-    default:
-      minSize = 8;
-      maxSize = 24;
-      break;
-  }
-
   return minSize + (normalizedSize * (maxSize - minSize));
 }
 

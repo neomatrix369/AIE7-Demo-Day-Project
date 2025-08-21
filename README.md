@@ -55,25 +55,32 @@ npm install && npm run dev
 ## Key Features
 
 - **🎯 5-Screen Wizard**: Dashboard → Questions → Experiment → Results → Heatmap
-- **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics
-- **📊 Real-time Analytics**: Coverage statistics, orphaned chunk detection, performance insights
-- **🗃️ Vector Storage**: Persistent Qdrant database with similarity search
-- **📡 Live Updates**: WebSocket streaming for experiment progress
+- **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics and smart positioning
+- **📊 Real-time Analytics**: Coverage statistics, unretrieved chunk detection, performance insights
+- **🗃️ Vector Storage**: Persistent Qdrant database with similarity search and real-time connectivity checks
+- **📡 Live Updates**: WebSocket streaming for experiment progress with comprehensive error handling
 - **🎯 Quality Scoring**: Normalized 0-10 scale with consistent thresholds and color coding
+- **💬 Custom Tooltips**: Consistent balloon tooltips with smart positioning and cursor indicators
+- **⚡ Performance Optimized**: Advanced caching, D3.js rendering optimization, and state management
+- **🔧 Database Integration**: Real-time chunk counting and connectivity status with fallback handling
 
 ## Components
 
 ### Backend (FastAPI)
-- **Document Processing**: CSV/PDF loading with LangChain chunking
-- **Vector Operations**: Qdrant database integration with OpenAI embeddings
-- **Real-time Streaming**: WebSocket experiment progress updates
+- **Document Processing**: CSV/PDF loading with LangChain chunking and configurable strategies
+- **Vector Operations**: Qdrant database integration with OpenAI embeddings and connectivity monitoring
+- **Service Architecture**: Manager pattern with QualityScoreService, ExperimentService, and ErrorResponseService
+- **Performance Caching**: Search result caching (5min TTL) with MD5-based query keys and LRU eviction
+- **Real-time Streaming**: WebSocket experiment progress updates with error handling
 - **Comprehensive Logging**: User-friendly logging with development/production modes
 
 ### Frontend (Next.js)
-- **TypeScript Application**: Type-safe React components and API integration
-- **Interactive Visualizations**: D3.js scatter plots and analytics dashboards
-- **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts
-- **Cross-platform Storage**: Adapters for local development and cloud deployment
+- **TypeScript Application**: Type-safe React components and API integration with comprehensive interfaces
+- **Interactive Visualizations**: D3.js hexagonal scatter plots with optimized data binding patterns
+- **Performance Optimization**: API request caching (10min TTL), React state management, and rendering improvements
+- **UI/UX Enhancement**: Custom BalloonTooltip components with smart positioning and consistent styling
+- **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts with enhanced visual indicators
+- **Cross-platform Storage**: Adapters for local development and cloud deployment with auto-save functionality
 
 ## Contributing
 

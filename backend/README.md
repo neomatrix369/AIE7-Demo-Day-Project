@@ -14,11 +14,20 @@ FastAPI backend with real document processing, vector embeddings, and persistent
 5. **Caching**: Caching prevents expensive reprocessing
 
 ### Key Components
-- **`main.py`**: FastAPI application with REST API and WebSocket endpoints
-- **`simple_document_processor.py`**: Document processing orchestrator
-- **`managers/`**: Directory for business logic managers
-- **`test_qdrant.py`**: Qdrant connection testing utility
-- **`logging_config.py`**: Centralized logging configuration
+- **`main.py`**: FastAPI application with REST API and WebSocket endpoints (855 lines, comprehensive routing)
+- **`simple_document_processor.py`**: Document processing orchestrator with manager integration
+- **`managers/`**: Directory for business logic managers with service layer architecture:
+  - `qdrant_manager.py`: Vector database operations and collection management
+  - `corpus_statistics_manager.py`: Corpus analysis with real-time chunk counting
+  - `search_manager.py`: Vector similarity search with caching (5min TTL)
+  - `data_manager.py`: Document loading and preprocessing
+  - `vector_store_manager.py`: Vector embedding and storage orchestration
+- **`services/`**: Business logic services:
+  - `quality_score_service.py`: Centralized quality score calculations and normalization
+  - `experiment_service.py`: Experiment orchestration and result processing
+  - `error_response_service.py`: Standardized error handling and responses
+- **`test_qdrant.py`**: Qdrant connection testing utility with health checks
+- **`logging_config.py`**: Centralized logging configuration with structured output
 
 ## Setup
 
@@ -56,14 +65,16 @@ uvicorn main:app --reload
 ## API Endpoints
 
 ### REST Endpoints
-- `GET /api/corpus/status` - Get corpus metadata and statistics
-- `GET /api/questions/llm` - Get LLM-generated questions
-- `GET /api/questions/ragas` - Get RAGAS-generated questions  
-- `POST /api/experiment/run` - Start vector similarity experiment
-- `GET /api/results/analysis` - Get experiment analysis results
+- `GET /api/corpus/status` - Get corpus metadata and statistics with real-time chunk counts from Qdrant
+- `GET /api/corpus/chunks` - Get all chunks from Qdrant database with pagination support
+- `GET /api/questions/llm` - Get LLM-generated questions by role and category
+- `GET /api/questions/ragas` - Get RAGAS-generated questions with metadata
+- `POST /api/experiment/run` - Start vector similarity experiment with configurable parameters
+- `GET /api/results/analysis` - Get comprehensive experiment analysis results with quality scoring
+- `GET /api/v1/experiment/config` - Get experiment configuration and chunking strategies
 
 ### WebSocket Endpoints
-- `WS /ws/experiment/stream` - Real-time experiment progress streaming
+- `WS /ws/experiment/stream` - Real-time experiment progress streaming with error handling and reconnection
 
 ## Configuration
 
@@ -100,15 +111,24 @@ DEBUG=false
 
 ## Performance Features
 
-### Caching System
+### Advanced Caching System
+- **Search result caching**: 5-minute TTL cache with MD5-based query keys and LRU eviction
+- **Cache statistics**: Automatic cleanup with size limits (100 entries) and performance monitoring  
+- **Corpus statistics** cached to avoid recomputation with real-time database integration
+- **Vector store** reuses existing Qdrant collections with health checks
 
-- **Corpus statistics** cached to avoid recomputation
-- **Vector store** reuses existing Qdrant collections
+### Vector Database Integration
+- **Persistent storage** in Qdrant database with real-time connectivity monitoring
+- **Efficient similarity search** with cosine distance and query optimization
+- **Collection management** with automatic creation and health status reporting
+- **Real-time chunk counting**: Actual database counts vs estimated calculations
+- **Connection resilience**: Comprehensive error handling with fallback mechanisms
 
-### Vector Database
-- **Persistent storage** in Qdrant database
-- **Efficient similarity search** with cosine distance
-- **Collection management** with automatic creation
+### Service Layer Architecture  
+- **Manager Pattern**: Clear separation of concerns with dedicated managers for each domain
+- **Service Extraction**: Business logic centralized in QualityScoreService and ExperimentService
+- **Error Standardization**: Unified error responses via ErrorResponseService
+- **Quality Score Normalization**: Consistent 0-10 scale with threshold-based categorization
 
 ## Development
 

@@ -46,6 +46,18 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     y: 0,
     visible: false
   });
+
+  const { minSize, maxSize } = useMemo(() => {
+    switch (pointSize) {
+      case 'small':
+        return { minSize: 4, maxSize: 12 };
+      case 'large':
+        return { minSize: 12, maxSize: 36 };
+      case 'medium':
+      default:
+        return { minSize: 8, maxSize: 24 };
+    }
+  }, [pointSize]);
   
 
   const dimensions: HeatmapDimensions = useMemo(() => ({
@@ -291,14 +303,14 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         .transition()
         .duration(300)
         .attr('points', d => {
-          const points = generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, pointSize));
+          const points = generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, minSize, maxSize));
           if (Math.random() < 0.1) { // Log 10% of hexagons for debugging
             console.log('🔸 Creating hexagon:', {
               id: d.id,
               x: d.screenX,
               y: d.screenY,
               size: d.size,
-              scaledSize: getScaledSize(d.size, pointSize),
+              scaledSize: getScaledSize(d.size, minSize, maxSize),
               color: d.color,
               opacity: d.opacity,
               points: points.substring(0, 20) + '...'
@@ -343,7 +355,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         setTooltipData(null);
         
         // Only modify the specific hexagon's styles
-        const currentRadius = getScaledSize(heatmapPoint.size, pointSize);
+        const currentRadius = getScaledSize(heatmapPoint.size, minSize, maxSize);
         d3.select(this)
           .attr('stroke-width', 3)
           .attr('stroke', '#333')
@@ -369,7 +381,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         if (!showTooltips) return;
         const heatmapPoint = d as HeatmapPoint;
         // Only modify the specific hexagon's styles
-        const currentRadius = getScaledSize(heatmapPoint.size, pointSize);
+        const currentRadius = getScaledSize(heatmapPoint.size, minSize, maxSize);
         d3.select(this)
           .attr('stroke-width', 2)
           .attr('stroke', '#fff')
@@ -393,7 +405,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .transition()
       .duration(600)
       .delay((_, i) => i * 20) // Faster animation for background
-      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, pointSize)));
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, minSize, maxSize)));
 
     // Phase 2 animation: Associated chunks (foreground layer) - start after unassociated
     associatedHexagons
@@ -401,7 +413,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       .transition()
       .duration(800)
       .delay((_, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
-      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, pointSize)));
+      .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, minSize, maxSize)));
 
   }, [renderKey, positionPoints, dimensions, onPointClick]);
 

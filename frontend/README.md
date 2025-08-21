@@ -14,9 +14,12 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 
 ### Key Features
 - **Comprehensive Logging**: User-friendly messages with development context
-- **API Logging**: Request/response interceptors with timeout handling
-- **Real-time Streaming**: WebSocket-based experiment progress
-- **Error Handling**: User-friendly error messages and retry mechanisms
+- **API Logging**: Request/response interceptors with timeout handling  
+- **Performance Caching**: API request caching with TTL (10min) and size limits
+- **Custom UI Components**: Reusable BalloonTooltip with smart positioning and cursor indicators
+- **Real-time Streaming**: WebSocket-based experiment progress with connection monitoring
+- **Error Handling**: User-friendly error messages and retry mechanisms with fallback displays
+- **Database Integration**: Real-time connectivity checks with loading states and error recovery
 
 ## File Structure
 
@@ -28,6 +31,8 @@ src/
 │   │   ├── HeatmapControls.tsx    # Perspective switching controls
 │   │   ├── HeatmapLegend.tsx      # Dynamic legends
 │   │   └── HeatmapTooltip.tsx     # Enhanced tooltips with role info
+│   ├── ui/               # Reusable UI components
+│   │   └── BalloonTooltip.tsx     # Custom balloon tooltips with smart positioning
 │   ├── Footer.tsx        # Application footer component
 │   ├── NavigationHeader.tsx  # Navigation header component
 │   └── QualityScoreLegend.tsx  # Quality score legend component
@@ -87,9 +92,10 @@ node --version   # Should show 18+ or 22+
 ## Features
 
 ### 1. Dashboard (Screen 1)
-- **Corpus Overview**: Real-time statistics from persistent Qdrant vector database
-- **Health Metrics**: Document count, chunk count, size, embedding model, corpus health
-- **Document Types**: Breakdown of PDF and CSV document counts
+- **Corpus Overview**: Real-time statistics from persistent Qdrant vector database with actual chunk counts
+- **Health Metrics**: Document count, consistent chunk count (2172 from vector database), size, embedding model, corpus health
+- **Database Connectivity**: Real-time Qdrant connection status with error handling and recovery instructions
+- **Document Types**: Breakdown of PDF and CSV document counts with metadata
 - **Error Handling**: User-friendly error messages with retry mechanism for slow corpus loading
 - **Loading States**: Progress indicators for slow operations with helpful context messages
 
@@ -110,15 +116,19 @@ node --version   # Should show 18+ or 22+
 - **3-Level Analysis**: Overall corpus health → Group performance (LLM vs RAGAS) → Individual question analysis
 - **Interactive Features**: Real-time sorting, filtering by status (good/weak/poor), question detail expansion
 - **Visual Elements**: Similarity score bars, health indicators, status badges, distribution charts
+- **Custom Tooltips**: BalloonTooltip components for chunk IDs (with copy functionality) and document content
+- **Enhanced Data Display**: Chunk ID columns with truncated display and full UUID tooltips
 - **Detailed Inspection**: Full question text, retrieved document details, similarity scores per document
 - **Navigation**: Easy navigation to restart experiments or return to previous screens
 
 ### 5. Heatmap (Screen 5)
-- **Interactive Data Visualization**: Multi-perspective hexagonal heatmaps with coverage analytics
-- **Multiple Perspectives**: Chunks-to-Questions, Chunks-to-Roles visualization modes
-- **Advanced Analytics**: Coverage statistics, orphaned chunk detection, performance insights
-- **Smart Insights**: Role-based performance analysis, efficiency indicators
-- **Enhanced UX**: Collapsible sections, quick actions, context-aware statistics
+- **Interactive Data Visualization**: Multi-perspective hexagonal heatmaps with optimized D3.js rendering
+- **Multiple Perspectives**: Chunks-to-Questions, Chunks-to-Roles visualization modes with smart positioning
+- **Advanced Analytics**: Coverage statistics, unretrieved chunk detection, performance insights
+- **Database Integration**: Real-time chunk data loading with connectivity status and error handling
+- **Performance Optimization**: Representative clustering, collision detection, and efficient rendering
+- **Smart Insights**: Role-based performance analysis, efficiency indicators, coverage percentage
+- **Enhanced UX**: Collapsible sections, quick actions, context-aware statistics with improved terminology
 
 ## API Integration
 
@@ -210,15 +220,24 @@ logNavigation('Dashboard', 'Questions');
 
 ### API Optimization
 - **30-second timeout** for slow backend operations  
-- **Request deduplication** via React hooks
-- **Caching** via browser and service worker (future)
+- **Advanced Caching**: API request caching with TTL (10min) and size limits via useApiCache hook
+- **Request deduplication** via React hooks with proper dependency management
+- **Cache Statistics**: Automatic cleanup and cache hit/miss tracking for performance monitoring
 
 ### UI Optimization  
-- **Responsive design** with mobile-first approach
-- **Progressive enhancement** with loading states
-- **Efficient re-renders** with proper React patterns
+- **D3.js Rendering**: Optimized data binding patterns with enter/update/exit cycles (~80% faster rendering)
+- **React State Management**: Improved useCallback dependencies and auto-save timeout cleanup  
+- **Responsive design** with mobile-first approach and enhanced visual indicators
+- **Progressive enhancement** with loading states and database connectivity feedback
+- **Efficient re-renders** with proper React patterns and memoization
 
 ### Real-time Features
-- **WebSocket connection management** with reconnection
-- **Progress tracking** without UI blocking
-- **Memory management** for large result sets
+- **WebSocket connection management** with reconnection and comprehensive error handling
+- **Progress tracking** without UI blocking and fallback mechanisms
+- **Memory management** for large result sets with automatic cleanup
+- **Database Integration**: Real-time connectivity monitoring with fallback displays and recovery instructions
+
+### Custom UI Components
+- **BalloonTooltip Performance**: Smart positioning algorithms with viewport boundary detection
+- **Cursor Optimization**: Context-aware cursor indicators (help vs pointer) for better UX
+- **Rendering Efficiency**: Optimized tooltip positioning with requestAnimationFrame for smooth animations

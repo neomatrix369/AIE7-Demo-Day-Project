@@ -20,7 +20,7 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = React.memo(({
     { value: 0.9, label: 'Excellent (≥7.0)', color: '#28a745' },
     { value: 0.6, label: 'Weak (5.0-7.0)', color: '#e67e22' },
     { value: 0.3, label: 'Poor (<5.0)', color: '#dc3545' },
-    { value: 0.0, label: 'Unretrieved (never retrieved)', color: '#6c757d' }
+    { value: 0.0, label: 'Unretrieved chunk clusters (darker)', color: '#6d4c41' }
   ] : [
     { value: 0.9, label: 'Excellent (≥7.0)', color: '#28a745' },
     { value: 0.6, label: 'Weak (5.0-7.0)', color: '#e67e22' },
@@ -35,7 +35,7 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = React.memo(({
     { size: 1.0, label: 'High retrieval frequency' },
     { size: 0.6, label: 'Medium retrieval frequency' },
     { size: 0.4, label: 'Low retrieval frequency' },
-    { size: 0.15, label: 'Unretrieved (no retrieval)' }
+    { size: 1.0, label: 'Unretrieved chunk clusters (size = quantity)' }
   ] : perspective === 'roles-to-chunks' ? [
     { size: 1.0, label: 'High chunk count' },
     { size: 0.6, label: 'Medium chunk count' },

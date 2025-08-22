@@ -3,15 +3,17 @@ import * as d3 from 'd3';
 import { QuestionResult, HeatmapPerspective, HeatmapDimensions, TooltipPosition } from '../../types';
 import { 
   HeatmapPoint, 
-  processQuestionsToChunks, 
-  processChunksToQuestions, 
-  processRolesToChunks,
-  processDocumentsToChunks,
   getHeatmapColor, 
   getScaledSize, 
   optimizePositions,
   filterPointsByQuality 
 } from '../../utils/heatmapData';
+import { 
+  processDocumentsToChunksRefactored,
+  processQuestionsToChunksRefactored,
+  processChunksToQuestionsRefactored,
+  processRolesToChunksRefactored
+} from '../../utils/heatmapProcessors';
 import HeatmapTooltip from './HeatmapTooltip';
 import { renderOwnerChunks, generateHexagonPoints } from './renderUtils';
 import { computeGridPositions } from './positionUtils';
@@ -92,16 +94,16 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
           sampleDoc: q.retrieved_docs?.[0]?.doc_id
         }))
       });
-      points = processDocumentsToChunks(questionResults, memoizedAllChunks || undefined);
+      points = processDocumentsToChunksRefactored(questionResults, memoizedAllChunks || undefined);
     } else if (perspective === 'questions-to-chunks') {
-      points = processQuestionsToChunks(questionResults);
+      points = processQuestionsToChunksRefactored(questionResults, memoizedAllChunks || undefined);
     } else if (perspective === 'chunks-to-questions') {
-      points = processChunksToQuestions(questionResults, memoizedAllChunks || undefined);
+      points = processChunksToQuestionsRefactored(questionResults, memoizedAllChunks || undefined);
     } else if (perspective === 'roles-to-chunks') {
-      points = processRolesToChunks(questionResults, memoizedAllChunks || undefined);
+      points = processRolesToChunksRefactored(questionResults, memoizedAllChunks || undefined);
     } else {
       // Default to documents-to-chunks
-      points = processDocumentsToChunks(questionResults, memoizedAllChunks || undefined);
+      points = processDocumentsToChunksRefactored(questionResults, memoizedAllChunks || undefined);
     }
     
     // Filter by quality

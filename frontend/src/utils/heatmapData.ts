@@ -164,7 +164,7 @@ export interface DocumentHeatmapData {
 /**
  * Position associated chunks in the inner area with consistent grid-based spacing
  */
-function positionAssociatedChunks(retrievedChunkPoints: HeatmapPoint[]): void {
+export function positionAssociatedChunks(retrievedChunkPoints: HeatmapPoint[]): void {
   if (retrievedChunkPoints.length === 0) return;
 
   // Sort associated chunks by frequency for better central placement (highest frequency most central)
@@ -280,82 +280,18 @@ function groupUnassociatedChunks(
   });
 
   // Convert clusters to HeatmapPoints
-  return clusters.map((cluster) => {
-    // Group chunks by document for breakdown
-    const documentBreakdown = new Map<string, { title: string; count: number }>();
-    
-    cluster.chunks.forEach(chunk => {
-      const docKey = chunk.doc_id;
-      if (!documentBreakdown.has(docKey)) {
-        documentBreakdown.set(docKey, { title: chunk.title, count: 0 });
-      }
-      documentBreakdown.get(docKey)!.count++;
-    });
-
-    const clusterData: UnassociatedClusterHeatmapData = {
-      type: 'unassociated-cluster',
-      clusterId: cluster.id,
-      chunkCount: cluster.chunks.length,
-      chunks: cluster.chunks.map(chunk => ({
-        chunkId: chunk.chunk_id,
-        docId: chunk.doc_id,
-        title: chunk.title
-      })),
-      documentBreakdown: Array.from(documentBreakdown.entries()).map(([docId, data]) => ({
-        docId,
-        title: data.title,
-        chunkCount: data.count
-      })),
-      centerPosition: cluster.position
-    };
-
-    // Calculate size based on proportion to total chunks and make 5x larger than smallest associated
-    const clusterChunkCount = cluster.chunks.length;
-    const totalChunks = totalAssociatedChunks + unassociatedChunks.length;
-    
-    // Base size: proportion of chunks this cluster represents
-    const chunkProportion = clusterChunkCount / Math.max(totalChunks, 1);
-    
-    // Scale factor: 5x the minimum associated chunk size
-    const scaleFactor = minAssociatedChunkSize * 5.0;
-    
-    // Final size: much smaller to reduce dominance
-    const proportionalSize = scaleFactor * (0.3 + (chunkProportion * 5)); // Reduced multiplier to make clusters smaller
-    
-    // Cluster intensity for color variation
-    const maxClusterSize = Math.max(...clusters.map(c => c.chunks.length), 1);
-    const clusterIntensity = clusterChunkCount / maxClusterSize;
-    const visibleColor = 4.0 + (clusterIntensity * 1.5); // Reduced range: 4.0 to 5.5 for less dominance
-
-    return {
-      id: cluster.id,
-      x: cluster.position.x,
-      y: cluster.position.y,
-      size: Math.max(0.8, Math.min(proportionalSize / 4, 1.5)), // Smaller size range: 0.8-1.5
-      color: visibleColor, // Reduced color range for less dominance
-      opacity: 0.6, // Reduced opacity to make them less prominent
-      data: clusterData
-    };
-  });
-  
   const heatmapPoints = clusters.map(cluster => {
-    // Calculate size based on proportion to total chunks and make 5x larger than smallest associated
+    // Follow same size calculation as documents-to-chunks and roles-to-chunks
     const clusterChunkCount = cluster.chunks.length;
-    const totalChunks = totalAssociatedChunks + unassociatedChunks.length;
-    
-    // Base size: proportion of chunks this cluster represents
-    const chunkProportion = clusterChunkCount / Math.max(totalChunks, 1);
-    
-    // Scale factor: 5x the minimum associated chunk size
-    const scaleFactor = minAssociatedChunkSize * 5.0;
-    
-    // Final size: proportion-based scaling starting from 5x minimum associated size
-    const proportionalSize = scaleFactor * (0.5 + (chunkProportion * 10)); // Multiply by 10 to make proportion more visible
-    
-    // Cluster intensity for color variation
     const maxClusterSize = Math.max(...clusters.map(c => c.chunks.length), 1);
-    const clusterIntensity = clusterChunkCount / maxClusterSize;
-    const visibleColor = 5.0 + (clusterIntensity * 2.0); // Range: 5.0 to 7.0 for good visibility
+    
+    // Same linear sizing as other heatmaps: range 3.0 to 8.0
+    const chunkCountRatio = clusterChunkCount / maxClusterSize;
+    const hexagonSize = 3.0 + (chunkCountRatio * 5.0);
+    
+    // Use darker brown color range (5.0-7.0) to trigger isUnretrieved=true in getHeatmapColor
+    const clusterIntensity = chunkCountRatio; // Already normalized 0-1
+    const darkBrownColor = 5.0 + (clusterIntensity * 2.0); // Range: 5.0 to 7.0 for darker browns
     
     // Group chunks by document for breakdown
     const documentBreakdown = new Map<string, { title: string; count: number }>();
@@ -388,21 +324,23 @@ function groupUnassociatedChunks(
       id: cluster.id,
       x: cluster.position.x,
       y: cluster.position.y,
-      size: Math.max(1.2, Math.min(proportionalSize / 3, 2.0)), // Normalize to 1.2-2.0 range for getScaledSize compatibility
-      color: visibleColor, // Color range optimized for visibility
-      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
+      size: hexagonSize, // Use same linear sizing as documents-to-chunks: 3.0 to 8.0
+      color: darkBrownColor, // Range: 5.0-7.0 to trigger brown colors in getHeatmapColor
+      opacity: 0.6, // Same opacity as other heatmaps use for unretrieved chunks
       data: clusterData
     };
   });
   
-  console.log('✅ Created unassociated chunk points:', {
+  console.log('✅ Created unretrieved chunk clusters:', {
     pointCount: heatmapPoints.length,
+    totalUnretrievedChunks: unassociatedChunks.length,
     points: heatmapPoints.map(p => ({
       id: p.id,
       x: p.x,
       y: p.y,
       size: p.size,
       color: p.color,
+      chunkCount: (p.data as UnassociatedClusterHeatmapData).chunkCount,
       type: p.data.type
     }))
   });
@@ -511,10 +449,37 @@ export function processChunksToQuestions(
   const retrievedChunks = Array.from(chunkMap.values());
   
   // Create clustered unassociated chunks if allChunks data is provided
-
+  let unassociatedChunkPoints: HeatmapPoint[] = [];
+  if (allChunks) {
+    // Find chunks that were never retrieved
+    const retrievedChunkIds = new Set(retrievedChunks.map(chunk => chunk.chunkId));
+    const unassociatedChunks = allChunks.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
+    
+    if (unassociatedChunks.length > 0) {
+      console.log(`📊 Found ${unassociatedChunks.length} unretrieved chunks for chunks-to-questions view`);
+      
+      // Calculate clustering parameters based on retrieved chunks
+      const maxRetrievalFrequency = Math.max(...retrievedChunks.map(c => c.questions.length), 1);
+      const minRetrievedChunkSize = retrievedChunks.length > 0 ? 
+        Math.min(...retrievedChunks.map(c => (c.questions.length / maxRetrievalFrequency) * 1.0)) : 0.6;
+      
+      // Use existing clustering function to group unretrieved chunks
+      const targetClusterCount = Math.min(8, Math.max(3, Math.ceil(unassociatedChunks.length / 50))); // 3-8 clusters based on chunk count
+      
+      unassociatedChunkPoints = groupUnassociatedChunks(
+        unassociatedChunks,
+        targetClusterCount,
+        maxRetrievalFrequency,
+        retrievedChunks.length,
+        minRetrievedChunkSize
+      );
+      
+      console.log(`📊 Created ${unassociatedChunkPoints.length} unretrieved chunk clusters for ${unassociatedChunks.length} chunks`);
+    }
+  }
   
   // Handle case where no chunks are found
-  if (retrievedChunks.length === 0) {
+  if (retrievedChunks.length === 0 && unassociatedChunkPoints.length === 0) {
     return [];
   }
 
@@ -569,13 +534,16 @@ export function processChunksToQuestions(
     };
   });
 
+  // Combine retrieved and unretrieved chunks
+  const allChunkPoints = [...retrievedChunkPoints, ...unassociatedChunkPoints];
+  
   // Position all chunks using simple grid layout
-  positionAssociatedChunks(retrievedChunkPoints);
+  positionAssociatedChunks(allChunkPoints);
   
   // Apply collision detection and spacing optimization
-  optimizePointSpacing(retrievedChunkPoints);
+  optimizePointSpacing(allChunkPoints);
   
-  return retrievedChunkPoints;
+  return allChunkPoints;
 }
 
 /**
@@ -686,6 +654,8 @@ export function getHeatmapColor(value: number, isUnretrieved: boolean = false, i
     if (normalizedIntensity >= 0.2) return '#795548'; // Standard brown
     return '#8d6e63'; // Light brown but still visible
   }
+  
+  // Remove special handling for unretrieved clusters - use standard quality color scheme
   
   // Default zero value handling
   if (value === 0) return '#e0e0e0'; // Light grey for true zero values

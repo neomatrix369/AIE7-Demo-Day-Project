@@ -26,6 +26,7 @@
 │   │   │   ├── HeatmapControls.tsx    # Perspective switching controls
 │   │   │   ├── HeatmapLegend.tsx      # Dynamic legends
 │   │   │   └── HeatmapTooltip.tsx     # Enhanced tooltips with role info
+│   │   │   ├── heatmapTheme.ts        # Centralized heatmap color scales and thresholds
 │   │   ├── Footer.tsx         # Application footer component
 │   │   ├── NavigationHeader.tsx # Navigation header component
 │   │   └── QualityScoreLegend.tsx # Quality score legend component
@@ -38,6 +39,8 @@
 │   ├── src/utils/             # Utility functions
 │   │   ├── logger.ts          # User-friendly logging system
 │   │   └── heatmapData.ts     # Data processing for visualizations
+│   ├── src/hooks/
+│   │   └── usePageNavigation.ts # Navigation helper with structured logging
 │   └── src/types/index.ts     # TypeScript interfaces
 ├── scripts/                    # Setup and utility scripts
 │   └── setup_qdrant.sh        # Qdrant startup and health check

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { logNavigation } from '../utils/logger';
+import { LABEL_DASHBOARD, LABEL_RESULTS, LABEL_HEATMAP } from '../utils/constants';
 
 interface NavigationHeaderProps {
   currentPage: string;
@@ -23,12 +24,12 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = React.memo(({ currentP
   }, [router.pathname]);
 
   const navButtons = useMemo(() => [
-    { id: 'dashboard', label: '🏠 Dashboard', color: '#007bff' },
+    { id: 'dashboard', label: `🏠 ${LABEL_DASHBOARD}`, color: '#007bff' },
     { id: 'questions', label: '❓ Questions', color: '#666' },
     { id: 'experiment', label: '🧪 Run an Experiment', color: '#666' },
     { id: 'experiments', label: '📁 Experiments', color: '#6f42c1' },
-    { id: 'results', label: '📊 Last Experiment Results', color: '#666' },
-    { id: 'heatmap', label: '🗺️ Heatmap', color: '#28a745' }
+    { id: 'results', label: `📊 Last ${LABEL_RESULTS}`, color: '#666' },
+    { id: 'heatmap', label: `🗺️ ${LABEL_HEATMAP}`, color: '#28a745' }
   ], []);
 
   return (

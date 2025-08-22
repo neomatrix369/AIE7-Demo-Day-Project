@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import usePageNavigation from '../hooks/usePageNavigation';
+import { LABEL_RESULTS } from '../utils/constants';
 import { experimentApi, questionsApi } from '../services/api';
 import { ExperimentConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation, logWebSocketEvent, logProgress } from '../utils/logger';
@@ -39,6 +41,7 @@ const ExperimentConfiguration: React.FC = () => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { goTo } = usePageNavigation('Experiment');
 
   useEffect(() => {
     const fetchExperimentConfig = async () => {
@@ -331,31 +334,15 @@ const ExperimentConfiguration: React.FC = () => {
   }, [completed, results.length, isRunning, saveExperimentToBrowser]);
 
   const handleViewResults = () => {
-    logNavigation('Experiment', 'Results', {
-      component: 'Experiment',
-      action: 'NAVIGATE_TO_RESULTS',
-      data: {
-        experiment_completed: completed,
-        questions_processed: results.length
-      }
-    });
-    router.push('/results');
+    goTo('/results', LABEL_RESULTS, { action: 'NAVIGATE_TO_RESULTS', data: { experiment_completed: completed, questions_processed: results.length } });
   };
 
   const handleBackToQuestions = () => {
-    logNavigation('Experiment', 'Questions', {
-      component: 'Experiment',
-      action: 'NAVIGATE_TO_QUESTIONS'
-    });
-    router.push('/questions');
+    goTo('/questions', 'Questions', { action: 'NAVIGATE_TO_QUESTIONS' });
   };
 
   const handleManageExperiments = () => {
-    logNavigation('Experiment', 'Experiments', {
-      component: 'Experiment',
-      action: 'NAVIGATE_TO_EXPERIMENTS'
-    });
-    router.push('/experiments');
+    goTo('/experiments', 'Experiments', { action: 'NAVIGATE_TO_EXPERIMENTS' });
   };
 
   const getStatusColor = (qualityScore: number) => {

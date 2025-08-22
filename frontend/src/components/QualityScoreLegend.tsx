@@ -1,4 +1,5 @@
 import React from 'react';
+import { getStatusColor } from '../utils/qualityScore';
 
 interface QualityScoreLegendProps {
   format?: 'horizontal' | 'compact' | 'table';
@@ -25,13 +26,13 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
         ...style 
       }}>
         {titleText && <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{titleText}:</span>}
-        <span style={{ color: '#28a745', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ color: getStatusColor(7.0), display: 'flex', alignItems: 'center', gap: '4px' }}>
           🟢 <strong>GOOD</strong> (≥7.0)
         </span> | 
-        <span style={{ color: '#e67e22', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ color: getStatusColor(6.0), display: 'flex', alignItems: 'center', gap: '4px' }}>
           🟡 <strong>WEAK</strong> (&#8805;5.0 &amp; &lt;7.0)
         </span> | 
-        <span style={{ color: '#dc3545', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ color: getStatusColor(4.0), display: 'flex', alignItems: 'center', gap: '4px' }}>
           🔴 <strong>POOR</strong> (&lt;5.0)
         </span>
       </div>
@@ -70,7 +71,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
               <td style={{ padding: '6px', fontWeight: 'bold' }}>🟢 GOOD</td>
               <td style={{ padding: '6px' }}>≥ 7.0</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
-                <span style={{ backgroundColor: '#28a745', color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
+                <span style={{ backgroundColor: getStatusColor(7.0), color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
                   HIGH
                 </span>
               </td>
@@ -79,7 +80,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
               <td style={{ padding: '6px', fontWeight: 'bold' }}>🟡 WEAK</td>
               <td style={{ padding: '6px' }}>≥ 5.0 and &lt; 7.0</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
-                <span style={{ backgroundColor: '#e67e22', color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
+                <span style={{ backgroundColor: getStatusColor(6.0), color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
                   MED
                 </span>
               </td>
@@ -88,7 +89,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
               <td style={{ padding: '6px', fontWeight: 'bold' }}>🔴 POOR</td>
               <td style={{ padding: '6px' }}>&lt; 5.0</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
-                <span style={{ backgroundColor: '#dc3545', color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
+                <span style={{ backgroundColor: getStatusColor(4.0), color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
                   LOW
                 </span>
               </td>
@@ -115,7 +116,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
     }}>
       {titleText && <span style={{ fontWeight: 'bold' }}>{titleText}:</span>}
       <span style={{ 
-        color: '#28a745', 
+        color: getStatusColor(7.0), 
         display: 'inline-flex', 
         alignItems: 'center', 
         gap: '4px',
@@ -124,7 +125,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
         <span style={{ fontSize: '1.2em' }}>■</span> <strong>GOOD</strong> (≥7.0)
       </span>
       <span style={{ 
-        color: '#e67e22', 
+        color: getStatusColor(6.0), 
         display: 'inline-flex', 
         alignItems: 'center', 
         gap: '4px',
@@ -133,7 +134,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
         <span style={{ fontSize: '1.2em' }}>■</span> <strong>WEAK</strong> (≥ 5.0 and &lt; 7.0)
       </span>
       <span style={{ 
-        color: '#dc3545', 
+        color: getStatusColor(4.0), 
         display: 'inline-flex', 
         alignItems: 'center', 
         gap: '4px',

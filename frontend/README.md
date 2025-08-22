@@ -21,6 +21,16 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 - **Error Handling**: User-friendly error messages and retry mechanisms with fallback displays
 - **Database Integration**: Real-time connectivity checks with loading states and error recovery
 
+### Shared Modules
+
+- **Heatmap Utilities** (`src/components/heatmap/`)
+  - `heatmapTheme.ts`: Centralized color scales and thresholds for quality scores (0–10)
+  - `ScatterHeatmap.tsx`: Generic renderer for chunk-owner perspectives using shared theme/layout
+  - `HeatmapControls.tsx`, `HeatmapLegend.tsx`, `HeatmapTooltip.tsx`: Reusable UI for perspectives, legends, and smart tooltips
+- **Navigation Helper** (`src/hooks/usePageNavigation.ts`)
+  - `goTo(path, label?, context?)`, `replace(path, label?, context?)`, `back(context?)`
+  - Emits structured navigation logs via `utils/logger.ts` for consistent user flow tracking
+
 ## File Structure
 
 ```

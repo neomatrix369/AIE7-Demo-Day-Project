@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import usePageNavigation from '../hooks/usePageNavigation';
+import { LABEL_DASHBOARD, LABEL_HEATMAP } from '../utils/constants';
 import { resultsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import { getStatusColor as getStatusColorShared, getStatus as getStatusShared } from '../utils/qualityScore';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import BalloonTooltip from '../components/ui/BalloonTooltip';
@@ -20,6 +23,7 @@ const AnalysisResults: React.FC = () => {
   const [isRoleAnalysisExpanded, setIsRoleAnalysisExpanded] = useState(false);
   const [isAdvancedVisualizationExpanded, setIsAdvancedVisualizationExpanded] = useState(false);
   const router = useRouter();
+  const { goTo } = usePageNavigation('Results');
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -83,17 +87,8 @@ const AnalysisResults: React.FC = () => {
     }
   };
 
-  const getStatusColor = (qualityScore: number) => {
-    if (qualityScore >= 7.0) return '#28a745';
-    if (qualityScore >= 5.0) return '#e67e22';
-    return '#dc3545'; // For poor quality
-  };
-
-  const getStatusText = (qualityScore: number) => {
-    if (qualityScore >= 7.0) return 'GOOD';
-    if (qualityScore >= 5.0) return 'WEAK';
-    return 'POOR';
-  };
+  const getStatusColor = (qualityScore: number) => getStatusColorShared(qualityScore);
+  const getStatusText = (qualityScore: number) => getStatusShared(qualityScore).toUpperCase();
 
   const getHealthColor = (health: string) => {
     switch (health) {
@@ -165,28 +160,15 @@ const AnalysisResults: React.FC = () => {
   }, [results, sortField, sortDirection, filterStatus, searchText]);
 
   const handleBackToExperiment = () => {
-    logNavigation('Results', 'Experiment', {
-      component: 'Results',
-      action: 'NAVIGATE_TO_EXPERIMENT'
-    });
-    router.push('/experiment');
+    goTo('/experiment', 'Experiment', { action: 'NAVIGATE_TO_EXPERIMENT' });
   };
 
   const handleRunNewExperiment = () => {
-    logNavigation('Results', 'Dashboard', {
-      component: 'Results',
-      action: 'NAVIGATE_TO_DASHBOARD',
-      data: { reason: 'new_experiment' }
-    });
-    router.push('/dashboard');
+    goTo('/dashboard', LABEL_DASHBOARD, { action: 'NAVIGATE_TO_DASHBOARD', data: { reason: 'new_experiment' } });
   };
 
   const handleManageExperiments = () => {
-    logNavigation('Results', 'Experiments', {
-      component: 'Results',
-      action: 'NAVIGATE_TO_EXPERIMENTS'
-    });
-    router.push('/experiments');
+    goTo('/experiments', 'Experiments', { action: 'NAVIGATE_TO_EXPERIMENTS' });
   };
 
   const handleClearResults = async () => {
@@ -225,15 +207,7 @@ const AnalysisResults: React.FC = () => {
   };
 
   const handleViewHeatmap = () => {
-    logNavigation('Results', 'Heatmap', {
-      component: 'Results',
-      action: 'NAVIGATE_TO_HEATMAP',
-      data: {
-        total_questions: results?.overall.total_questions,
-        avg_quality_score: results?.overall.avg_quality_score
-      }
-    });
-    router.push('/heatmap');
+    goTo('/heatmap', LABEL_HEATMAP, { action: 'NAVIGATE_TO_HEATMAP', data: { total_questions: results?.overall.total_questions, avg_quality_score: results?.overall.avg_quality_score } });
   };
 
   if (loading) {

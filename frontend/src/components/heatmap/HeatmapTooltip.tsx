@@ -2,6 +2,7 @@ import React from 'react';
 import { getContainerRect, containerAbsolutePosition, clampToRect } from './tooltipUtils';
 import { HeatmapPoint, QuestionHeatmapData, ChunkHeatmapData, RoleHeatmapData, ChunkToRoleHeatmapData, UnassociatedClusterHeatmapData, DocumentHeatmapData } from '../../utils/heatmapData';
 import { HeatmapPerspective, TooltipPosition } from '../../types';
+import { getStatusColor as getStatusColorShared, getStatus as getStatusShared, formatScore } from '../../utils/qualityScore';
 import BalloonTooltip from '../ui/BalloonTooltip';
 
 interface HeatmapTooltipProps {
@@ -19,17 +20,9 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
 }) => {
   if (!position.visible || !point) return null;
 
-  const getStatusColor = (score: number) => {
-    if (score >= 7.0) return '#28a745';
-    if (score >= 5.0) return '#e67e22';
-    return '#dc3545';
-  };
+  const getStatusColor = (score: number) => getStatusColorShared(score);
 
-  const getStatusText = (score: number) => {
-    if (score >= 7.0) return 'GOOD';
-    if (score >= 5.0) return 'WEAK';
-    return 'POOR';
-  };
+  const getStatusText = (score: number) => getStatusShared(score).toUpperCase();
 
   const renderDocumentTooltip = (data: DocumentHeatmapData) => {
     const retrievedChunks = data.chunks.filter(c => !c.isUnretrieved);
@@ -66,7 +59,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
               fontWeight: 'bold',
               marginLeft: '6px'
             }}>
-              {data.avgSimilarity.toFixed(1)}/10 ({getStatusText(data.avgSimilarity)})
+              {formatScore(data.avgSimilarity, 1)}/10 ({getStatusText(data.avgSimilarity)})
             </span>
           </div>
         )}
@@ -160,7 +153,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
           fontWeight: 'bold',
           marginLeft: '8px'
         }}>
-          {(data.qualityScore || 0).toFixed(1)} ({getStatusText(data.qualityScore || 0)})
+          {formatScore(data.qualityScore || 0, 1)} ({getStatusText(data.qualityScore || 0)})
         </span>
       </div>
 
@@ -169,7 +162,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
       </div>
 
       <div style={{ marginBottom: '8px' }}>
-        <strong>Avg Similarity:</strong> {(data.avgSimilarity || 0).toFixed(3)}
+        <strong>Avg Similarity:</strong> {formatScore(data.avgSimilarity || 0, 3)}
       </div>
 
       {data.retrievedChunks.length > 0 && (
@@ -365,7 +358,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
               : data.bestQuestion.questionText
             }
             <div style={{ marginTop: '2px', fontSize: '0.75rem', color: '#666' }}>
-              Similarity: {(data.bestQuestion.similarity || 0).toFixed(3)}
+              Similarity: {formatScore(data.bestQuestion.similarity || 0, 3)}
               {data.bestQuestion.roleName && (
                 <span style={{ marginLeft: '8px' }}>
                   Role: <span style={{ 
@@ -399,7 +392,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
                   marginBottom: '2px'
                 }}>
                   <div>{question.questionText.substring(0, 80)}...</div>
-                  <div><strong>Similarity:</strong> {(question.similarity || 0).toFixed(3)}</div>
+                  <div><strong>Similarity:</strong> {formatScore(question.similarity || 0, 3)}</div>
                   {question.roleName && (
                     <div><strong>Role:</strong> 
                       <span style={{ 
@@ -457,7 +450,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
               fontWeight: 'bold',
               marginLeft: '6px'
             }}>
-              {data.avgSimilarity.toFixed(1)}/10 ({getStatusText(data.avgSimilarity)})
+              {formatScore(data.avgSimilarity, 1)}/10 ({getStatusText(data.avgSimilarity)})
             </span>
           </div>
         )}
@@ -677,7 +670,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
                     </div>
                     <div>
                       {role.accessCount} retrieval{role.accessCount > 1 ? 's' : ''}, 
-                      Avg Similarity: {(role.avgSimilarity || 0).toFixed(2)}
+                      Avg Similarity: {formatScore(role.avgSimilarity || 0, 2)}
                     </div>
                   </div>
                 ))}
@@ -699,7 +692,7 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
                     marginBottom: '3px'
                   }}>
                     <div>{question.questionText.length > 60 ? `${question.questionText.substring(0, 60)}...` : question.questionText}</div>
-                    <div><strong>Similarity:</strong> {(question.similarity || 0).toFixed(2)}</div>
+                    <div><strong>Similarity:</strong> {formatScore(question.similarity || 0, 2)}</div>
                   </div>
                 ))}
               </div>

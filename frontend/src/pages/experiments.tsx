@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import usePageNavigation from '../hooks/usePageNavigation';
+import { LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
 import { ExperimentFile } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import { getStatusColor as getStatusColorShared, getStatus as getStatusShared } from '../utils/qualityScore';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import { createStorageAdapter } from '../services/storage';
@@ -14,6 +17,7 @@ const ExperimentManagement: React.FC = () => {
   const [loadingExperiment, setLoadingExperiment] = useState(false);
   const [hintBalloon, setHintBalloon] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const router = useRouter();
+  const { goTo } = usePageNavigation('Experiments');
 
   useEffect(() => {
     loadExperiments();
@@ -140,20 +144,11 @@ const ExperimentManagement: React.FC = () => {
       return;
     }
     
-    logNavigation('Experiments', 'Results', {
-      component: 'Experiments',
-      action: 'NAVIGATE_TO_RESULTS',
-      data: { selected_experiment: selectedExperiment }
-    });
-    router.push('/results');
+    goTo('/results', LABEL_RESULTS, { action: 'NAVIGATE_TO_RESULTS', data: { selected_experiment: selectedExperiment } });
   };
 
   const handleBackToDashboard = () => {
-    logNavigation('Experiments', 'Dashboard', {
-      component: 'Experiments',
-      action: 'NAVIGATE_TO_DASHBOARD'
-    });
-    router.push('/dashboard');
+    goTo('/dashboard', LABEL_DASHBOARD, { action: 'NAVIGATE_TO_DASHBOARD' });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -172,17 +167,8 @@ const ExperimentManagement: React.FC = () => {
     }
   };
 
-  const getStatusColor = (qualityScore: number) => {
-    if (qualityScore >= 7.0) return '#28a745';
-    if (qualityScore >= 5.0) return '#e67e22';
-    return '#dc3545';
-  };
-
-  const getStatusText = (qualityScore: number) => {
-    if (qualityScore >= 7.0) return 'GOOD';
-    if (qualityScore >= 5.0) return 'WEAK';
-    return 'POOR';
-  };
+  const getStatusColor = (qualityScore: number) => getStatusColorShared(qualityScore);
+  const getStatusText = (qualityScore: number) => getStatusShared(qualityScore).toUpperCase();
 
   if (loading) {
     return (

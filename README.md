@@ -64,6 +64,16 @@ npm install && npm run dev
 - **⚡ Performance Optimized**: Advanced caching, D3.js rendering optimization, and state management
 - **🔧 Database Integration**: Real-time chunk counting and connectivity status with fallback handling
 
+### Frontend Shared Modules
+
+- **Heatmap Utilities** (`frontend/src/components/heatmap/*`)
+  - `heatmapTheme.ts`: Centralized quality score scale, colors, thresholds, legend labels
+  - `ScatterHeatmap.tsx`: Generic hex-grid renderer using shared layout and theme utilities
+  - `HeatmapControls.tsx`, `HeatmapLegend.tsx`, `HeatmapTooltip.tsx`: Reusable controls, legends, and smart tooltips
+- **Navigation Helper** (`frontend/src/hooks/usePageNavigation.ts`)
+  - `goTo(path, label?, context?)`, `replace(path, label?, context?)`, `back(context?)`
+  - Automatically logs navigation via `utils/logger.ts` with component, action, and context
+
 ## Components
 
 ### Backend (FastAPI)

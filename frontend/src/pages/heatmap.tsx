@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import usePageNavigation from '../hooks/usePageNavigation';
 import { resultsApi, corpusApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType, HeatmapPerspective, HeatmapConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
@@ -9,6 +10,7 @@ import HeatmapControls from '../components/heatmap/HeatmapControls';
 import HeatmapLegend from '../components/heatmap/HeatmapLegend';
 import { HeatmapPoint } from '../utils/heatmapData';
 import useApiCache from '../hooks/useApiCache';
+import { DEFAULT_CACHE_TTL_MS, DEFAULT_CACHE_MAX_SIZE, LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
 
 const InteractiveHeatmapVisualization: React.FC = () => {
   const [results, setResults] = useState<AnalysisResultsType | null>(null);
@@ -27,11 +29,12 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [drillDownData, setDrillDownData] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const router = useRouter();
+  const { goTo } = usePageNavigation('Heatmap');
   
   // Initialize API cache with optimized settings for heatmap data
   const { cachedRequest } = useApiCache({
-    ttl: 10 * 60 * 1000, // 10 minutes cache for heatmap data
-    maxSize: 20 // Small cache for this page's needs
+    ttl: DEFAULT_CACHE_TTL_MS,
+    maxSize: DEFAULT_CACHE_MAX_SIZE
   });
 
   // Load all chunks once (static data used for chunks-to-questions perspective)
@@ -160,19 +163,19 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   }, [heatmapConfig.perspective]);
 
   const handleBackToResults = () => {
-    logNavigation('Heatmap', 'Results', {
+    logNavigation('Heatmap', LABEL_RESULTS, {
       component: 'Heatmap',
       action: 'NAVIGATE_TO_RESULTS'
     });
-    router.push('/results');
+    goTo('/results', 'Results');
   };
 
   const handleBackToDashboard = () => {
-    logNavigation('Heatmap', 'Dashboard', {
+    logNavigation('Heatmap', LABEL_DASHBOARD, {
       component: 'Heatmap',
       action: 'NAVIGATE_TO_DASHBOARD'
     });
-    router.push('/dashboard');
+    goTo('/dashboard', 'Dashboard');
   };
 
   const handleRefresh = useCallback(() => {

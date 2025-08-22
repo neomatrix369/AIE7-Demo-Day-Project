@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import usePageNavigation from '../hooks/usePageNavigation';
+import { LABEL_DASHBOARD } from '../utils/constants';
 import { questionsApi } from '../services/api';
 import { QuestionGroup } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
@@ -11,6 +13,7 @@ const QuestionGroupsOverview: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { goTo } = usePageNavigation('Questions');
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -66,27 +69,15 @@ const QuestionGroupsOverview: React.FC = () => {
   }, []);
 
   const handleConfigureExperiment = () => {
-    logNavigation('Questions', 'Experiment', {
-      component: 'Questions',
-      action: 'NAVIGATE_TO_EXPERIMENT'
-    });
-    router.push('/experiment');
+    goTo('/experiment', 'Experiment', { action: 'NAVIGATE_TO_EXPERIMENT' });
   };
 
   const handleManageExperiments = () => {
-    logNavigation('Questions', 'Experiments', {
-      component: 'Questions',
-      action: 'NAVIGATE_TO_EXPERIMENTS'
-    });
-    router.push('/experiments');
+    goTo('/experiments', 'Experiments', { action: 'NAVIGATE_TO_EXPERIMENTS' });
   };
 
   const handleBackToDashboard = () => {
-    logNavigation('Questions', 'Dashboard', {
-      component: 'Questions', 
-      action: 'NAVIGATE_TO_DASHBOARD'
-    });
-    router.push('/dashboard');
+    goTo('/dashboard', LABEL_DASHBOARD, { action: 'NAVIGATE_TO_DASHBOARD' });
   };
 
   if (loading) {

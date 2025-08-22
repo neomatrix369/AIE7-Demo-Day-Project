@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import usePageNavigation from '../hooks/usePageNavigation';
 import { corpusApi } from '../services/api';
 import { CorpusStatus } from '../types';
 import { logSuccess, logInfo, logNavigation } from '../utils/logger';
@@ -11,6 +12,7 @@ import ErrorDisplay from '../components/ui/ErrorDisplay';
 const DataLoadingDashboard: React.FC = () => {
   const { data: corpusStatus, loading, error, execute } = useApiCall<CorpusStatus>();
   const router = useRouter();
+  const { goTo } = usePageNavigation('Dashboard');
 
   useEffect(() => {
     const fetchCorpusStatus = async () => {
@@ -46,19 +48,11 @@ const DataLoadingDashboard: React.FC = () => {
   }, [execute]);
 
   const handleProceedToQuestions = () => {
-    logNavigation('Dashboard', 'Questions', {
-      component: 'Dashboard',
-      action: 'NAVIGATE_TO_QUESTIONS'
-    });
-    router.push('/questions');
+    goTo('/questions', 'Questions', { action: 'NAVIGATE_TO_QUESTIONS' });
   };
 
   const handleManageExperiments = () => {
-    logNavigation('Dashboard', 'Experiments', {
-      component: 'Dashboard',
-      action: 'NAVIGATE_TO_EXPERIMENTS'
-    });
-    router.push('/experiments');
+    goTo('/experiments', 'Experiments', { action: 'NAVIGATE_TO_EXPERIMENTS' });
   };
 
   if (loading) {

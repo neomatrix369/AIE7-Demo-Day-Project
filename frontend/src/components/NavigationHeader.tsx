@@ -29,6 +29,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = React.memo(({ currentP
     { id: 'experiment', label: '🧪 Run an Experiment', color: '#666' },
     { id: 'experiments', label: '📁 Experiments', color: '#6f42c1' },
     { id: 'results', label: `📊 Last ${LABEL_RESULTS}`, color: '#666' },
+    { id: 'gap-analysis', label: '📊 Gap Analysis', color: '#0d6efd' },
     { id: 'heatmap', label: `🗺️ ${LABEL_HEATMAP}`, color: '#28a745' }
   ], []);
 

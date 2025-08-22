@@ -13,6 +13,8 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 - **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts
 
 ### Key Features
+- **Gap Analysis Dashboard**: NEW! Intelligent content gap detection with actionable recommendations
+- **Smart Recommendations Engine**: Interactive cards with priority scoring and implementation tracking
 - **Comprehensive Logging**: User-friendly messages with development context
 - **API Logging**: Request/response interceptors with timeout handling  
 - **Performance Caching**: API request caching with TTL (10min) and size limits
@@ -37,6 +39,11 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
   - `goTo(path, label?, context?)`, `replace(path, label?, context?)`, `back(context?)`
   - Emits structured navigation logs via `utils/logger.ts` for consistent user flow tracking
   - Centralized navigation patterns eliminating duplication across pages
+- **Gap Analysis Components** (`src/components/gap-analysis/`)
+  - `GapAnalysisDashboard.tsx`: Main container with comprehensive gap insights and real-time data loading
+  - `GapAnalysisOverview.tsx`: Interactive statistics cards with visual severity indicators
+  - `WeakCoverageAreas.tsx`: Topic-based gap visualization with expandable details and gap type classification
+  - `RecommendationCards.tsx`: Prioritized actionable recommendations with implementation workflow
 
 ## File Structure
 
@@ -48,6 +55,11 @@ src/
 │   │   ├── HeatmapControls.tsx    # Perspective switching controls
 │   │   ├── HeatmapLegend.tsx      # Dynamic legends
 │   │   └── HeatmapTooltip.tsx     # Enhanced tooltips with role info
+│   ├── gap-analysis/     # Gap analysis and recommendations components
+│   │   ├── GapAnalysisDashboard.tsx    # Main gap analysis container
+│   │   ├── GapAnalysisOverview.tsx     # Statistics cards with visual indicators
+│   │   ├── WeakCoverageAreas.tsx       # Topic-based gap visualization
+│   │   └── RecommendationCards.tsx     # Actionable recommendation cards
 │   ├── ui/               # Reusable UI components
 │   │   └── BalloonTooltip.tsx     # Custom balloon tooltips with smart positioning
 │   ├── Footer.tsx        # Application footer component

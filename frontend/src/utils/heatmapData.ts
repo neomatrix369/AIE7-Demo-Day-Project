@@ -244,7 +244,7 @@ function groupUnretrievedChunks(
   // Create grid-based clusters around the perimeter
   const clusters: Array<{
     id: string;
-    chunks: typeof unassociatedChunks;
+    chunks: typeof unretrievedChunks;
     position: { x: number; y: number };
   }> = [];
 
@@ -273,8 +273,8 @@ function groupUnretrievedChunks(
     });
   });
 
-  // Distribute unassociated chunks among clusters (simple round-robin)
-  unassociatedChunks.forEach((chunk, index) => {
+  // Distribute unretrieved chunks among clusters (simple round-robin)
+  unretrievedChunks.forEach((chunk, index) => {
     const clusterIndex = index % clusters.length;
     clusters[clusterIndex].chunks.push(chunk);
   });
@@ -333,7 +333,7 @@ function groupUnretrievedChunks(
   
   console.log('✅ Created unretrieved chunk clusters:', {
     pointCount: heatmapPoints.length,
-    totalUnretrievedChunks: unassociatedChunks.length,
+    totalUnretrievedChunks: unretrievedChunks.length,
     points: heatmapPoints.map(p => ({
       id: p.id,
       x: p.x,
@@ -466,7 +466,7 @@ export function processChunksToQuestions(
       // Use existing clustering function to group unretrieved chunks
       const targetClusterCount = Math.min(8, Math.max(3, Math.ceil(unassociatedChunks.length / 50))); // 3-8 clusters based on chunk count
       
-      unassociatedChunkPoints = groupUnassociatedChunks(
+      unassociatedChunkPoints = groupUnretrievedChunks(
         unassociatedChunks,
         targetClusterCount,
         maxRetrievalFrequency,

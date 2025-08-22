@@ -106,3 +106,40 @@ export interface TooltipPosition {
   y: number;
   visible: boolean;
 }
+
+// Gap Analysis and Recommendations interfaces
+export interface ContentGap {
+  topic: string;
+  avgScore: number;
+  queryCount: number;
+  affectedQueries: string[];
+  gapType: 'coverage' | 'quality' | 'retrieval';
+}
+
+export interface RecommendationCard {
+  id: string;
+  gapDescription: string;
+  suggestedContent: string;
+  expectedImprovement: number; // 0-10 scale
+  priorityLevel: 'High' | 'Medium' | 'Low';
+  priorityScore: number; // impact * (1/effort)
+  affectedQueries: string[];
+  implementationEffort: 'Low' | 'Medium' | 'High';
+  impact: 'Low' | 'Medium' | 'High';
+  category: 'content_addition' | 'content_improvement' | 'retrieval_optimization';
+}
+
+export interface GapAnalysis {
+  lowScoreQueries: QuestionResult[];
+  uncoveredTopics: string[];
+  weakCoverageAreas: ContentGap[];
+  recommendations: RecommendationCard[];
+  gapSummary: {
+    totalGaps: number;
+    criticalGaps: number;
+    avgGapScore: number;
+    improvementPotential: number;
+    gapPercentage: number;
+    totalQuestions: number;
+  };
+}

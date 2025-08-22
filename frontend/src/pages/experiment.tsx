@@ -7,6 +7,7 @@ import { ExperimentConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation, logWebSocketEvent, logProgress } from '../utils/logger';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
+import GapAnalysisDashboard from '../components/gap-analysis/GapAnalysisDashboard';
 import { createStorageAdapter, isVercelDeployment } from '../services/storage';
 
 interface StreamResult {
@@ -39,6 +40,7 @@ const ExperimentConfiguration: React.FC = () => {
   const [ragasQuestionCount, setRagasQuestionCount] = useState<number | null>(null);
   const [loadingCounts, setLoadingCounts] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  const [isGapAnalysisExpanded, setIsGapAnalysisExpanded] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { goTo } = usePageNavigation('Experiment');
@@ -589,6 +591,65 @@ const ExperimentConfiguration: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Gap Analysis Section */}
+        {(completed || results.length > 0) && (
+          <div className="card" style={{ marginTop: '20px', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' }}>
+            <div 
+              className="collapsible-header" 
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '10px 0',
+                borderBottom: isGapAnalysisExpanded ? '2px solid #dee2e6' : 'none'
+              }}
+              onClick={() => setIsGapAnalysisExpanded(!isGapAnalysisExpanded)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.5rem' }}>📊</span>
+                <h3 style={{ margin: 0, color: '#495057' }}>Gap Analysis & Recommendations</h3>
+                {!isGapAnalysisExpanded && (
+                  <span style={{ 
+                    fontSize: '0.8rem', 
+                    background: '#007bff',
+                    color: 'white',
+                    padding: '3px 8px',
+                    borderRadius: '10px',
+                    fontWeight: 'bold'
+                  }}>
+                    NEW
+                  </span>
+                )}
+              </div>
+              <div style={{ 
+                fontSize: '1.2rem',
+                transition: 'transform 0.3s ease',
+                transform: isGapAnalysisExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+              }}>
+                ▶️
+              </div>
+            </div>
+            
+            {!isGapAnalysisExpanded && (
+              <div style={{ 
+                padding: '15px 0 5px 0',
+                fontSize: '0.9rem',
+                color: '#6c757d',
+                fontStyle: 'italic'
+              }}>
+                💡 Discover content gaps and get actionable recommendations to improve your corpus performance
+              </div>
+            )}
+            
+            {isGapAnalysisExpanded && (
+              <div style={{ paddingTop: '20px' }}>
+                <GapAnalysisDashboard />
+              </div>
+            )}
           </div>
         )}
 

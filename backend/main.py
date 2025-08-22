@@ -15,6 +15,7 @@ from managers.data_manager import DataManager
 from managers.search_manager import SearchManager
 from services.quality_score_service import QualityScoreService
 from services.experiment_service import ExperimentService
+from services.gap_analysis_service import GapAnalysisService
 from services.error_response_service import ErrorResponseService, ErrorType
 from dotenv import load_dotenv
 
@@ -34,6 +35,7 @@ qdrant_manager = QdrantManager(collection_name="student_loan_corpus")
 data_manager = DataManager(data_folder=data_folder)
 search_manager = SearchManager(data_manager, qdrant_manager)
 experiment_service = ExperimentService()
+gap_analysis_service = GapAnalysisService()
 documents_loaded = False
 
 # Store for experiment results
@@ -368,6 +370,33 @@ async def get_analysis_results():
     
     # Calculate and return analysis metrics
     return experiment_service.build_analysis_response(per_question_results)
+
+@app.get("/api/v1/analysis/gaps")
+async def get_gap_analysis():
+    """Get gap analysis and recommendations based on current experiment results."""
+    global experiment_results
+    
+    try:
+        if not experiment_results:
+            logger.warning("⚠️ No experiment results available for gap analysis")
+            return gap_analysis_service._create_empty_gap_analysis()
+        
+        logger.info(f"🔍 Performing gap analysis on {len(experiment_results)} experiment results")
+        
+        # Run gap analysis using the rule-based approach
+        gap_analysis = gap_analysis_service.analyze_gaps(experiment_results)
+        
+        logger.info(f"📋 Gap analysis complete: {gap_analysis['gapSummary']['totalGaps']} gaps, {len(gap_analysis['recommendations'])} recommendations")
+        
+        return gap_analysis
+        
+    except Exception as e:
+        logger.error(f"❌ Gap analysis failed: {str(e)}")
+        return ErrorResponseService.log_and_return_error(
+            ErrorType.INTERNAL_SERVER_ERROR,
+            f"Gap analysis failed: {str(e)}",
+            {"error": str(e)}
+        )
 
 @app.post("/api/results/clear")
 async def clear_experiment_results():

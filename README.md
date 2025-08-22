@@ -55,8 +55,10 @@ npm install && npm run dev
 ## Key Features
 
 - **🎯 5-Screen Wizard**: Dashboard → Questions → Experiment → Results → Heatmap
+- **📊 Gap Analysis Dashboard**: NEW! Intelligent content gap detection with actionable recommendations
+- **💡 Smart Recommendations**: Non-ML rule-based engine with priority scoring and impact assessment
 - **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics (Documents→Chunks, Roles→Chunks) and smart collision detection
-- **📊 Real-time Analytics**: Coverage statistics, unretrieved chunk detection, performance insights
+- **📈 Real-time Analytics**: Coverage statistics, unretrieved chunk detection, performance insights
 - **🗃️ Vector Storage**: Persistent Qdrant database with similarity search and real-time connectivity checks
 - **📡 Live Updates**: WebSocket streaming for experiment progress with comprehensive error handling
 - **🎯 Quality Scoring**: Normalized 0-10 scale with consistent thresholds and color coding
@@ -78,13 +80,19 @@ npm install && npm run dev
   - `goTo(path, label?, context?)`, `replace(path, label?, context?)`, `back(context?)`
   - Automatically logs navigation via `utils/logger.ts` with component, action, and context
   - Consistent navigation patterns across all pages with proper logging
+- **Gap Analysis Components** (`frontend/src/components/gap-analysis/*`)
+  - `GapAnalysisDashboard.tsx`: Main container with comprehensive gap insights
+  - `GapAnalysisOverview.tsx`: Interactive statistics cards with visual indicators
+  - `WeakCoverageAreas.tsx`: Topic-based gap visualization with expandable details
+  - `RecommendationCards.tsx`: Prioritized actionable recommendations with implementation tracking
 
 ## Components
 
 ### Backend (FastAPI)
 - **Document Processing**: CSV/PDF loading with LangChain chunking and configurable strategies
 - **Vector Operations**: Qdrant database integration with OpenAI embeddings and connectivity monitoring
-- **Service Architecture**: Manager pattern with QualityScoreService, ExperimentService, and ErrorResponseService
+- **Gap Analysis Engine**: Non-ML rule-based content gap detection with sophisticated priority scoring algorithms
+- **Service Architecture**: Manager pattern with QualityScoreService, ExperimentService, GapAnalysisService, and ErrorResponseService
 - **Performance Caching**: Search result caching (5min TTL) with MD5-based query keys and LRU eviction
 - **Real-time Streaming**: WebSocket experiment progress updates with error handling
 - **Comprehensive Logging**: User-friendly logging with development/production modes

@@ -26,6 +26,7 @@ FastAPI backend with real document processing, vector embeddings, and persistent
 - **`services/`**: Business logic services:
   - `quality_score_service.py`: Centralized quality score calculations and normalization
   - `experiment_service.py`: Experiment orchestration and result processing
+  - `gap_analysis_service.py`: NEW! Non-ML rule-based gap detection and recommendations engine
   - `error_response_service.py`: Standardized error handling and responses
 - **`test_qdrant.py`**: Qdrant connection testing utility with health checks
 - **`logging_config.py`**: Centralized logging configuration with structured output
@@ -72,6 +73,7 @@ uvicorn main:app --reload
 - `GET /api/questions/ragas` - Get RAGAS-generated questions with metadata
 - `POST /api/experiment/run` - Start vector similarity experiment with configurable parameters
 - `GET /api/results/analysis` - Get comprehensive experiment analysis results with quality scoring
+- `GET /api/v1/analysis/gaps` - NEW! Get gap analysis and actionable recommendations based on experiment results
 - `GET /api/v1/experiment/config` - Get experiment configuration and chunking strategies
 
 ### WebSocket Endpoints

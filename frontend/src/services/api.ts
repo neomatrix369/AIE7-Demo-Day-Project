@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CorpusStatus, QuestionGroup, ExperimentConfig, AnalysisResults } from '../types';
+import { CorpusStatus, QuestionGroup, ExperimentConfig, AnalysisResults, GapAnalysis } from '../types';
 import { logApiRequest, logApiResponse, logApiError } from '../utils/logger';
 
 // Normalize the base URL to handle trailing slashes properly
@@ -146,6 +146,9 @@ export const resultsApi = {
   
   clearResults: (): Promise<{success: boolean, message: string}> =>
     api.post('/results/clear').then(res => res.data),
+  
+  getGapAnalysis: (): Promise<GapAnalysis> =>
+    api.get('/v1/analysis/gaps').then(res => res.data),
 };
 
 export const experimentsApi = {

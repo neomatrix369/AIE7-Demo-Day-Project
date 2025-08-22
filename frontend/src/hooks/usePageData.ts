@@ -64,7 +64,7 @@ export function usePageData<T>(
     } finally {
       setLoading(false);
     }
-  }, [dataLoader]); // Remove options dependency to prevent infinite re-renders
+  }, [dataLoader]); // eslint-disable-line react-hooks/exhaustive-deps -- Remove options dependency to prevent infinite re-renders
 
   useEffect(() => {
     loadData();

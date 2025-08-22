@@ -348,10 +348,50 @@ function distributeChunksIntoClusters(
     });
   });
 
-  // Distribute chunks among clusters (round-robin)
-  chunksCopy.forEach((chunk, index) => {
-    const clusterIndex = index % clusters.length;
-    clusters[clusterIndex].chunks.push(chunk);
+  // Distribute chunks among clusters with natural variation (not perfectly even)
+  if (chunksCopy.length > 0) {
+    // Create weighted distribution for more natural clustering
+    const weights = clusters.map((_, index) => {
+      // Create some variation in cluster sizes using a simple distribution
+      const variation = Math.sin(index * 0.7) * 0.3 + 1; // Varies between 0.7 and 1.3
+      return Math.max(0.5, variation);
+    });
+    
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const normalizedWeights = weights.map(weight => weight / totalWeight);
+    
+    // Calculate target chunks per cluster based on weights
+    const targetCounts = normalizedWeights.map(weight => 
+      Math.round(weight * chunksCopy.length)
+    );
+    
+    // Adjust to ensure we distribute all chunks
+    const totalTargeted = targetCounts.reduce((sum, count) => sum + count, 0);
+    if (totalTargeted !== chunksCopy.length) {
+      const diff = chunksCopy.length - totalTargeted;
+      targetCounts[0] += diff; // Add remainder to first cluster
+    }
+    
+    // Distribute chunks according to target counts
+    let currentIndex = 0;
+    targetCounts.forEach((targetCount, clusterIndex) => {
+      for (let i = 0; i < targetCount && currentIndex < chunksCopy.length; i++) {
+        clusters[clusterIndex].chunks.push(chunksCopy[currentIndex]);
+        currentIndex++;
+      }
+    });
+  }
+
+  // Debug logging to check actual distribution
+  console.log('🔍 General createUnretrievedClusters distribution:', {
+    totalUnretrievedChunks: chunksCopy.length,
+    targetClusterCount: config.targetClusterCount,
+    actualClusters: clusters.length,
+    chunkDistribution: clusters.map((cluster) => ({
+      clusterId: cluster.id,
+      chunkCount: cluster.chunks.length,
+      firstChunk: cluster.chunks[0]?.chunk_id
+    }))
   });
 
   return clusters;

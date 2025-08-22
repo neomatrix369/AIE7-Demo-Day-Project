@@ -578,10 +578,50 @@ function createChunksToQuestionsUnretrievedClusters(
     });
   });
 
-  // Distribute chunks among clusters (round-robin)
-  unretrievedChunksCopy.forEach((chunk, index) => {
-    const clusterIndex = index % clusters.length;
-    clusters[clusterIndex].chunks.push(chunk);
+  // Distribute chunks among clusters with natural variation (not perfectly even)
+  if (unretrievedChunksCopy.length > 0) {
+    // Create weighted distribution for more natural clustering
+    const weights = clusters.map((_, index) => {
+      // Create some variation in cluster sizes using a simple distribution
+      const variation = Math.sin(index * 0.7) * 0.3 + 1; // Varies between 0.7 and 1.3
+      return Math.max(0.5, variation);
+    });
+    
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const normalizedWeights = weights.map(weight => weight / totalWeight);
+    
+    // Calculate target chunks per cluster based on weights
+    const targetCounts = normalizedWeights.map(weight => 
+      Math.round(weight * unretrievedChunksCopy.length)
+    );
+    
+    // Adjust to ensure we distribute all chunks
+    const totalTargeted = targetCounts.reduce((sum, count) => sum + count, 0);
+    if (totalTargeted !== unretrievedChunksCopy.length) {
+      const diff = unretrievedChunksCopy.length - totalTargeted;
+      targetCounts[0] += diff; // Add remainder to first cluster
+    }
+    
+    // Distribute chunks according to target counts
+    let currentIndex = 0;
+    targetCounts.forEach((targetCount, clusterIndex) => {
+      for (let i = 0; i < targetCount && currentIndex < unretrievedChunksCopy.length; i++) {
+        clusters[clusterIndex].chunks.push(unretrievedChunksCopy[currentIndex]);
+        currentIndex++;
+      }
+    });
+  }
+
+  // Debug logging to check actual distribution
+  console.log('🔍 Chunks-to-Questions cluster distribution:', {
+    totalUnretrievedChunks: unretrievedChunksCopy.length,
+    targetClusterCount: config.targetClusterCount,
+    actualClusters: clusters.length,
+    chunkDistribution: clusters.map((cluster) => ({
+      clusterId: cluster.id,
+      chunkCount: cluster.chunks.length,
+      firstChunk: cluster.chunks[0]?.chunk_id
+    }))
   });
 
   // Convert to HeatmapPoints

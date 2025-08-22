@@ -1,27 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React, { useState, useCallback } from 'react';
 import usePageNavigation from '../hooks/usePageNavigation';
+import usePageData from '../hooks/usePageData';
 import { LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
 import { ExperimentFile } from '../types';
-import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import { logSuccess, logError, logInfo } from '../utils/logger';
 import { getStatusColor as getStatusColorShared, getStatus as getStatusShared } from '../utils/qualityScore';
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import { createStorageAdapter } from '../services/storage';
 
 const ExperimentManagement: React.FC = () => {
-  const [experiments, setExperiments] = useState<ExperimentFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // UI state management 
   const [selectedExperiment, setSelectedExperiment] = useState<string | null>(null);
   const [loadingExperiment, setLoadingExperiment] = useState(false);
   const [hintBalloon, setHintBalloon] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const router = useRouter();
+  
   const { goTo } = usePageNavigation('Experiments');
 
-  useEffect(() => {
-    loadExperiments();
+  // Stable data loader function
+  const dataLoader = useCallback(async () => {
+    const storageAdapter = createStorageAdapter();
+    const response = await storageAdapter.listExperiments();
+    
+    if (response.success) {
+      return response.experiments;
+    } else {
+      throw new Error('Failed to load experiments');
+    }
   }, []);
+
+  // Data loading with standard pattern
+  const { data: experiments, loading, error, reload } = usePageData<ExperimentFile[]>(
+    dataLoader,
+    {
+      component: 'Experiments',
+      loadAction: 'LOAD_EXPERIMENTS_START',
+      successAction: 'LOAD_EXPERIMENTS_SUCCESS',
+      errorAction: 'LOAD_EXPERIMENTS_ERROR',
+      userErrorMessage: 'Failed to load experiments',
+      successMessage: (data: ExperimentFile[]) => `Loaded ${data.length} experiments`,
+      successData: (data: ExperimentFile[]) => ({ count: data.length })
+    }
+  );
 
   const showHintBalloon = (message: string, type: 'success' | 'error') => {
     setHintBalloon({ message, type });
@@ -30,39 +50,7 @@ const ExperimentManagement: React.FC = () => {
     }, 3000);
   };
 
-  const loadExperiments = async () => {
-    try {
-      setLoading(true);
-      logInfo('Loading experiment list', {
-        component: 'Experiments',
-        action: 'LOAD_EXPERIMENTS_START'
-      });
-
-      const storageAdapter = createStorageAdapter();
-      const response = await storageAdapter.listExperiments();
-      
-      if (response.success) {
-        setExperiments(response.experiments);
-        logSuccess(`Loaded ${response.experiments.length} experiments`, {
-          component: 'Experiments',
-          action: 'LOAD_EXPERIMENTS_SUCCESS',
-          data: { count: response.experiments.length }
-        });
-      } else {
-        throw new Error('Failed to load experiments');
-      }
-    } catch (err: any) {
-      const errorMessage = 'Failed to load experiments';
-      setError(errorMessage);
-      logError(`${errorMessage}: ${err?.message || 'Unknown error'}`, {
-        component: 'Experiments',
-        action: 'LOAD_EXPERIMENTS_ERROR',
-        data: { error: err?.message }
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // loadExperiments function moved to usePageData hook
 
   const handleLoadExperiment = async (filename: string) => {
     try {
@@ -118,8 +106,8 @@ const ExperimentManagement: React.FC = () => {
           data: { filename }
         });
         
-        // Remove from list and reload
-        setExperiments(prev => prev.filter(exp => exp.filename !== filename));
+        // Reload the experiments list
+        reload();
         if (selectedExperiment === filename) {
           setSelectedExperiment(null);
         }
@@ -170,20 +158,32 @@ const ExperimentManagement: React.FC = () => {
   const getStatusColor = (qualityScore: number) => getStatusColorShared(qualityScore);
   const getStatusText = (qualityScore: number) => getStatusShared(qualityScore).toUpperCase();
 
-  if (loading) {
-    return (
-      <div className="card">
-        <h2>Loading Experiments...</h2>
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#666' }}>Please wait...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       <NavigationHeader currentPage="experiments" />
+      {loading && (
+        <div className="card">
+          <h2>Loading Experiments...</h2>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '18px', color: '#666' }}>Please wait...</div>
+          </div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="card">
+          <h2>Error Loading Experiments</h2>
+          <div style={{ color: '#dc3545', padding: '20px' }}>
+            {error}
+          </div>
+          <button className="button button-secondary" onClick={reload}>
+            🔄 Retry
+          </button>
+        </div>
+      )}
+      
+      {!loading && !error && experiments && (
+        <>
       
       {hintBalloon && (
         <div style={{
@@ -220,7 +220,7 @@ const ExperimentManagement: React.FC = () => {
           }}>
             <strong>Error:</strong> {error}
             <button 
-              onClick={loadExperiments}
+              onClick={reload}
               style={{ 
                 marginLeft: '10px', 
                 padding: '5px 10px', 
@@ -238,10 +238,10 @@ const ExperimentManagement: React.FC = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
-            <strong>Found {experiments.length} experiment(s)</strong>
+            <strong>Found {experiments?.length || 0} experiment(s)</strong>
           </div>
           <button 
-            onClick={loadExperiments}
+            onClick={reload}
             className="button button-secondary"
             style={{ padding: '8px 16px' }}
           >
@@ -264,7 +264,7 @@ const ExperimentManagement: React.FC = () => {
           />
         )}
 
-        {experiments.length === 0 ? (
+        {(experiments?.length || 0) === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
             <div style={{ fontSize: '24px', color: '#666', marginBottom: '20px' }}>
               No Experiments Found
@@ -281,7 +281,7 @@ const ExperimentManagement: React.FC = () => {
           </div>
         ) : (
           <div className="experiment-list">
-            {experiments.map((experiment) => (
+            {experiments?.map((experiment) => (
               <div 
                 key={experiment.filename}
                 className="card" 
@@ -398,6 +398,8 @@ const ExperimentManagement: React.FC = () => {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

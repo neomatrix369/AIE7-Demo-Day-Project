@@ -7,11 +7,12 @@ FastAPI backend with real document processing, vector embeddings, and persistent
 ## Architecture
 
 ### Document Processing Pipeline
-1. **Document Loading**: CSV and PDF files loaded using LangChain
-2. **Text Chunking**: Documents split into 750-char chunks with 100-char overlap
-3. **Vector Embeddings**: OpenAI text-embedding-3-small (1536 dimensions)
-4. **Vector Storage**: Qdrant database with cosine similarity search
-5. **Caching**: Caching prevents expensive reprocessing
+1. **Document Loading**: CSV and PDF files loaded using LangChain with configurable loaders
+2. **Text Chunking**: Documents split into configurable chunks (default: 750-char chunks with 100-char overlap)
+3. **Chunking Strategy Unification**: Unified chunking and retrieval strategies with configurable parameters
+4. **Vector Embeddings**: OpenAI text-embedding-3-small (1536 dimensions) with metadata tracking
+5. **Vector Storage**: Qdrant database with cosine similarity search and real-time connectivity monitoring
+6. **Caching**: Advanced caching system prevents expensive reprocessing with TTL and size management
 
 ### Key Components
 - **`main.py`**: FastAPI application with REST API and WebSocket endpoints (855 lines, comprehensive routing)

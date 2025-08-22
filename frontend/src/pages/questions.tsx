@@ -1,72 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React, { useCallback } from 'react';
 import usePageNavigation from '../hooks/usePageNavigation';
+import usePageData from '../hooks/usePageData';
 import { LABEL_DASHBOARD } from '../utils/constants';
 import { questionsApi } from '../services/api';
 import { QuestionGroup } from '../types';
-import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
-import NavigationHeader from '../components/NavigationHeader';
+import PageWrapper from '../components/ui/PageWrapper';
+
+interface QuestionsData {
+  llmQuestions: QuestionGroup;
+  ragasQuestions: QuestionGroup;
+}
 
 const QuestionGroupsOverview: React.FC = () => {
-  const [llmQuestions, setLlmQuestions] = useState<QuestionGroup | null>(null);
-  const [ragasQuestions, setRagasQuestions] = useState<QuestionGroup | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
   const { goTo } = usePageNavigation('Questions');
 
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        setLoading(true);
-        logInfo('Loading question groups', { 
-          component: 'Questions',
-          action: 'QUESTIONS_LOAD_START'
-        });
-
-        const [llmQuestionsData, ragasQuestionsData] = await Promise.all([
-          questionsApi.getLLMQuestions(),
-          questionsApi.getRAGASQuestions()
-        ]);
-        
-        setLlmQuestions(llmQuestionsData);
-        setRagasQuestions(ragasQuestionsData);
-        
-        const totalLlmQuestions = llmQuestionsData.reduce((acc, role) => acc + role.questions.length, 0);
-        const totalRagasQuestions = ragasQuestionsData.reduce((acc, role) => acc + role.questions.length, 0);
-
-        logSuccess(`Questions loaded: ${totalLlmQuestions} LLM + ${totalRagasQuestions} RAGAS`, {
-          component: 'Questions',
-          action: 'QUESTIONS_LOAD_SUCCESS',
-          data: {
-            llm_count: llmQuestionsData.length,
-            ragas_count: ragasQuestionsData.length,
-            llm_roles: llmQuestionsData.length,
-            ragas_roles: ragasQuestionsData.length
-          }
-        });
-        
-      } catch (err: any) {
-        const userMessage = 'Failed to load question groups';
-        setError(userMessage);
-        
-        logError(`Question loading failed: ${userMessage}`, {
-          component: 'Questions',
-          action: 'QUESTIONS_LOAD_ERROR',
-          data: {
-            error_type: err?.code || err?.name || 'Unknown',
-            error_message: err?.message,
-            status: err?.response?.status
-          }
-        });
-        
-      } finally {
-        setLoading(false);
-      }
+  // Stable data loader function
+  const dataLoader = useCallback(async () => {
+    const [llmQuestionsData, ragasQuestionsData] = await Promise.all([
+      questionsApi.getLLMQuestions(),
+      questionsApi.getRAGASQuestions()
+    ]);
+    
+    return {
+      llmQuestions: llmQuestionsData,
+      ragasQuestions: ragasQuestionsData
     };
-
-    fetchQuestions();
   }, []);
+
+  // Load both question groups in parallel
+  const { data: questionsData, loading, error, reload } = usePageData<QuestionsData>(
+    dataLoader,
+    {
+      component: 'Questions',
+      loadAction: 'QUESTIONS_LOAD_START',
+      successAction: 'QUESTIONS_LOAD_SUCCESS',
+      errorAction: 'QUESTIONS_LOAD_ERROR',
+      userErrorMessage: 'Failed to load question groups',
+      successMessage: (data: QuestionsData) => {
+        const totalLlm = data.llmQuestions.reduce((acc, role) => acc + role.questions.length, 0);
+        const totalRagas = data.ragasQuestions.reduce((acc, role) => acc + role.questions.length, 0);
+        return `Questions loaded: ${totalLlm} LLM + ${totalRagas} RAGAS`;
+      },
+      successData: (data: QuestionsData) => ({
+        llm_count: data.llmQuestions.length,
+        ragas_count: data.ragasQuestions.length,
+        llm_roles: data.llmQuestions.length,
+        ragas_roles: data.ragasQuestions.length
+      })
+    }
+  );
 
   const handleConfigureExperiment = () => {
     goTo('/experiment', 'Experiment', { action: 'NAVIGATE_TO_EXPERIMENT' });
@@ -80,35 +62,24 @@ const QuestionGroupsOverview: React.FC = () => {
     goTo('/dashboard', LABEL_DASHBOARD, { action: 'NAVIGATE_TO_DASHBOARD' });
   };
 
-  if (loading) {
-    return (
-      <div className="card">
-        <h2>Loading Question Groups...</h2>
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#666' }}>Please wait...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !llmQuestions || !ragasQuestions) {
-    return (
-      <div className="card">
-        <h2>Error Loading Questions</h2>
-        <div style={{ color: '#dc3545', padding: '20px' }}>
-          {error || 'Unknown error occurred'}
-        </div>
-      </div>
-    );
-  }
-
-  const totalLlmQuestions = llmQuestions.reduce((acc, role) => acc + role.questions.length, 0);
-  const totalRagasQuestions = ragasQuestions.reduce((acc, role) => acc + role.questions.length, 0);
+  // Extract data for easier access
+  const llmQuestions = questionsData?.llmQuestions;
+  const ragasQuestions = questionsData?.ragasQuestions;
+  
+  const totalLlmQuestions = llmQuestions?.reduce((acc, role) => acc + role.questions.length, 0) || 0;
+  const totalRagasQuestions = ragasQuestions?.reduce((acc, role) => acc + role.questions.length, 0) || 0;
 
   return (
-    <div>
-      <NavigationHeader currentPage="questions" />
-      <div className="card">
+    <PageWrapper 
+      currentPage="questions"
+      loading={loading}
+      error={error}
+      loadingMessage="Loading Question Groups..."
+      errorTitle="Error Loading Questions"
+      onRetry={reload}
+    >
+      {llmQuestions && ragasQuestions && (
+        <div className="card">
         <h2>🤖 Question Groups Overview</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
           AI-generated vs RAGAS-generated questions ready for analysis
@@ -253,7 +224,8 @@ const QuestionGroupsOverview: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      )}
+    </PageWrapper>
   );
 };
 

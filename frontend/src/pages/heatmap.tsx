@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
+import usePageData from '../hooks/usePageData';
 import { resultsApi, corpusApi } from '../services/api';
-import { AnalysisResults as AnalysisResultsType, HeatmapPerspective, HeatmapConfig } from '../types';
+import { AnalysisResults as AnalysisResultsType, HeatmapConfig } from '../types';
 import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
-import NavigationHeader from '../components/NavigationHeader';
+import PageWrapper from '../components/ui/PageWrapper';
 import ScatterHeatmap from '../components/heatmap/ScatterHeatmap';
 import HeatmapControls from '../components/heatmap/HeatmapControls';
 import HeatmapLegend from '../components/heatmap/HeatmapLegend';
@@ -13,10 +13,8 @@ import useApiCache from '../hooks/useApiCache';
 import { DEFAULT_CACHE_TTL_MS, DEFAULT_CACHE_MAX_SIZE, LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
 
 const InteractiveHeatmapVisualization: React.FC = () => {
-  const [results, setResults] = useState<AnalysisResultsType | null>(null);
+  // Complex UI state (kept separate from usePageData)
   const [allChunks, setAllChunks] = useState<Array<{chunk_id: string; doc_id: string; title: string; content: string}> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [chunkError, setChunkError] = useState<string | null>(null);
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
     perspective: 'documents-to-chunks',
@@ -28,8 +26,29 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [selectedHeatmapPoint, setSelectedHeatmapPoint] = useState<HeatmapPoint | null>(null);
   const [drillDownData, setDrillDownData] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState<number>(0);
-  const router = useRouter();
+  
   const { goTo } = usePageNavigation('Heatmap');
+
+  // Stable data loader function
+  const dataLoader = useCallback(() => resultsApi.getAnalysis(), []);
+
+  // Main data loading with standard pattern
+  const { data: results, loading, error, reload } = usePageData<AnalysisResultsType>(
+    dataLoader,
+    {
+      component: 'Heatmap',
+      loadAction: 'RESULTS_LOAD_START',
+      successAction: 'RESULTS_LOAD_SUCCESS',
+      errorAction: 'RESULTS_LOAD_ERROR',
+      userErrorMessage: 'Failed to load analysis results for heatmap',
+      successMessage: (data: AnalysisResultsType) => 
+        `Heatmap data loaded: ${data.overall.total_questions} questions analyzed`,
+      successData: (data: AnalysisResultsType) => ({
+        total_questions: data.overall.total_questions,
+        avg_quality_score: data.overall.avg_quality_score
+      })
+    }
+  );
   
   // Initialize API cache with optimized settings for heatmap data
   const { cachedRequest } = useApiCache({
@@ -78,50 +97,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     fetchAllChunks();
   }, [cachedRequest]); // Include cachedRequest in dependencies
 
-  useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        setLoading(true);
-        logInfo('Loading analysis results for heatmap visualization', {
-          component: 'Heatmap',
-          action: 'RESULTS_LOAD_START'
-        });
-        
-        // Use cached request for analysis results
-        const data = await cachedRequest('heatmap_analysis', () => resultsApi.getAnalysis());
-        setResults(data);
-        
-        logSuccess(`Heatmap data loaded: ${data.overall.total_questions} questions`, {
-          component: 'Heatmap', 
-          action: 'RESULTS_LOAD_SUCCESS',
-          data: {
-            total_questions: data.overall.total_questions,
-            avg_quality_score: data.overall.avg_quality_score,
-            cached: true // Indicates this may have been cached
-          }
-        });
-        
-      } catch (err: any) {
-        const userMessage = 'Failed to load analysis results for heatmap';
-        setError(userMessage);
-        
-        logError(`Heatmap loading failed: ${userMessage}`, {
-          component: 'Heatmap',
-          action: 'RESULTS_LOAD_ERROR',
-          data: {
-            error_type: err?.code || err?.name || 'Unknown',
-            error_message: err?.message,
-            status: err?.response?.status
-          }
-        });
-        
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchResults();
-  }, [cachedRequest]);
+  // Results loading moved to usePageData hook
 
   const handleHeatmapConfigChange = useCallback((newConfig: Partial<HeatmapConfig>) => {
     setHeatmapConfig(prev => ({ ...prev, ...newConfig }));
@@ -310,43 +286,12 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     };
   }, [results]);
 
-  if (loading) {
-    return (
-      <div>
-        <NavigationHeader currentPage="heatmap" />
-        <div className="card">
-          <h2>🗺️ Loading Interactive Data Visualization...</h2>
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '18px', color: '#666' }}>Please wait...</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Loading and error handling moved to PageWrapper below
 
-  if (error) {
+  // Special case: no data available for visualization  
+  if (!loading && !error && (!results || results.overall.total_questions === 0)) {
     return (
-      <div>
-        <NavigationHeader currentPage="heatmap" />
-        <div className="card">
-          <h2>Error Loading Heatmap Data</h2>
-          <div style={{ color: '#dc3545', padding: '20px' }}>
-            {error}
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <button className="button button-secondary" onClick={handleBackToResults}>
-              ← Back to Results
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!results || results.overall.total_questions === 0) {
-    return (
-      <div>
-        <NavigationHeader currentPage="heatmap" />
+      <PageWrapper currentPage="heatmap">
         <div className="card">
           <h2>🗺️ Interactive Data Visualization</h2>
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -366,13 +311,20 @@ const InteractiveHeatmapVisualization: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div>
-      <NavigationHeader currentPage="heatmap" />
+    <PageWrapper
+      currentPage="heatmap"
+      loading={loading}
+      error={error}
+      loadingMessage="🗺️ Loading Interactive Data Visualization..."
+      errorTitle="Error Loading Heatmap Data"
+      onRetry={reload}
+    >
+      {results && (
       <div className="card">
         <h2>🗺️ Interactive Data Visualization</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -763,7 +715,8 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      )}
+    </PageWrapper>
   );
 };
 

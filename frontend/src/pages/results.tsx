@@ -1,20 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React, { useState, useCallback } from 'react';
 import usePageNavigation from '../hooks/usePageNavigation';
+import usePageData from '../hooks/usePageData';
 import { LABEL_DASHBOARD, LABEL_HEATMAP } from '../utils/constants';
 import { resultsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
-import { logSuccess, logError, logInfo, logNavigation } from '../utils/logger';
+import { logInfo, logSuccess, logError } from '../utils/logger';
 import { getStatusColor as getStatusColorShared, getStatus as getStatusShared } from '../utils/qualityScore';
-import NavigationHeader from '../components/NavigationHeader';
+import PageWrapper from '../components/ui/PageWrapper';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import BalloonTooltip from '../components/ui/BalloonTooltip';
 import { createStorageAdapter } from '../services/storage';
 
 const AnalysisResults: React.FC = () => {
-  const [results, setResults] = useState<AnalysisResultsType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // UI state management (not moved to usePageData)
   const [sortField, setSortField] = useState<'quality_score' | 'source' | 'status'>('quality_score');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filterStatus, setFilterStatus] = useState<'all' | 'good' | 'weak' | 'poor'>('all');
@@ -22,55 +20,33 @@ const AnalysisResults: React.FC = () => {
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [isRoleAnalysisExpanded, setIsRoleAnalysisExpanded] = useState(false);
   const [isAdvancedVisualizationExpanded, setIsAdvancedVisualizationExpanded] = useState(false);
-  const router = useRouter();
+  
   const { goTo } = usePageNavigation('Results');
 
-  useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        setLoading(true);
-        logInfo('Loading analysis results', {
-          component: 'Results',
-          action: 'RESULTS_LOAD_START'
-        });
-        
-        const data = await resultsApi.getAnalysis();
-        setResults(data);
-        
-        logSuccess(`Results loaded: ${data.overall.total_questions} questions analyzed`, {
-          component: 'Results', 
-                    action: 'RESULTS_LOAD_SUCCESS',
-          data: {
-            total_questions: data.overall.total_questions,
-            avg_quality_score: data.overall.avg_quality_score,
-            success_rate: data.overall.success_rate,
-            corpus_health: data.overall.corpus_health,
-            llm_avg_quality_score: data.per_group.llm?.avg_quality_score ?? 0,
-            ragas_avg_quality_score: data.per_group.ragas?.avg_quality_score ?? 0
-          }
-        });
-        
-      } catch (err: any) {
-        const userMessage = 'Failed to load analysis results';
-        setError(userMessage);
-        
-        logError(`Results loading failed: ${userMessage}`, {
-          component: 'Results',
-          action: 'RESULTS_LOAD_ERROR',
-          data: {
-            error_type: err?.code || err?.name || 'Unknown',
-            error_message: err?.message,
-            status: err?.response?.status
-          }
-        });
-        
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Stable data loader function
+  const dataLoader = useCallback(() => resultsApi.getAnalysis(), []);
 
-    fetchResults();
-  }, []);
+  // Data loading with standard pattern
+  const { data: results, loading, error, reload } = usePageData<AnalysisResultsType>(
+    dataLoader,
+    {
+      component: 'Results',
+      loadAction: 'RESULTS_LOAD_START',
+      successAction: 'RESULTS_LOAD_SUCCESS',
+      errorAction: 'RESULTS_LOAD_ERROR',
+      userErrorMessage: 'Failed to load analysis results',
+      successMessage: (data: AnalysisResultsType) => 
+        `Results loaded: ${data.overall.total_questions} questions analyzed`,
+      successData: (data: AnalysisResultsType) => ({
+        total_questions: data.overall.total_questions,
+        avg_quality_score: data.overall.avg_quality_score,
+        success_rate: data.overall.success_rate,
+        corpus_health: data.overall.corpus_health,
+        llm_avg_quality_score: data.per_group.llm?.avg_quality_score ?? 0,
+        ragas_avg_quality_score: data.per_group.ragas?.avg_quality_score ?? 0
+      })
+    }
+  );
 
   const handleSort = (field: 'quality_score' | 'source' | 'status') => {
     logInfo(`Sorting results by ${field} (${sortField === field && sortDirection === 'asc' ? 'desc' : 'asc'})`, {
@@ -186,7 +162,7 @@ const AnalysisResults: React.FC = () => {
       const response = await storageAdapter.clearResults();
       
       if (response.success) {
-        setResults(null);
+        reload(); // Reload the data after clearing
         logSuccess('Experiment results cleared successfully', {
           component: 'Results',
           action: 'CLEAR_RESULTS_SUCCESS'
@@ -210,68 +186,60 @@ const AnalysisResults: React.FC = () => {
     goTo('/heatmap', LABEL_HEATMAP, { action: 'NAVIGATE_TO_HEATMAP', data: { total_questions: results?.overall.total_questions, avg_quality_score: results?.overall.avg_quality_score } });
   };
 
-  if (loading) {
-    return (
-      <div className="card">
-        <h2>Loading Analysis Results...</h2>
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#666' }}>Please wait...</div>
-        </div>
-      </div>
-    );
-  }
+  // Loading and error handling moved to PageWrapper
 
-  if (error) {
-    return (
-      <div className="card">
-        <h2>Error Loading Results</h2>
-        <div style={{ color: '#dc3545', padding: '20px' }}>
-          {error}
-        </div>
-      </div>
-    );
-  }
+  // Error handling moved to PageWrapper
 
-  if (!results || results.overall.total_questions === 0) {
+  // Special case: no results available
+  if (!loading && !error && (!results || results.overall.total_questions === 0)) {
     return (
-      <div className="card">
-        <h2>📊 Analysis Results Dashboard</h2>
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '24px', color: '#666', marginBottom: '20px' }}>
-            No Experiment Results Available
-          </div>
-          <div style={{ fontSize: '16px', color: '#888', marginBottom: '30px' }}>
-            Run an experiment first to see analysis results here.
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
-            <button 
-              className="button" 
-              onClick={handleBackToExperiment}
-            >
-              🧪 Go to Experiment
-            </button>
-            <button 
-              className="button button-secondary" 
-              onClick={handleManageExperiments}
-              style={{ backgroundColor: '#6f42c1' }}
-            >
-              📁 Manage Experiments
-            </button>
-            <button 
-              className="button button-secondary" 
-              onClick={handleRunNewExperiment}
-            >
-              🏠 Go to Dashboard
-            </button>
+      <PageWrapper currentPage="results">
+        <div className="card">
+          <h2>📊 Analysis Results Dashboard</h2>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '24px', color: '#666', marginBottom: '20px' }}>
+              No Experiment Results Available
+            </div>
+            <div style={{ fontSize: '16px', color: '#888', marginBottom: '30px' }}>
+              Run an experiment first to see analysis results here.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+              <button 
+                className="button" 
+                onClick={handleBackToExperiment}
+              >
+                🧪 Go to Experiment
+              </button>
+              <button 
+                className="button button-secondary" 
+                onClick={handleManageExperiments}
+                style={{ backgroundColor: '#6f42c1' }}
+              >
+                📁 Manage Experiments
+              </button>
+              <button 
+                className="button button-secondary" 
+                onClick={handleRunNewExperiment}
+              >
+                🏠 Go to Dashboard
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div>
-      <NavigationHeader currentPage="results" />
+    <PageWrapper 
+      currentPage="results"
+      loading={loading}
+      error={error}
+      loadingMessage="Loading Analysis Results..."
+      errorTitle="Error Loading Results"
+      onRetry={reload}
+    >
+      {results && (
       <div className="card">
         <h2>📊 Analysis Results Dashboard</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -986,7 +954,8 @@ const AnalysisResults: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      )}
+    </PageWrapper>
   );
 };
 

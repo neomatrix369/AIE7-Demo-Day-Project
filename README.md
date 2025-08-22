@@ -66,13 +66,18 @@ npm install && npm run dev
 
 ### Frontend Shared Modules
 
+- **Shared Utilities** (`frontend/src/utils/`)
+  - `qualityScore.ts`: Centralized quality score calculations and threshold logic
+  - `constants.ts`: Shared constants for quality score thresholds, colors, and categorization
+  - `heatmapData.ts`: Data processing utilities for multiple visualization perspectives
 - **Heatmap Utilities** (`frontend/src/components/heatmap/*`)
-  - `heatmapTheme.ts`: Centralized quality score scale, colors, thresholds, legend labels
+  - `heatmapTheme.ts`: Centralized quality score scale, colors, thresholds, legend labels  
   - `ScatterHeatmap.tsx`: Generic hex-grid renderer using shared layout and theme utilities
   - `HeatmapControls.tsx`, `HeatmapLegend.tsx`, `HeatmapTooltip.tsx`: Reusable controls, legends, and smart tooltips
 - **Navigation Helper** (`frontend/src/hooks/usePageNavigation.ts`)
   - `goTo(path, label?, context?)`, `replace(path, label?, context?)`, `back(context?)`
   - Automatically logs navigation via `utils/logger.ts` with component, action, and context
+  - Consistent navigation patterns across all pages with proper logging
 
 ## Components
 

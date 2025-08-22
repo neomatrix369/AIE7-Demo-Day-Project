@@ -23,6 +23,10 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 
 ### Shared Modules
 
+- **Shared Utilities** (`src/utils/`)
+  - `qualityScore.ts`: Centralized quality score calculations and threshold logic
+  - `constants.ts`: Shared constants for quality score thresholds, colors, and categorization
+  - `heatmapData.ts`: Data processing utilities for multiple visualization perspectives
 - **Heatmap Utilities** (`src/components/heatmap/`)
   - `heatmapTheme.ts`: Centralized color scales and thresholds for quality scores (0–10)
   - `ScatterHeatmap.tsx`: Generic renderer for chunk-owner perspectives using shared theme/layout
@@ -30,6 +34,7 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 - **Navigation Helper** (`src/hooks/usePageNavigation.ts`)
   - `goTo(path, label?, context?)`, `replace(path, label?, context?)`, `back(context?)`
   - Emits structured navigation logs via `utils/logger.ts` for consistent user flow tracking
+  - Centralized navigation patterns eliminating duplication across pages
 
 ## File Structure
 
@@ -60,7 +65,11 @@ src/
 │   └── index.ts         # TypeScript interfaces
 ├── utils/
 │   ├── logger.ts        # Comprehensive logging system
+│   ├── qualityScore.ts  # Centralized quality score calculations
+│   ├── constants.ts     # Shared constants and thresholds
 │   └── heatmapData.ts   # Data processing for visualizations
+├── hooks/
+│   └── usePageNavigation.ts  # Centralized navigation with logging
 └── styles/
     └── globals.css      # Global styles and component classes
 ```

@@ -556,8 +556,8 @@ const AnalysisResults: React.FC = () => {
               marginBottom: '20px',
               lineHeight: '1.5'
             }}>
-              Explore question-chunk relationships through interactive scatter plot heatmaps with multiple perspectives. 
-              Analyze coverage patterns, role-based usage, and identify optimization opportunities in your RAG system.
+              Explore multi-dimensional RAG relationships through interactive scatter plot heatmaps with three distinct perspectives. 
+              Analyze document clustering, role-based access patterns, chunk retrieval analysis, and identify optimization opportunities in your RAG system.
             </p>
             
             <div style={{ 
@@ -569,12 +569,16 @@ const AnalysisResults: React.FC = () => {
               color: '#666'
             }}>
               <div>
-                <strong style={{ color: '#007bff' }}>📄 Chunks → Questions</strong><br/>
-                See how chunks are retrieved with Unretrieved chunk detection
+                <strong style={{ color: '#007bff' }}>📋 Documents → Chunks</strong><br/>
+                View document hexagon blocks containing multiple chunks, including unassociated chunks
               </div>
               <div>
-                <strong style={{ color: '#007bff' }}>📄 Chunks → Roles</strong><br/>
-                Analyze role-based chunk access patterns and usage
+                <strong style={{ color: '#007bff' }}>🎭 Roles → Chunks</strong><br/>
+                View how different user roles access document chunks and analyze retrieval patterns by role
+              </div>
+              <div>
+                <strong style={{ color: '#007bff' }}>📄 Chunks → Questions</strong><br/>
+                See how chunks are retrieved with Unretrieved chunk detection
               </div>
               <div>
                 <strong style={{ color: '#007bff' }}>📊 Coverage Analytics</strong><br/>
@@ -585,12 +589,8 @@ const AnalysisResults: React.FC = () => {
                 Performance gaps and efficiency indicators
               </div>
               <div>
-                <strong style={{ color: '#007bff' }}>🔍 Interactive Tooltips</strong><br/>
-                Detailed info with role data on hover/click
-              </div>
-              <div>
-                <strong style={{ color: '#007bff' }}>⚙️ Advanced Filters</strong><br/>
-                Quality filters and perspective switching
+                <strong style={{ color: '#007bff' }}>⚙️ Advanced Controls</strong><br/>
+                Quality filters, perspective switching, and point size controls
               </div>
             </div>
             

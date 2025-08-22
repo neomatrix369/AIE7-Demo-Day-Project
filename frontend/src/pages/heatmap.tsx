@@ -328,7 +328,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
       <div className="card">
         <h2>🗺️ Interactive Data Visualization</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
-          Explore question-chunk relationships through interactive scatter plot heatmaps with dual perspectives
+          Explore multi-dimensional RAG relationships through interactive scatter plot heatmaps with three distinct perspectives: document clustering, role-based access patterns, and chunk retrieval analysis
         </p>
         
         {/* Summary Statistics */}

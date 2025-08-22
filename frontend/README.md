@@ -27,10 +27,12 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
   - `qualityScore.ts`: Centralized quality score calculations and threshold logic
   - `constants.ts`: Shared constants for quality score thresholds, colors, and categorization
   - `heatmapData.ts`: Data processing utilities for multiple visualization perspectives
-- **Heatmap Utilities** (`src/components/heatmap/`)
-  - `heatmapTheme.ts`: Centralized color scales and thresholds for quality scores (0–10)
-  - `ScatterHeatmap.tsx`: Generic renderer for chunk-owner perspectives using shared theme/layout
+- **Heatmap Utilities** (`src/components/heatmap/` and `src/utils/`)
+  - `ScatterHeatmap.tsx`: D3.js hexagonal scatter plots with optimized rendering and concentric layouts
   - `HeatmapControls.tsx`, `HeatmapLegend.tsx`, `HeatmapTooltip.tsx`: Reusable UI for perspectives, legends, and smart tooltips
+  - `heatmapCore.ts`: Core positioning algorithms including circular trigonometry and collision detection
+  - `heatmapProcessors.ts`: Perspective-specific processors with custom positioning strategies
+  - `positionUtils.ts`, `renderUtils.ts`: Shared utilities for hexagon rendering and position calculations
 - **Navigation Helper** (`src/hooks/usePageNavigation.ts`)
   - `goTo(path, label?, context?)`, `replace(path, label?, context?)`, `back(context?)`
   - Emits structured navigation logs via `utils/logger.ts` for consistent user flow tracking
@@ -67,7 +69,9 @@ src/
 │   ├── logger.ts        # Comprehensive logging system
 │   ├── qualityScore.ts  # Centralized quality score calculations
 │   ├── constants.ts     # Shared constants and thresholds
-│   └── heatmapData.ts   # Data processing for visualizations
+│   ├── heatmapData.ts   # Data processing for visualizations
+│   ├── heatmapCore.ts   # Core heatmap utilities and positioning algorithms
+│   └── heatmapProcessors.ts  # Perspective-specific data processors
 ├── hooks/
 │   └── usePageNavigation.ts  # Centralized navigation with logging
 └── styles/
@@ -142,8 +146,15 @@ node --version   # Should show 18+ or 22+
 
 ### 5. Heatmap (Screen 5)
 - **Interactive Data Visualization**: Multi-perspective hexagonal heatmaps with optimized D3.js rendering
-- **Multiple Perspectives**: Chunks-to-Questions, Chunks-to-Roles visualization modes with smart positioning
+- **Multiple Perspectives**: 
+  - Documents-to-Chunks: Document clustering with hexagonal visualizations
+  - Chunks-to-Questions: Concentric layout with associated chunks at center and unassociated in surrounding rings
+  - Roles-to-Chunks: Role-based access patterns with chunk distribution analysis
 - **Advanced Analytics**: Coverage statistics, unretrieved chunk detection, performance insights
+- **Smart Positioning Algorithms**:
+  - Enhanced unretrieved chunk distribution across full viewport (30+ strategic positions)
+  - Concentric layout for chunks-to-questions with circular trigonometry positioning
+  - Improved cluster count (6-16 clusters) for better granularity and space utilization
 - **Database Integration**: Real-time chunk data loading with connectivity status and error handling
 - **Performance Optimization**: Representative clustering, collision detection, and efficient rendering
 - **Smart Insights**: Role-based performance analysis, efficiency indicators, coverage percentage

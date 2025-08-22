@@ -219,9 +219,9 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     if (!results || !allChunks) return { 
       totalChunks: null, // Use null to indicate data not available
       retrievedChunks: null, 
-      UnretrievedChunks: null, 
+      unretrievedChunks: null, 
       coveragePercentage: null,
-      UnretrievedPercentage: null,
+      unretrievedPercentage: null,
       isDataAvailable: false
     };
 
@@ -236,16 +236,16 @@ const InteractiveHeatmapVisualization: React.FC = () => {
 
     const totalChunks = allChunks.length;
     const retrievedChunks = retrievedChunkIds.size;
-    const UnretrievedChunks = totalChunks - retrievedChunks;
+    const unretrievedChunks = totalChunks - retrievedChunks;
     const coveragePercentage = totalChunks > 0 ? Math.round((retrievedChunks / totalChunks) * 100) : 0;
-    const UnretrievedPercentage = totalChunks > 0 ? Math.round((UnretrievedChunks / totalChunks) * 100) : 0;
+    const unretrievedPercentage = totalChunks > 0 ? Math.round((unretrievedChunks / totalChunks) * 100) : 0;
 
     return {
       totalChunks,
       retrievedChunks,
-      UnretrievedChunks,
+      unretrievedChunks,
       coveragePercentage,
-      UnretrievedPercentage,
+      unretrievedPercentage,
       isDataAvailable: true
     };
   }, [results, allChunks]);
@@ -424,11 +424,11 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 <h4 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '0.9rem' }}>🔍 Unretrieved Chunks</h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span style={{ color: '#6c757d', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.UnretrievedPercentage}%` : '⏳'}
+                    {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.unretrievedPercentage}%` : '⏳'}
                   </span>
                   <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
                     {chunkCoverageStats.isDataAvailable 
-                      ? `${chunkCoverageStats.UnretrievedChunks} Chunks Never Retrieved`
+                      ? `${chunkCoverageStats.unretrievedChunks} Chunks Never Retrieved`
                       : 'Loading unretrieved data...'}
                   </div>
                 </div>

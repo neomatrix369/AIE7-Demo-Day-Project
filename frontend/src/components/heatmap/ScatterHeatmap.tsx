@@ -243,18 +243,18 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
     const generateHexagon = generateHexagonPoints;
 
     // Separate points by type for sequential rendering
-    const unassociatedPoints = positionPoints.filter(p => 
+    const unretrievedPoints = positionPoints.filter(p => 
       p.data.type === 'unassociated-cluster' || (p.data.type === 'chunk' && p.data.isUnretrieved)
     );
-    const associatedPoints = positionPoints.filter(p => 
+    const retrievedPoints = positionPoints.filter(p => 
       !(p.data.type === 'unassociated-cluster' || (p.data.type === 'chunk' && p.data.isUnretrieved))
     );
     
     console.log('🎯 ScatterHeatmap rendering:', {
       totalPoints: positionPoints.length,
-      unassociatedCount: unassociatedPoints.length,
-      associatedCount: associatedPoints.length,
-      sampleAssociated: associatedPoints.slice(0, 5).map(p => ({
+      unretrievedCount: unretrievedPoints.length,
+      retrievedCount: retrievedPoints.length,
+      sampleRetrieved: retrievedPoints.slice(0, 5).map(p => ({
         id: p.id,
         type: p.data.type,
         x: p.screenX,
@@ -357,11 +357,11 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       return merged;
     };
 
-    // Phase 1: Update unassociated chunks (background layer)
-    const unassociatedHexagons = updatePointGroup('.unassociated-points', unassociatedPoints, true);
+    // Phase 1: Update unretrieved chunks (background layer)
+    const unretrievedHexagons = updatePointGroup('.unassociated-points', unretrievedPoints, true);
 
-    // Phase 2: Update associated chunks (foreground layer)  
-    const associatedHexagons = updatePointGroup('.associated-points', associatedPoints, false);
+    // Phase 2: Update retrieved chunks (foreground layer)  
+    const retrievedHexagons = updatePointGroup('.associated-points', retrievedPoints, false);
 
     // Combine both groups for event handling
     const allHexagons = g.selectAll('.scatter-point');
@@ -422,21 +422,21 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         }
       });
 
-    // Add entrance animation - unassociated chunks first, then associated chunks
-    // Phase 1 animation: Unassociated chunks (background layer)
-    unassociatedHexagons
+    // Add entrance animation - unretrieved chunks first, then retrieved chunks
+    // Phase 1 animation: Unretrieved chunks (background layer)
+    unretrievedHexagons
       .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, 0))
       .transition()
       .duration(600)
       .delay((_, i) => i * 20) // Faster animation for background
       .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, minSize, maxSize)));
 
-    // Phase 2 animation: Associated chunks (foreground layer) - start after unassociated
-    associatedHexagons
+    // Phase 2 animation: Retrieved chunks (foreground layer) - start after unretrieved
+    retrievedHexagons
       .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, 0))
       .transition()
       .duration(800)
-      .delay((_, i) => (unassociatedPoints.length * 20) + (i * 40)) // Start after unassociated animation
+      .delay((_, i) => (unretrievedPoints.length * 20) + (i * 40)) // Start after unretrieved animation
       .attr('points', d => generateHexagon(d.screenX || 0, d.screenY || 0, getScaledSize(d.size, minSize, maxSize)));
 
     // Render document chunks immediately for documents-to-chunks perspective

@@ -294,7 +294,7 @@ function distributeChunksIntoClusters(
   
   if (config.positionStrategy === 'perimeter') {
     // Enhanced grid-based distribution across entire viewport
-    // Avoid center area (20-80% range) where associated chunks are positioned
+    // Avoid center area (20-80% range) where retrieved chunks are positioned
     clusterPositions = [
       // Top area (0-15% height)
       { x: 10, y: 5 }, { x: 25, y: 8 }, { x: 40, y: 3 }, { x: 55, y: 7 }, { x: 70, y: 4 }, { x: 85, y: 9 },
@@ -325,7 +325,7 @@ function distributeChunksIntoClusters(
         const x = (col / (gridSize - 1)) * 90 + 5; // 5-95% range
         const y = (row / (gridSize - 1)) * 90 + 5; // 5-95% range
         
-        // Skip center area where associated chunks are positioned
+        // Skip center area where retrieved chunks are positioned
         const centerX = 50, centerY = 50;
         const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
         

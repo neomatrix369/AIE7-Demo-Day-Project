@@ -76,7 +76,7 @@ export interface RoleHeatmapData {
   }>;
   totalRetrievals: number; // Total times any chunk was retrieved by this role
   avgSimilarity: number; // Average similarity across all chunks for this role
-  unassociatedChunkCount: number; // Number of chunks that were never retrieved by this role
+  unretrievedChunkCount: number; // Number of chunks that were never retrieved by this role
   topRetrievingQuestions: Array<{
     questionId: string;
     questionText: string;
@@ -150,7 +150,7 @@ export interface DocumentHeatmapData {
   }>;
   totalRetrievals: number; // Total times any chunk from this document was retrieved
   avgSimilarity: number; // Average similarity across all chunks in this document
-  unassociatedChunkCount: number; // Number of chunks that were never retrieved
+  unretrievedChunkCount: number; // Number of chunks that were never retrieved
   topRetrievingQuestions: Array<{
     questionId: string;
     questionText: string;
@@ -221,23 +221,23 @@ export function positionAssociatedChunks(retrievedChunkPoints: HeatmapPoint[]): 
 }
 
 /**
- * Group unassociated chunks into spatial clusters for cleaner visualization
+ * Group unretrieved chunks into spatial clusters for cleaner visualization
  */
-function groupUnassociatedChunks(
-  unassociatedChunks: Array<{chunk_id: string; doc_id: string; title: string; content: string}>,
+function groupUnretrievedChunks(
+  unretrievedChunks: Array<{chunk_id: string; doc_id: string; title: string; content: string}>,
   targetClusterCount: number = 12,
   maxAssociatedChunkFrequency: number = 1,
   totalAssociatedChunks: number = 1,
   minAssociatedChunkSize: number = 0.6
 ): HeatmapPoint[] {
-  console.log('🔍 groupUnassociatedChunks called:', {
-    unassociatedCount: unassociatedChunks.length,
+  console.log('🔍 groupUnretrievedChunks called:', {
+    unretrievedCount: unretrievedChunks.length,
     targetClusters: targetClusterCount,
     totalAssociated: totalAssociatedChunks
   });
   
-  if (unassociatedChunks.length === 0) {
-    console.log('⚠️ No unassociated chunks found, returning empty array');
+  if (unretrievedChunks.length === 0) {
+    console.log('⚠️ No unretrieved chunks found, returning empty array');
     return [];
   }
 
@@ -941,7 +941,7 @@ export function processRolesToChunks(
       .slice(0, 5);
 
     const avgSimilarity = role.totalRetrievals > 0 ? role.totalSimilarity / role.totalRetrievals : 0;
-    const unassociatedChunkCount = chunks.filter(c => c.isUnretrieved).length;
+    const unretrievedChunkCount = chunks.filter(c => c.isUnretrieved).length;
     
     const roleData: RoleHeatmapData = {
       type: 'role',
@@ -951,7 +951,7 @@ export function processRolesToChunks(
       chunks: chunks,
       totalRetrievals: role.totalRetrievals,
       avgSimilarity: avgSimilarity,
-      unassociatedChunkCount: unassociatedChunkCount,
+      unretrievedChunkCount: unretrievedChunkCount,
       topRetrievingQuestions: topRetrievingQuestions
     };
 
@@ -1201,7 +1201,7 @@ export function processDocumentsToChunks(
       .slice(0, 5);
 
     const avgSimilarity = document.totalRetrievals > 0 ? document.totalSimilarity / document.totalRetrievals : 0;
-    const unassociatedChunkCount = chunks.filter(c => c.isUnretrieved).length;
+    const unretrievedChunkCount = chunks.filter(c => c.isUnretrieved).length;
     
     const documentData: DocumentHeatmapData = {
       type: 'document',
@@ -1211,7 +1211,7 @@ export function processDocumentsToChunks(
       chunks: chunks,
       totalRetrievals: document.totalRetrievals,
       avgSimilarity: avgSimilarity,
-      unassociatedChunkCount: unassociatedChunkCount,
+      unretrievedChunkCount: unretrievedChunkCount,
       topRetrievingQuestions: topRetrievingQuestions
     };
 
@@ -1282,7 +1282,7 @@ export function processDocumentsToChunks(
     size: p.size,
     chunkCount: p.data.type === 'document' ? p.data.chunkCount : 0,
     retrievedChunks: p.data.type === 'document' ? p.data.chunks.filter(c => !c.isUnretrieved).length : 0,
-    unassociatedChunks: p.data.type === 'document' ? p.data.unassociatedChunkCount : 0
+    unretrievedChunks: p.data.type === 'document' ? p.data.unretrievedChunkCount : 0
   })));
   
   return points;

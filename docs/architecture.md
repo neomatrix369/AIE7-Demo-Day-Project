@@ -31,7 +31,7 @@ This is **RagCheck** - a **5-screen wizard application** for RAG quality assessm
 - **Comprehensive Logging**: User-friendly logging system with development/production modes
 - **TypeScript Interfaces**: Centralized in `src/types/index.ts`
 - **Interactive Visualization**: D3.js-powered scatter plot heatmaps with multiple perspectives
-- **Advanced Analytics**: Coverage statistics, orphaned chunk detection, and performance insights
+- **Advanced Analytics**: Coverage statistics, unretrieved chunk detection, and performance insights
 - **Enhanced UX**: Collapsible sections, quick actions, role-based analysis, and context-aware statistics
 
 ## Data Flow

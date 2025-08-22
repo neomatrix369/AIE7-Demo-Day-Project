@@ -102,7 +102,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
         </div>
         <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '8px' }}>
           {config.perspective === 'documents-to-chunks'
-            ? 'View document hexagon blocks containing multiple chunks, including unassociated chunks that were never retrieved'
+            ? 'View document hexagon blocks containing multiple chunks, including unretrieved chunks that were never retrieved'
             : config.perspective === 'chunks-to-questions'
             ? 'View how document chunks are retrieved by different questions (includes Unretrieved chunks that were never retrieved)'
             : config.perspective === 'roles-to-chunks'
@@ -234,7 +234,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
             <strong>📊 Data Points:</strong> Each hexagon represents a document containing multiple chunks. 
             <strong> Size</strong> = total chunk count and retrieval frequency, <strong>Color</strong> = average similarity across document, 
             <strong> Position</strong> = optimized spacing with hexagonal clustering. 
-            <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows document-level chunk distribution including unassociated chunks.</span>
+            <span style={{ color: '#6c757d', fontStyle: 'italic' }}>Shows document-level chunk distribution including unretrieved chunks.</span>
           </>
         ) : (
           <>

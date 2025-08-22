@@ -115,7 +115,7 @@ export function processDocumentsToChunksRefactored(
         avgSimilarity: doc.totalRetrievals > 0 
           ? doc.totalSimilarity / doc.totalRetrievals 
           : 0,
-        unassociatedChunkCount: Array.from(doc.chunks.values())
+        unretrievedChunkCount: Array.from(doc.chunks.values())
           .filter(chunk => chunk.isUnretrieved).length,
         topRetrievingQuestions: Array.from(doc.chunks.values())
           .flatMap(chunk => chunk.questions)
@@ -202,7 +202,7 @@ export function processRolesToChunksRefactored(
       role.chunks.forEach((_, chunkId) => retrievedChunkIds.add(chunkId));
     });
     
-    const unassociatedChunks = allChunksCopy.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
+    const unretrievedChunks = allChunksCopy.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id));
     
     // Group unassociated chunks by document and distribute to roles that have chunks from same document
     const documentToRoles = new Map<string, Set<string>>();
@@ -220,7 +220,7 @@ export function processRolesToChunksRefactored(
     
     // Distribute unassociated chunks to roles based on document associations
     const distributedChunks = new Set<string>();
-    unassociatedChunks.forEach(chunk => {
+    unretrievedChunks.forEach(chunk => {
       const docId = chunk.doc_id;
       const rolesForDoc = documentToRoles.get(docId);
       
@@ -246,7 +246,7 @@ export function processRolesToChunksRefactored(
     });
     
     // Create separate "Unassociated Chunks" role for remaining chunks
-    const remainingChunks = unassociatedChunks.filter(chunk => !distributedChunks.has(chunk.chunk_id));
+    const remainingChunks = unretrievedChunks.filter(chunk => !distributedChunks.has(chunk.chunk_id));
     if (remainingChunks.length > 0) {
       const unassociatedRoleName = 'Unassociated Chunks';
       const unassociatedRole: RoleEntity = {
@@ -323,7 +323,7 @@ export function processRolesToChunksRefactored(
         avgSimilarity: r.totalRetrievals > 0 
           ? r.totalSimilarity / r.totalRetrievals 
           : 0,
-        unassociatedChunkCount: Array.from(r.chunks.values())
+        unretrievedChunkCount: Array.from(r.chunks.values())
           .filter(chunk => chunk.isUnretrieved).length,
         topRetrievingQuestions: Array.from(r.chunks.values())
           .flatMap(chunk => chunk.questions)
@@ -482,7 +482,7 @@ export function processChunksToQuestionsRefactored(
     };
   });
 
-  // Create unretrieved clusters positioned around the outer perimeter of associated chunks
+  // Create unretrieved clusters positioned around the outer perimeter of retrieved chunks
   const retrievedChunkIds = new Set(retrievedChunks.map(chunk => chunk.chunkId));
   const unretrievedChunks = allChunksCopy?.filter(chunk => !retrievedChunkIds.has(chunk.chunk_id)) || [];
 
@@ -528,8 +528,8 @@ export function processChunksToQuestionsRefactored(
 // =============================================================================
 
 /**
- * Create unretrieved clusters positioned around the outer perimeter of associated chunks
- * This creates a concentric layout where associated chunks are in center and unassociated surround them
+ * Create unretrieved clusters positioned around the outer perimeter of retrieved chunks
+ * This creates a concentric layout where retrieved chunks are in center and unretrieved surround them
  */
 function createChunksToQuestionsUnretrievedClusters(
   unretrievedChunks: Array<{chunk_id: string; doc_id: string; title: string; content: string}>,
@@ -540,15 +540,15 @@ function createChunksToQuestionsUnretrievedClusters(
   // Create defensive copy to prevent input mutation
   const unretrievedChunksCopy = [...unretrievedChunks];
 
-  // Define positions around the outer perimeter of the associated chunks area
-  // Associated chunks use 20-80% of viewport, so we position unassociated at 85-95% radius from center
+  // Define positions around the outer perimeter of the retrieved chunks area
+  // Retrieved chunks use 20-80% of viewport, so we position unretrieved at 85-95% radius from center
   const centerX = 50, centerY = 50;
-  const innerRadius = 35; // Just outside the associated chunks area (which goes to ~30% from center)
-  const outerRadius = 45; // Create a ring around the associated chunks
+  const innerRadius = 35; // Just outside the retrieved chunks area (which goes to ~30% from center)
+  const outerRadius = 45; // Create a ring around the retrieved chunks
 
   const clusterPositions: Array<{ x: number; y: number }> = [];
   
-  // Create circular positions around the associated chunks
+  // Create circular positions around the retrieved chunks
   const angleStep = (2 * Math.PI) / config.targetClusterCount;
   
   for (let i = 0; i < config.targetClusterCount; i++) {

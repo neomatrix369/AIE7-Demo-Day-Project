@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import BalloonTooltip from '../ui/BalloonTooltip';
 import { ContentGap } from '../../types';
 
 interface WeakCoverageAreasProps {
@@ -8,28 +9,35 @@ interface WeakCoverageAreasProps {
 const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
   const [expandedArea, setExpandedArea] = useState<string | null>(null);
 
-  const getGapTypeIcon = (gapType: string) => {
-    switch (gapType) {
-      case 'coverage': return '📋';
-      case 'quality': return '✏️';
-      case 'retrieval': return '🔍';
-      default: return '❓';
+  const getRoleIcon = (roleName: string) => {
+    // Match exact role names from Questions page API
+    switch (roleName) {
+      case 'Current Student': return '🎓';
+      case 'Recent Graduate': return '👨‍🎓';  
+      case 'Parent/Family': return '👨‍👩‍👧‍👦';
+      case 'Active Borrower': return '💳';
+      case 'Public Service Worker': return '🏛️';
+      case 'Financial Difficulty': return '😰';
+      case 'General User': return '👤';
+      case 'Disabled Student': return '♿';
+      // Fallback for topic-based roles (from gap analysis service)
+      case 'payment': return '💰';
+      case 'forgiveness': return '✋';
+      case 'interest': return '📈';
+      case 'eligibility': return '✅';
+      case 'application': return '📝';
+      case 'consolidation': return '🔗';
+      case 'deferment': return '⏸️';
+      case 'default': return '⚠️';
+      case 'servicer': return '🏢';
+      default: return '📊';
     }
   };
 
-  const getGapTypeColor = (gapType: string) => {
-    switch (gapType) {
-      case 'coverage': return '#dc3545';
-      case 'quality': return '#e67e22';
-      case 'retrieval': return '#007bff';
-      default: return '#6c757d';
-    }
-  };
-
-  const getSeverityLevel = (avgScore: number) => {
-    if (avgScore < 3.0) return { level: 'Critical', color: '#dc3545' };
-    if (avgScore < 5.0) return { level: 'High', color: '#e67e22' };
-    return { level: 'Medium', color: '#ffc107' };
+  const getQualityStatusFromScore = (avgScore: number) => {
+    if (avgScore >= 7.0) return { status: 'GOOD', color: '#28a745' };
+    if (avgScore >= 5.0) return { status: 'WEAK', color: '#ffc107' };
+    return { status: 'POOR', color: '#dc3545' };
   };
 
   if (weakAreas.length === 0) {
@@ -42,9 +50,9 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
         border: '2px dashed #28a745'
       }}>
         <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>✅</div>
-        <h3 style={{ color: '#28a745', marginBottom: '10px' }}>No Weak Coverage Areas</h3>
+        <h3 style={{ color: '#28a745', marginBottom: '10px' }}>No Weak Question Roles</h3>
         <p style={{ color: '#666', margin: 0 }}>
-          All topic areas show good performance levels. Your corpus provides consistent coverage across different topics.
+          All question role categories show good performance levels. Your corpus provides consistent coverage across different borrower types and topics.
         </p>
       </div>
     );
@@ -54,7 +62,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
     <div className="weak-coverage-areas">
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '2fr 1fr 1fr 0.8fr 0.8fr 0.6fr',
+        gridTemplateColumns: '3fr 1fr 1fr 0.8fr',
         gap: '8px',
         alignItems: 'center',
         background: '#f8f9fa',
@@ -65,16 +73,34 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
         fontWeight: 'bold',
         color: '#495057'
       }}>
-        <div>Topic</div>
-        <div>Gap Type</div>
-        <div>Severity</div>
-        <div>Avg Quality Score</div>
-        <div>Affected Queries</div>
-        <div>Details</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>Question Role</span>
+          <BalloonTooltip content={'Question role categories from your experiment - shows which borrower types or topics have poor performance.'} maxWidth={280} cursor="help">
+            <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+          </BalloonTooltip>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>Quality Score</span>
+          <BalloonTooltip content={'Average quality score for this role (0–10) with status indicator - same as Results page.'} maxWidth={280} cursor="help">
+            <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+          </BalloonTooltip>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>Questions</span>
+          <BalloonTooltip content={'Number of questions in this role showing poor performance.'} maxWidth={280} cursor="help">
+            <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+          </BalloonTooltip>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>Details</span>
+          <BalloonTooltip content={'Expand to see sample questions and performance breakdown.'} maxWidth={280} cursor="help">
+            <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+          </BalloonTooltip>
+        </div>
       </div>
 
       {weakAreas.map((area) => {
-        const severity = getSeverityLevel(area.avgScore);
+        const qualityStatus = getQualityStatusFromScore(area.avgScore);
         const isExpanded = expandedArea === area.topic;
 
         return (
@@ -83,22 +109,22 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
               className="coverage-area-row"
               style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 0.8fr 0.8fr 0.6fr',
+                gridTemplateColumns: '3fr 1fr 1fr 0.8fr',
                 gap: '8px',
                 alignItems: 'center',
                 background: 'white',
-                border: `2px solid ${getGapTypeColor(area.gapType)}20`,
+                border: `2px solid ${qualityStatus.color}20`,
                 borderRadius: '8px',
                 padding: '10px',
                 marginBottom: '8px'
               }}
             >
-              {/* Topic with icon */}
+              {/* Role with icon */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                 <div style={{
                   fontSize: '1.2rem',
-                  background: `${getGapTypeColor(area.gapType)}20`,
-                  border: `1px solid ${getGapTypeColor(area.gapType)}40`,
+                  background: `${qualityStatus.color}20`,
+                  border: `1px solid ${qualityStatus.color}40`,
                   borderRadius: '50%',
                   width: '32px',
                   height: '32px',
@@ -107,7 +133,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
                   justifyContent: 'center',
                   flex: '0 0 auto'
                 }}>
-                  {getGapTypeIcon(area.gapType)}
+                  {getRoleIcon(area.topic)}
                 </div>
                 <div style={{
                   fontWeight: 600,
@@ -121,42 +147,25 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
                 </div>
               </div>
 
-              {/* Type badge */}
-              <div>
-                <span style={{
-                  fontSize: '0.8rem',
-                  background: `${getGapTypeColor(area.gapType)}20`,
-                  color: getGapTypeColor(area.gapType),
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  fontWeight: 'bold',
-                  textTransform: 'capitalize'
-                }}>
-                  {area.gapType}
+              {/* Quality score with status pill */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: 'bold', color: qualityStatus.color }}>
+                  {area.avgScore}
                 </span>
-              </div>
-
-              {/* Severity pill */}
-              <div>
                 <span style={{
                   fontSize: '0.8rem',
-                  background: severity.color + '20',
-                  color: severity.color,
+                  background: qualityStatus.color + '20',
+                  color: qualityStatus.color,
                   padding: '4px 8px',
                   borderRadius: '12px',
                   fontWeight: 'bold'
                 }}>
-                  {severity.level}
+                  {qualityStatus.status}
                 </span>
               </div>
 
-              {/* Avg score */}
-              <div style={{ fontWeight: 'bold', color: getGapTypeColor(area.gapType) }}>
-                {area.avgScore}
-              </div>
-
               {/* Query count */}
-              <div style={{ color: '#666' }}>{area.queryCount}</div>
+              <div style={{ color: '#666', textAlign: 'center' }}>{area.queryCount}</div>
 
               {/* Expand/collapse */}
               <div>
@@ -175,7 +184,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
                 className="coverage-area-detail"
                 style={{
                   background: '#f8f9fa',
-                  border: `2px solid ${getGapTypeColor(area.gapType)}30`,
+                  border: `2px solid ${qualityStatus.color}30`,
                   borderRadius: '8px',
                   padding: '12px',
                   marginTop: '-4px',
@@ -184,7 +193,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
               >
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
                   <div>
-                    <h5 style={{ color: '#555', margin: '0 0 6px 0' }}>📝 Affected Queries</h5>
+                    <h5 style={{ color: '#555', margin: '0 0 6px 0' }}>📋 Sample Questions in This Role</h5>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {area.affectedQueries.map((query, i) => (
                         <span key={i} style={{
@@ -206,20 +215,17 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
                   </div>
 
                   <div style={{
-                    background: `${getGapTypeColor(area.gapType)}10`,
-                    borderLeft: `4px solid ${getGapTypeColor(area.gapType)}`,
+                    background: `${qualityStatus.color}10`,
+                    borderLeft: `4px solid ${qualityStatus.color}`,
                     padding: '10px',
                     borderRadius: '6px'
                   }}>
-                    <strong style={{ color: getGapTypeColor(area.gapType) }}>
-                      {area.gapType === 'coverage' && '📋 Coverage Gap: '}
-                      {area.gapType === 'quality' && '✏️ Quality Gap: '}
-                      {area.gapType === 'retrieval' && '🔍 Retrieval Gap: '}
+                    <strong style={{ color: qualityStatus.color }}>
+                      📊 Performance Summary: 
                     </strong>
                     <span style={{ color: '#333' }}>
-                      {area.gapType === 'coverage' && 'Your corpus lacks sufficient content to answer these queries effectively.'}
-                      {area.gapType === 'quality' && 'Existing content needs improvement in depth, clarity, or relevance.'}
-                      {area.gapType === 'retrieval' && 'Content exists but retrieval optimization is needed for better matching.'}
+                      This role has {area.queryCount} questions with an average quality score of {area.avgScore}/10. 
+                      Status: {qualityStatus.status}. Review these questions for improvement opportunities.
                     </span>
                   </div>
                 </div>

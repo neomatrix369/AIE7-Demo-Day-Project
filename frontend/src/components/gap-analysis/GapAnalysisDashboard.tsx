@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import BalloonTooltip from '../ui/BalloonTooltip';
 import usePageData from '../../hooks/usePageData';
 import { resultsApi } from '../../services/api';
 import { GapAnalysis } from '../../types';
@@ -127,7 +128,16 @@ const GapAnalysisDashboard: React.FC = () => {
       <div className="gap-section">
         <div className="section-header">
           <span className="section-icon">📊</span>
-          <h3 className="section-title">Gap Analysis Overview</h3>
+          <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            Gap Analysis Overview
+            <BalloonTooltip
+              content={'Summary of gap metrics derived from low-performing queries and recommendations.'}
+              maxWidth={340}
+              cursor="help"
+            >
+              <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+            </BalloonTooltip>
+          </h3>
         </div>
         <GapAnalysisOverview gapData={gapData} />
       </div>
@@ -137,7 +147,16 @@ const GapAnalysisDashboard: React.FC = () => {
         <div className="gap-section">
           <div className="section-header">
             <span className="section-icon">🎯</span>
-            <h3 className="section-title">Weak Coverage Areas ({gapData.weakCoverageAreas.length})</h3>
+            <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              Weak Coverage Areas ({gapData.weakCoverageAreas.length})
+              <BalloonTooltip
+                content={'Topic clusters with low average quality score and multiple affected queries.'}
+                maxWidth={340}
+                cursor="help"
+              >
+                <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+              </BalloonTooltip>
+            </h3>
           </div>
           <WeakCoverageAreas weakAreas={gapData.weakCoverageAreas} />
         </div>
@@ -148,7 +167,16 @@ const GapAnalysisDashboard: React.FC = () => {
         <div className="gap-section">
           <div className="section-header">
             <span className="section-icon">🔍</span>
-            <h3 className="section-title">Uncovered Topics ({gapData.uncoveredTopics.length})</h3>
+            <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              Uncovered Topics ({gapData.uncoveredTopics.length})
+              <BalloonTooltip
+                content={'Detected topics with consistently poor performance; likely content coverage gaps.'}
+                maxWidth={340}
+                cursor="help"
+              >
+                <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+              </BalloonTooltip>
+            </h3>
           </div>
           <div className="uncovered-topics" style={{
             display: 'flex',
@@ -180,7 +208,16 @@ const GapAnalysisDashboard: React.FC = () => {
       <div className="gap-section">
         <div className="section-header">
           <span className="section-icon">💡</span>
-          <h3 className="section-title">Actionable Recommendations</h3>
+          <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            Actionable Recommendations
+            <BalloonTooltip
+              content={'Prioritized actions generated from gaps; sorted by impact-to-effort.'}
+              maxWidth={340}
+              cursor="help"
+            >
+              <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+            </BalloonTooltip>
+          </h3>
         </div>
         <RecommendationCards recommendations={gapData.recommendations} />
       </div>
@@ -189,7 +226,16 @@ const GapAnalysisDashboard: React.FC = () => {
       <div className="gap-section">
         <div className="section-header">
           <span className="section-icon">⚡</span>
-          <h3 className="section-title">Quick Actions</h3>
+          <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            Quick Actions
+            <BalloonTooltip
+              content={'Shortcuts to related pages for deeper analysis and visualization.'}
+              maxWidth={340}
+              cursor="help"
+            >
+              <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+            </BalloonTooltip>
+          </h3>
         </div>
         <div className="quick-actions" style={{
           display: 'grid',

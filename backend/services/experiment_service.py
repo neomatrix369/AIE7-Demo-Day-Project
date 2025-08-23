@@ -75,8 +75,23 @@ class ExperimentService:
                 # Load specific experiment file
                 results_file = os.path.join(self.experiments_folder, filename)
             else:
-                # Load the most recent experiment (for backward compatibility)
-                results_file = os.path.join(os.path.dirname(__file__), '..', 'experiment_results.json')
+                # Load the most recent experiment file
+                if os.path.exists(self.experiments_folder):
+                    # Get all experiment files sorted by name (which includes timestamp)
+                    experiment_files = [f for f in os.listdir(self.experiments_folder) 
+                                     if f.startswith('experiment_') and f.endswith('.json')]
+                    if experiment_files:
+                        # Sort by filename (timestamp) to get most recent
+                        experiment_files.sort(reverse=True)
+                        most_recent = experiment_files[0]
+                        results_file = os.path.join(self.experiments_folder, most_recent)
+                        logger.info(f"📂 Loading most recent experiment: {most_recent}")
+                    else:
+                        # Fallback to old location for backward compatibility
+                        results_file = os.path.join(os.path.dirname(__file__), '..', 'experiment_results.json')
+                else:
+                    # Fallback to old location for backward compatibility
+                    results_file = os.path.join(os.path.dirname(__file__), '..', 'experiment_results.json')
             
             if os.path.exists(results_file):
                 with open(results_file, 'r', encoding='utf-8') as f:

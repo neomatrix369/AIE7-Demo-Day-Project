@@ -126,7 +126,7 @@ export interface RecommendationCard {
   affectedQueries: string[];
   implementationEffort: 'Low' | 'Medium' | 'High';
   impact: 'Low' | 'Medium' | 'High';
-  category: 'content_addition' | 'content_improvement' | 'retrieval_optimization';
+  category: 'content_addition' | 'content_improvement' | 'retrieval_optimization' | 'role_improvement' | 'quality_boost';
 }
 
 export interface GapAnalysis {

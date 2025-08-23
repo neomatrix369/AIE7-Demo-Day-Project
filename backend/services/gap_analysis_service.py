@@ -83,73 +83,55 @@ class GapAnalysisService:
         return result
     
     def _detect_uncovered_topics(self, experiment_results: List[Dict[str, Any]]) -> List[str]:
-        """Detect topics that are mentioned in questions but have poor retrieval coverage"""
-        question_topics = Counter()
-        
-        # Extract topics from all questions
+        """Repurposed: Detect underperforming roles (avg quality < 4.0)."""
+        role_scores = defaultdict(list)
         for result in experiment_results:
-            question_text = result.get('question', '').lower()
-            for topic, patterns in self.topic_patterns.items():
-                if any(pattern in question_text for pattern in patterns):
-                    question_topics[topic] += 1
-        
-        # Find topics with consistently low scores
-        uncovered = []
-        for topic in question_topics:
-            topic_results = []
-            for result in experiment_results:
-                question_text = result.get('question', '').lower()
-                if any(pattern in question_text for pattern in self.topic_patterns[topic]):
-                    topic_results.append(result.get('avg_quality_score', 0))
-            
-            if topic_results:
-                avg_score = sum(topic_results) / len(topic_results)
-                if avg_score < 4.0:  # Topics with average score < 4.0 are considered uncovered
-                    uncovered.append(topic.title())
-        
-        return uncovered
+            role = (result.get('role_name') or 'Unknown').strip() or 'Unknown'
+            role_scores[role].append(result.get('avg_quality_score', 0))
+
+        underperforming_roles = []
+        for role, scores in role_scores.items():
+            if scores:
+                avg_score = sum(scores) / len(scores)
+                if avg_score < 4.0:
+                    underperforming_roles.append(role)
+
+        return underperforming_roles
     
     def _identify_weak_coverage_areas(self, experiment_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Identify areas with weak coverage using topic clustering"""
-        topic_stats = defaultdict(lambda: {'scores': [], 'queries': []})
-        
-        # Group results by detected topics
+        """Identify roles with poor performance (aligns with Results page role analysis)."""
+        role_stats = defaultdict(lambda: {'scores': [], 'queries': []})
+
         for result in experiment_results:
-            question_text = result.get('question', '').lower()
+            role = (result.get('role_name') or 'Unknown').strip() or 'Unknown'
             score = result.get('avg_quality_score', 0)
             query = result.get('question', '')
-            
-            # Assign to topics based on pattern matching
-            assigned_topics = []
-            for topic, patterns in self.topic_patterns.items():
-                if any(pattern in question_text for pattern in patterns):
-                    topic_stats[topic]['scores'].append(score)
-                    topic_stats[topic]['queries'].append(query)
-                    assigned_topics.append(topic)
-            
-            # If no topic matches, classify as 'general'
-            if not assigned_topics:
-                topic_stats['general']['scores'].append(score)
-                topic_stats['general']['queries'].append(query)
-        
-        # Identify weak areas
+            role_stats[role]['scores'].append(score)
+            role_stats[role]['queries'].append(query)
+
         weak_areas = []
-        for topic, data in topic_stats.items():
+        for role, data in role_stats.items():
             if data['scores']:
                 avg_score = sum(data['scores']) / len(data['scores'])
                 query_count = len(data['scores'])
-                
-                if avg_score < 6.0 and query_count >= 2:  # Weak if avg < 6.0 and at least 2 queries
+                # Only include roles with poor average performance (< 6.0) and multiple questions
+                if avg_score < 6.0 and query_count >= 2:
+                    # Calculate success rate for this role (questions >= 7.0)
+                    good_questions = len([s for s in data['scores'] if s >= 7.0])
+                    success_rate = (good_questions / query_count) * 100 if query_count > 0 else 0
+                    
                     weak_areas.append({
-                        'topic': topic.title(),
+                        'topic': role,  # Using 'topic' field name for frontend compatibility 
                         'avgScore': round(avg_score, 1),
                         'queryCount': query_count,
-                        'affectedQueries': data['queries'][:3],  # Show first 3 affected queries
-                        'gapType': self._determine_gap_type(avg_score, data['queries'])
+                        'affectedQueries': data['queries'][:3],  # Show sample questions
+                        'gapType': self._determine_performance_category(avg_score),
+                        'successRate': round(success_rate, 1),
+                        'poorCount': len([s for s in data['scores'] if s < 5.0]),
+                        'criticalCount': len([s for s in data['scores'] if s < 3.0])
                     })
-        
-        # Sort by severity (lowest score first)
-        weak_areas.sort(key=lambda x: x['avgScore'])
+
+        weak_areas.sort(key=lambda x: x['avgScore'])  # Sort by worst performance first
         return weak_areas
     
     def _determine_gap_type(self, avg_score: float, queries: List[str]) -> str:
@@ -160,6 +142,15 @@ class GapAnalysisService:
             return 'quality'   # Medium-poor scores indicate quality issues
         else:
             return 'retrieval' # Relatively better scores indicate retrieval issues
+    
+    def _determine_performance_category(self, avg_score: float) -> str:
+        """Determine performance category using Results page concepts"""
+        if avg_score < 3.0:
+            return 'critical'  # Critical performance issues
+        elif avg_score < 5.0:
+            return 'poor'      # Poor performance 
+        else:
+            return 'weak'      # Weak performance (but not poor)
     
     def _generate_recommendations(self, low_score_queries: List[Dict[str, Any]], 
                                 weak_areas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -185,29 +176,29 @@ class GapAnalysisService:
         return recommendations[:6]  # Return top 6 recommendations
     
     def _create_area_recommendation(self, area: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create a recommendation for a weak coverage area"""
-        topic = area['topic'].lower()
-        gap_type = area['gapType']
+        """Create a recommendation for a role with poor performance"""
+        role = area['topic'].lower()  # 'topic' field contains role name
+        performance_type = area['gapType']  # Using existing field but with new meaning
         avg_score = area['avgScore']
         query_count = area['queryCount']
         
-        # Determine recommendation based on gap type and topic
-        if gap_type == 'coverage':
-            suggested_content = f"Add comprehensive documentation about {topic} including definitions, processes, and common scenarios"
-            category = 'content_addition'
-            effort = 'Medium' if query_count > 5 else 'Low'
-        elif gap_type == 'quality':
-            suggested_content = f"Improve existing {topic} content with more detailed explanations and examples"
+        # Determine recommendation based on performance level and role
+        if performance_type == 'critical':
+            suggested_content = f"Review and enhance content for {role}-related questions. Current performance is critical (avg score: {avg_score})"
+            category = 'role_improvement'
+            effort = 'High' if query_count > 5 else 'Medium'
+        elif performance_type == 'poor':
+            suggested_content = f"Improve content quality for {role} questions to reach acceptable performance levels"
             category = 'content_improvement'  
-            effort = 'Low'
-        else:  # retrieval
-            suggested_content = f"Optimize document chunking and indexing for {topic}-related content"
-            category = 'retrieval_optimization'
             effort = 'Medium'
+        else:  # weak
+            suggested_content = f"Enhance {role} content to achieve GOOD quality score (≥7.0) from current WEAK level"
+            category = 'quality_boost'
+            effort = 'Low' if query_count <= 3 else 'Medium'
         
-        # Calculate impact and priority
+        # Calculate impact and priority based on Results page concepts
         impact = 'High' if avg_score < 3.0 else ('Medium' if avg_score < 5.0 else 'Low')
-        effort_score = self.effort_rules[category][effort]
+        effort_score = {'Low': 1, 'Medium': 2, 'High': 3}[effort]
         impact_score = {'High': 3, 'Medium': 2, 'Low': 1}[impact]
         priority_score = impact_score * (1 / effort_score)
         
@@ -215,7 +206,7 @@ class GapAnalysisService:
         
         return {
             'id': str(uuid.uuid4())[:8],
-            'gapDescription': f"Poor performance in {topic} queries (avg score: {avg_score})",
+            'gapDescription': f"Role '{role}' shows poor performance: {query_count} questions averaging {avg_score}/10",
             'suggestedContent': suggested_content,
             'expectedImprovement': min(10.0, avg_score + (10 - avg_score) * 0.6),  # 60% improvement potential
             'priorityLevel': priority_level,
@@ -264,6 +255,9 @@ class GapAnalysisService:
         total_questions = len(all_results)
         total_gaps = len(low_score_queries)
         critical_gaps = len([q for q in low_score_queries if q.get('avg_quality_score', 0) < 3.0])
+        # Below GOOD threshold (aligns with Results page success rate complement)
+        good_threshold = QualityScoreService.get_quality_thresholds()['GOOD']
+        below_good_count = len([r for r in all_results if r.get('avg_quality_score', 0) < good_threshold])
         
         # Calculate average gap score
         avg_gap_score = 0.0
@@ -281,7 +275,9 @@ class GapAnalysisService:
             'avgGapScore': round(avg_gap_score, 1),
             'improvementPotential': round(improvement_potential, 1),
             'gapPercentage': round((total_gaps / max(total_questions, 1)) * 100, 1),
-            'totalQuestions': total_questions
+            'totalQuestions': total_questions,
+            'belowGoodCount': below_good_count,
+            'belowGoodPercentage': round((below_good_count / max(total_questions, 1)) * 100, 1)
         }
     
     def _create_empty_gap_analysis(self) -> Dict[str, Any]:

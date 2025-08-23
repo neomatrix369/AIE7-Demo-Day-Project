@@ -434,7 +434,7 @@ const AnalysisResults: React.FC = () => {
           </button>
           <button 
             className="button"
-            onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+            onClick={() => goTo('/gap-analysis', 'Gap Analysis', { 
               action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS', 
               data: { 
                 total_questions: results.overall.total_questions,
@@ -622,7 +622,7 @@ const AnalysisResults: React.FC = () => {
               
               <button 
                 className="button button-secondary"
-                onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+                onClick={() => goTo('/gap-analysis', 'Gap Analysis', { 
                   action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS_ADVANCED', 
                   data: { 
                     from_section: 'advanced_visualization',

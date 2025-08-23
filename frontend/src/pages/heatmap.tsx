@@ -615,7 +615,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 </button>
                 <button 
                   className="button button-secondary"
-                  onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+                  onClick={() => goTo('/gap-analysis', 'Gap Analysis', { 
                     action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_HEATMAP', 
                     data: { 
                       heatmap_perspective: heatmapConfig.perspective,

@@ -222,7 +222,7 @@ const QuestionGroupsOverview: React.FC = () => {
             
             <button 
               className="button button-secondary" 
-              onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+              onClick={() => goTo('/gap-analysis', 'Gap Analysis', { 
                 action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_QUESTIONS', 
                 data: { 
                   total_available_questions: totalLlmQuestions + totalRagasQuestions

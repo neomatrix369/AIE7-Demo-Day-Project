@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
 import { LABEL_RESULTS } from '../utils/constants';
 import { experimentApi, questionsApi } from '../services/api';
@@ -42,22 +41,8 @@ const ExperimentConfiguration: React.FC = () => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isGapAnalysisExpanded, setIsGapAnalysisExpanded] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
   const { goTo } = usePageNavigation('Experiment');
 
-  // Auto-expand Gap Analysis section when navigated from Results page
-  useEffect(() => {
-    if (router.query.section === 'gap-analysis') {
-      setIsGapAnalysisExpanded(true);
-      // Scroll to Gap Analysis section after a brief delay to ensure DOM is ready
-      setTimeout(() => {
-        const gapAnalysisElement = document.getElementById('gap-analysis-section');
-        if (gapAnalysisElement) {
-          gapAnalysisElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 500);
-    }
-  }, [router.query.section]);
 
   useEffect(() => {
     const fetchExperimentConfig = async () => {

@@ -1,5 +1,7 @@
 import React, { useCallback } from 'react';
 import BalloonTooltip from '../ui/BalloonTooltip';
+import RuleBasedBadge from '../ui/RuleBasedBadge';
+import { SHOW_RULE_BASED_BADGE } from '../../utils/constants';
 import usePageData from '../../hooks/usePageData';
 import { resultsApi } from '../../services/api';
 import { GapAnalysis } from '../../types';
@@ -148,18 +150,23 @@ const GapAnalysisDashboard: React.FC = () => {
 
       {/* Gap Analysis Overview */}
       <div className="gap-section">
-        <div className="section-header">
-          <span className="section-icon">📊</span>
-          <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            Gap Analysis Overview
-            <BalloonTooltip
-              content={'Summary of gap metrics derived from low-performing queries and recommendations.'}
-              maxWidth={340}
-              cursor="help"
-            >
-              <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
-            </BalloonTooltip>
-          </h3>
+        <div className="section-header" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="section-icon">📊</span>
+            <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+              Gap Analysis Overview
+              <BalloonTooltip
+                content={'Summary of gap metrics derived from low-performing queries and recommendations.'}
+                maxWidth={340}
+                cursor="help"
+              >
+                <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+              </BalloonTooltip>
+            </h3>
+          </div>
+          {SHOW_RULE_BASED_BADGE && (
+            <RuleBasedBadge text="Rule-Based Analysis (non-ML)" />
+          )}
         </div>
         <GapAnalysisOverview gapData={gapData} />
       </div>

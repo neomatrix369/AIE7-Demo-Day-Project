@@ -12,4 +12,7 @@ export const LABEL_RESULTS = 'Analysis Results';
 // UI
 export const DEFAULT_BUTTON_VARIANT_SECONDARY = 'button button-secondary';
 
+// Feature flags
+export const SHOW_RULE_BASED_BADGE = true;
+
 

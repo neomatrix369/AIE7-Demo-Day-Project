@@ -73,6 +73,11 @@ const ExperimentManagement: React.FC = () => {
           data: { filename, count: response.count }
         });
         showHintBalloon(`Successfully loaded experiment: ${filename} (${response.count} questions)`, 'success');
+        // Navigate directly to Results after successful load (single-step UX)
+        goTo('/results', LABEL_RESULTS, {
+          action: 'NAVIGATE_TO_RESULTS_FROM_EXPERIMENTS_LOAD',
+          data: { selected_experiment: filename, count: response.count }
+        });
       } else {
         throw new Error(response.message);
       }

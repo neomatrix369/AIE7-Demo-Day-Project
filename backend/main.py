@@ -404,33 +404,9 @@ async def get_gap_analysis():
                 logger.warning(f"⚠️ Could not load experiment results: {e}")
                 
         if not results_to_analyze:
-            logger.warning("⚠️ No experiment results available for gap analysis, using demo data")
-            # Create realistic demo data that matches typical result patterns
-            demo_results = []
-            roles = ['payment', 'forgiveness', 'interest', 'eligibility', 'application', 'consolidation', 'deferment', 'default', 'servicer']
-            
-            for i in range(78):  # Match the displayed total
-                role = roles[i % len(roles)]
-                # Create realistic score distribution: some good, some poor, few critical
-                if i < 10:  # 10 good questions (12.8%)
-                    score = 7.0 + (i * 0.3)  # 7.0 to 9.7
-                elif i < 35:  # 25 weak questions (32.1%) 
-                    score = 5.0 + ((i-10) * 0.08)  # 5.0 to 6.9
-                elif i < 72:  # 37 poor questions (47.4%)
-                    score = 3.0 + ((i-35) * 0.054)  # 3.0 to 4.9
-                else:  # 6 critical questions (7.7%)
-                    score = 0.5 + ((i-72) * 0.4)  # 0.5 to 2.9
-                
-                demo_results.append({
-                    'question': f"Question about {role} (variant {i+1})",
-                    'avg_quality_score': round(score, 1),
-                    'role_name': role,
-                    'source': 'llm' if i % 2 == 0 else 'ragas',
-                    'avg_similarity': score / 10.0  # Convert to 0-1 scale for compatibility
-                })
-            
-            results_to_analyze = demo_results
-            logger.info(f"🎭 Using demo data: {len(demo_results)} questions with realistic score distribution")
+            logger.warning("⚠️ No experiment results available for gap analysis, returning empty analysis")
+            # Return an empty gap analysis so the frontend can show a no-data banner
+            return gap_analysis_service.analyze_gaps([])
         
         logger.info(f"🔍 Performing gap analysis on {len(results_to_analyze)} experiment results")
         

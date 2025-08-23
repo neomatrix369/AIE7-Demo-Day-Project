@@ -613,6 +613,19 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 >
                   🏠 Dashboard
                 </button>
+                <button 
+                  className="button button-secondary"
+                  onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+                    action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_HEATMAP', 
+                    data: { 
+                      heatmap_perspective: heatmapConfig.perspective,
+                      total_chunks: allChunks?.length || 0 
+                    } 
+                  })}
+                  style={{ fontSize: '0.75rem', padding: '6px 10px', backgroundColor: '#e67e22', color: 'white' }}
+                >
+                  🎯 Gap Analysis
+                </button>
               </div>
             </div>
             

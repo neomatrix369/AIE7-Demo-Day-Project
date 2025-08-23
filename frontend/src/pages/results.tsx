@@ -434,6 +434,19 @@ const AnalysisResults: React.FC = () => {
           </button>
           <button 
             className="button"
+            onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+              action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS', 
+              data: { 
+                total_questions: results.overall.total_questions,
+                poor_questions_count: results.per_question.filter(q => q.status === 'poor').length 
+              } 
+            })}
+            style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#e67e22' }}
+          >
+            🎯 Gap Analysis
+          </button>
+          <button 
+            className="button"
             onClick={handleViewHeatmap}
             style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#007bff' }}
           >
@@ -594,17 +607,53 @@ const AnalysisResults: React.FC = () => {
               </div>
             </div>
             
-            <button 
-              className="button"
-              onClick={handleViewHeatmap}
-              style={{ 
-                fontSize: '16px', 
-                padding: '12px 24px',
-                backgroundColor: '#007bff'
-              }}
-            >
-              🗺️ Open Interactive Heatmap Visualization →
-            </button>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button 
+                className="button"
+                onClick={handleViewHeatmap}
+                style={{ 
+                  fontSize: '14px', 
+                  padding: '10px 20px',
+                  backgroundColor: '#007bff'
+                }}
+              >
+                🗺️ Interactive Heatmap
+              </button>
+              
+              <button 
+                className="button button-secondary"
+                onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+                  action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS_ADVANCED', 
+                  data: { 
+                    from_section: 'advanced_visualization',
+                    total_questions: results.overall.total_questions 
+                  } 
+                })}
+                style={{ 
+                  fontSize: '14px', 
+                  padding: '10px 20px',
+                  backgroundColor: '#e67e22',
+                  color: 'white'
+                }}
+              >
+                🎯 Gap Analysis
+              </button>
+              
+              <button 
+                className="button button-secondary"
+                onClick={() => goTo('/', LABEL_DASHBOARD, { 
+                  action: 'NAVIGATE_TO_DASHBOARD_FROM_RESULTS_ADVANCED', 
+                  data: { corpus_health: results.overall.corpus_health } 
+                })}
+                style={{ 
+                  fontSize: '14px', 
+                  padding: '10px 20px',
+                  backgroundColor: '#28a745'
+                }}
+              >
+                🏠 Dashboard
+              </button>
+            </div>
           </div>
           )}
         </div>

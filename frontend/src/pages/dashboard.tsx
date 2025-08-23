@@ -4,6 +4,7 @@ import usePageNavigation from '../hooks/usePageNavigation';
 import { corpusApi } from '../services/api';
 import { CorpusStatus } from '../types';
 import { logSuccess, logInfo, logNavigation } from '../utils/logger';
+import { LABEL_RESULTS, LABEL_HEATMAP } from '../utils/constants';
 import NavigationHeader from '../components/NavigationHeader';
 import { useApiCall } from '../hooks/useApiCall';
 import LoadingDisplay from '../components/ui/LoadingDisplay';
@@ -157,6 +158,28 @@ const DataLoadingDashboard: React.FC = () => {
               style={{ fontSize: '18px', padding: '15px 30px', backgroundColor: '#6f42c1' }}
             >
               📁 Manage Experiments
+            </button>
+            
+            <button 
+              className="button button-secondary" 
+              onClick={() => goTo('/results', LABEL_RESULTS, { 
+                action: 'NAVIGATE_TO_RESULTS_FROM_DASHBOARD', 
+                data: { total_chunks: corpusStatus?.chunk_count || 0 } 
+              })}
+              style={{ fontSize: '18px', padding: '15px 30px', backgroundColor: '#28a745' }}
+            >
+              📊 View Results
+            </button>
+            
+            <button 
+              className="button button-secondary" 
+              onClick={() => goTo('/heatmap', LABEL_HEATMAP, { 
+                action: 'NAVIGATE_TO_HEATMAP_FROM_DASHBOARD', 
+                data: { total_documents: corpusStatus?.document_count || 0 } 
+              })}
+              style={{ fontSize: '18px', padding: '15px 30px', backgroundColor: '#007bff' }}
+            >
+              🗺️ Open Heatmap
             </button>
           </div>
         </div>

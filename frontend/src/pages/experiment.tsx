@@ -45,6 +45,20 @@ const ExperimentConfiguration: React.FC = () => {
   const router = useRouter();
   const { goTo } = usePageNavigation('Experiment');
 
+  // Auto-expand Gap Analysis section when navigated from Results page
+  useEffect(() => {
+    if (router.query.section === 'gap-analysis') {
+      setIsGapAnalysisExpanded(true);
+      // Scroll to Gap Analysis section after a brief delay to ensure DOM is ready
+      setTimeout(() => {
+        const gapAnalysisElement = document.getElementById('gap-analysis-section');
+        if (gapAnalysisElement) {
+          gapAnalysisElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 500);
+    }
+  }, [router.query.section]);
+
   useEffect(() => {
     const fetchExperimentConfig = async () => {
       try {
@@ -596,7 +610,7 @@ const ExperimentConfiguration: React.FC = () => {
 
         {/* Gap Analysis Section */}
         {(completed || results.length > 0) && (
-          <div className="card" style={{ marginTop: '20px', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' }}>
+          <div id="gap-analysis-section" className="card" style={{ marginTop: '20px', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' }}>
             <div 
               className="collapsible-header" 
               style={{

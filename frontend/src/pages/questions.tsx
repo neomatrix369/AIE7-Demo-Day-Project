@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import usePageNavigation from '../hooks/usePageNavigation';
 import usePageData from '../hooks/usePageData';
-import { LABEL_DASHBOARD } from '../utils/constants';
+import { LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
 import { questionsApi } from '../services/api';
 import { QuestionGroup } from '../types';
 import PageWrapper from '../components/ui/PageWrapper';
@@ -206,6 +206,33 @@ const QuestionGroupsOverview: React.FC = () => {
           </button>
           
           <div style={{ display: 'flex', gap: '15px' }}>
+            <button 
+              className="button button-secondary" 
+              onClick={() => goTo('/results', LABEL_RESULTS, { 
+                action: 'NAVIGATE_TO_RESULTS_FROM_QUESTIONS', 
+                data: { 
+                  llm_questions: totalLlmQuestions,
+                  ragas_questions: totalRagasQuestions 
+                } 
+              })}
+              style={{ backgroundColor: '#28a745' }}
+            >
+              📊 View Results
+            </button>
+            
+            <button 
+              className="button button-secondary" 
+              onClick={() => goTo('/experiment?section=gap-analysis', 'Gap Analysis', { 
+                action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_QUESTIONS', 
+                data: { 
+                  total_available_questions: totalLlmQuestions + totalRagasQuestions
+                } 
+              })}
+              style={{ backgroundColor: '#e67e22', color: 'white' }}
+            >
+              🎯 Gap Analysis
+            </button>
+            
             <button 
               className="button button-secondary" 
               onClick={handleManageExperiments}

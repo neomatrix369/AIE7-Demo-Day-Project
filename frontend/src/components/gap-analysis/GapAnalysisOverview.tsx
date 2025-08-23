@@ -19,11 +19,6 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
     return '#28a745'; // Green for low gap percentage
   };
 
-  const getImprovementColor = (potential: number) => {
-    if (potential >= 7.0) return '#28a745'; // Green for high improvement potential
-    if (potential >= 5.0) return '#e67e22'; // Orange for medium improvement potential
-    return '#dc3545'; // Red for low improvement potential
-  };
 
   const formatImprovementPotential = (gapSummary: any) => {
     // Calculate average current score of poor questions (< 5.0)
@@ -41,14 +36,14 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
     <div className="gap-analysis-overview">
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
         <div className="stat-item" style={{ 
-          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-          borderLeft: `4px solid ${getSeverityColor(gapSummary.belowGoodPercentage)}`
+          background: 'linear-gradient(135deg, #fef3e2 0%, #f9e4c8 100%)',
+          borderLeft: '4px solid #e67e22'
         }}>
           <div className="stat-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>🎯</div>
           <div className="stat-value" style={{ 
             fontSize: '1.8rem', 
             fontWeight: 'bold', 
-            color: getSeverityColor(gapSummary.belowGoodPercentage)
+            color: '#e67e22'
           }}>
             {gapSummary.belowGoodCount}
           </div>
@@ -94,13 +89,13 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
           </div>
         </div>
 
-        {/* Below GOOD threshold - aligns with Results page success rate complement */}
+        {/* Questions Analyzed - neutral blue theme to complement quality score cards */}
         <div className="stat-item" style={{ 
-          background: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
-          borderLeft: '4px solid #ffc107'
+          background: 'linear-gradient(135deg, #f0f8ff 0%, #e1f0fe 100%)',
+          borderLeft: '4px solid #007bff'
         }}>
           <div className="stat-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>📊</div>
-          <div className="stat-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#856404' }}>
+          <div className="stat-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#007bff' }}>
             {gapSummary.totalQuestions || 0}
           </div>
           <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -122,14 +117,14 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
 
 
         <div className="stat-item" style={{ 
-          background: 'linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%)',
-          borderLeft: `4px solid ${getImprovementColor(gapSummary.improvementPotential)}`
+          background: 'linear-gradient(135deg, #f8fffe 0%, #e8f7f5 100%)',
+          borderLeft: '4px solid #17a2b8'
         }}>
           <div className="stat-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>🎯</div>
           <div className="stat-value" style={{ 
             fontSize: '1.8rem', 
             fontWeight: 'bold', 
-            color: getImprovementColor(gapSummary.improvementPotential)
+            color: '#17a2b8'
           }}>
             {formatImprovementPotential(gapSummary)}
           </div>

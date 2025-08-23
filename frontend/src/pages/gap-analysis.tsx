@@ -79,7 +79,7 @@ const GapAnalysisPage: React.FC = () => {
                 color: 'white'
               }}
             >
-              📊 Results
+              📊 View Results
             </button>
             <button 
               className="button button-secondary"
@@ -95,7 +95,7 @@ const GapAnalysisPage: React.FC = () => {
                 color: 'white'
               }}
             >
-              🗺️ Heatmap
+              🗺️ Interactive Heatmap
             </button>
             <button 
               className="button button-secondary"

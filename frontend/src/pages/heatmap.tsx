@@ -306,7 +306,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 ← Back to Results
               </button>
               <button className="button button-secondary" onClick={handleBackToDashboard}>
-                🏠 Go to Dashboard
+                🏠 Dashboard
               </button>
             </div>
           </div>
@@ -604,7 +604,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                   onClick={handleBackToResults}
                   style={{ fontSize: '0.75rem', padding: '6px 10px' }}
                 >
-                  📊 Analysis Results
+                  📊 View Results
                 </button>
                 <button 
                   className="button button-secondary"
@@ -655,7 +655,11 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                     <>
                       <strong>Retrieval Frequency:</strong> {selectedHeatmapPoint.data.retrievalFrequency} questions<br/>
                       <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
-                      <strong>Best Match:</strong> {selectedHeatmapPoint.data.bestQuestion.similarity.toFixed(3)}
+                      {selectedHeatmapPoint.data.bestQuestion ? (
+                        <><strong>Best Match:</strong> {selectedHeatmapPoint.data.bestQuestion.similarity.toFixed(3)}</>
+                      ) : (
+                        <><strong>Status:</strong> Unretrieved (no matching questions)</>
+                      )}
                     </>
                   ) : selectedHeatmapPoint.data.type === 'role' ? (
                     <>
@@ -667,7 +671,11 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                     <>
                       <strong>Total Retrievals:</strong> {selectedHeatmapPoint.data.totalRetrievals}<br/>
                       <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
-                      <strong>Dominant Role:</strong> {selectedHeatmapPoint.data.dominantRole.roleName}
+                      {selectedHeatmapPoint.data.dominantRole ? (
+                        <><strong>Dominant Role:</strong> {selectedHeatmapPoint.data.dominantRole.roleName}</>
+                      ) : (
+                        <><strong>Status:</strong> No role access patterns</>
+                      )}
                     </>
                   ) : selectedHeatmapPoint.data.type === 'unassociated-cluster' ? (
                     <>

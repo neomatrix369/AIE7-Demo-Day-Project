@@ -276,7 +276,7 @@ const ExperimentManagement: React.FC = () => {
               className="button" 
               onClick={handleBackToDashboard}
             >
-              🏠 Go to Dashboard
+              🏠 Dashboard
             </button>
           </div>
         ) : (

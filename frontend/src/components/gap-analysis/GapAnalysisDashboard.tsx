@@ -92,6 +92,28 @@ const GapAnalysisDashboard: React.FC = () => {
 
   if (!gapData) return null;
 
+  // Check if no experiment data is available
+  if (gapData.gapSummary.totalQuestions === 0) {
+    return (
+      <div className="gap-analysis-no-data" style={{
+        textAlign: 'center',
+        padding: '40px',
+        background: 'white',
+        borderRadius: '8px',
+        border: '2px dashed #dee2e6'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📊</div>
+        <h3 style={{ color: '#666', marginBottom: '15px' }}>No Experiment Data Available</h3>
+        <p style={{ color: '#888', marginBottom: '20px', fontSize: '16px' }}>
+          Run an experiment first to generate gap analysis insights and recommendations.
+        </p>
+        <p style={{ color: '#999', fontSize: '14px' }}>
+          Gap analysis requires experiment results to identify content gaps and generate actionable recommendations.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="gap-analysis-dashboard">
       <style jsx>{`

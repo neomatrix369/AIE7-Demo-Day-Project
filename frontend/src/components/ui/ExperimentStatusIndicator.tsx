@@ -91,7 +91,7 @@ const ExperimentStatusIndicator: React.FC<ExperimentStatusIndicatorProps> = ({
       }}
       title={hasExperimentData 
         ? 'Experiment data is loaded and available for analysis' 
-        : 'No experiment data available. Run an experiment to see results.'}
+        : 'No experiment data available. Load one from the Experiments page or run an experiment from the Run Experiments page to see results.'}
     >
       <span style={{ marginRight: '3px' }}>{getStatusIcon()}</span>
       {getStatusText()}

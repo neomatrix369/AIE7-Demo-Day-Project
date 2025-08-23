@@ -109,7 +109,29 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
       }
       groups[rec.category].items.push(rec);
     }
-    return groups;
+    // Sort items within each category by priority score (high to low)
+    Object.values(groups).forEach(group => {
+      group.items.sort((a, b) => b.priorityScore - a.priorityScore);
+    });
+    
+    // Sort categories by overall impact (highest priority recommendations first)
+    const sortedGroups: Record<string, { label: string; icon: string; items: RecommendationCard[] }> = {};
+    const sortedCategories = Object.entries(groups)
+      .filter(([_, group]) => group.items.length > 0) // Only include categories with items
+      .sort(([_, groupA], [__, groupB]) => {
+        // Calculate average priority score for each group
+        const avgScoreA = groupA.items.reduce((sum, item) => sum + item.priorityScore, 0) / groupA.items.length;
+        const avgScoreB = groupB.items.reduce((sum, item) => sum + item.priorityScore, 0) / groupB.items.length;
+        return avgScoreB - avgScoreA; // Sort high to low
+      })
+      .map(([category, group]) => category);
+    
+    // Rebuild groups in sorted order
+    sortedCategories.forEach(category => {
+      sortedGroups[category] = groups[category];
+    });
+    
+    return sortedGroups;
   }, [recommendations]);
 
   const summarize = (items: RecommendationCard[]) => {

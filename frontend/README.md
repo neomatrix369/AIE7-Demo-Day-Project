@@ -13,8 +13,17 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 - **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts
 
 ### Key Features
-- **Gap Analysis Dashboard**: NEW! Intelligent content gap detection with actionable recommendations
+- **Enhanced Heatmap Visualization**: Universal coverage statistics and perspective-specific metrics
+  - Chunk Coverage and Unretrieved Chunks cards shown on all perspectives
+  - Perspective-specific count cards (Questions, User Roles, Documents)
+  - Streamlined UI with removed cluttered insight cards for cleaner interface
+- **TypeScript Safety**: Enhanced null safety with proper optional field handling
+  - Fixed critical TypeScript errors in heatmap tooltips
+  - Improved defensive programming with graceful fallbacks
+- **Gap Analysis Dashboard**: Intelligent content gap detection with actionable recommendations
 - **Smart Recommendations Engine**: Interactive cards with priority scoring and implementation tracking
+- **Cross-Page Navigation**: Enhanced navigation flow between Gap Analysis and other screens
+- **UI Consistency & Polish**: Standardized button text, tooltips, and "No data available" messaging
 - **Comprehensive Logging**: User-friendly messages with development context
 - **API Logging**: Request/response interceptors with timeout handling  
 - **Performance Caching**: API request caching with TTL (10min) and size limits
@@ -31,7 +40,8 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
   - `heatmapData.ts`: Data processing utilities for multiple visualization perspectives
 - **Heatmap Utilities** (`src/components/heatmap/` and `src/utils/`)
   - `ScatterHeatmap.tsx`: D3.js hexagonal scatter plots with optimized rendering and concentric layouts
-  - `HeatmapControls.tsx`, `HeatmapLegend.tsx`, `HeatmapTooltip.tsx`: Reusable UI for perspectives, legends, and smart tooltips
+  - `HeatmapControls.tsx`, `HeatmapLegend.tsx`: Reusable UI for perspectives, legends, and perspective switching
+  - `HeatmapTooltip.tsx`: Enhanced tooltips with improved null safety and conditional rendering
   - `heatmapCore.ts`: Core positioning algorithms including circular trigonometry and collision detection
   - `heatmapProcessors.ts`: Perspective-specific processors with custom positioning strategies
   - `positionUtils.ts`, `renderUtils.ts`: Shared utilities for hexagon rendering and position calculations

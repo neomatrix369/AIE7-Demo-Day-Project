@@ -264,10 +264,16 @@ class GapAnalysisService:
         if low_score_queries:
             avg_gap_score = sum(q.get('avg_quality_score', 0) for q in low_score_queries) / len(low_score_queries)
         
-        # Estimate improvement potential based on recommendations
+        # Calculate improvement potential as average boost from recommendations  
         improvement_potential = 0.0
         if recommendations:
-            improvement_potential = sum(r['expectedImprovement'] for r in recommendations) / len(recommendations)
+            # Simple approach: average improvement shown in UI should be reasonable boost amount
+            # For critical queries (0 score), a boost to 5.0 means +5.0 improvement
+            # For role issues, improvement is calculated as 60% of gap to perfect (10.0)
+            avg_expected = sum(r['expectedImprovement'] for r in recommendations) / len(recommendations)
+            # Since most critical queries start at 0 and improve to ~5, the boost is the target score
+            # But we want to show realistic boost amounts, so cap at reasonable levels
+            improvement_potential = min(5.0, avg_expected * 0.8)  # 80% of target as realistic boost
         
         return {
             'totalGaps': total_gaps,

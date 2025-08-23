@@ -141,5 +141,7 @@ export interface GapAnalysis {
     improvementPotential: number;
     gapPercentage: number;
     totalQuestions: number;
+    belowGoodCount: number;
+    belowGoodPercentage: number;
   };
 }

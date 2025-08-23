@@ -25,6 +25,18 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
     return '#dc3545'; // Red for low improvement potential
   };
 
+  const formatImprovementPotential = (gapSummary: any) => {
+    // Calculate average current score of poor questions (< 5.0)
+    // Since we don't have direct access to per-question data here, 
+    // we'll estimate based on the gap summary
+    const avgCurrentScore = gapSummary.totalGaps > 0 ? gapSummary.avgGapScore : 0;
+    const targetScore = gapSummary.improvementPotential;
+    const improvement = targetScore - avgCurrentScore;
+    const sign = improvement >= 0 ? '+' : '';
+    
+    return `${targetScore} (${sign}${improvement.toFixed(1)})`;
+  };
+
   return (
     <div className="gap-analysis-overview">
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
@@ -119,13 +131,13 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
             fontWeight: 'bold', 
             color: getImprovementColor(gapSummary.improvementPotential)
           }}>
-            +{gapSummary.improvementPotential}
+            {formatImprovementPotential(gapSummary)}
           </div>
           <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Improvement Potential</span>
+            <span>Avg Target Score</span>
             <BalloonTooltip
               content={
-                'Estimated score increase possible by implementing recommended content improvements.'
+                'Average target quality score achievable by implementing the recommended improvements.'
               }
               maxWidth={320}
               cursor="help"
@@ -134,7 +146,7 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
             </BalloonTooltip>
           </div>
           <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666' }}>
-            Score Points
+            After Improvements
           </div>
         </div>
       </div>

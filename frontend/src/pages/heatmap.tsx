@@ -11,6 +11,7 @@ import HeatmapLegend from '../components/heatmap/HeatmapLegend';
 import { HeatmapPoint } from '../utils/heatmapData';
 import useApiCache from '../hooks/useApiCache';
 import { DEFAULT_CACHE_TTL_MS, DEFAULT_CACHE_MAX_SIZE, LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
+import QuickActions from '../components/ui/QuickActions';
 
 const InteractiveHeatmapVisualization: React.FC = () => {
   // Complex UI state (kept separate from usePageData)
@@ -594,40 +595,35 @@ const InteractiveHeatmapVisualization: React.FC = () => {
             />
             
             {/* Quick Actions Panel */}
-            <div className="card" style={{ padding: '10px' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '0.8rem' }}>
-                🔗 Quick Actions
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <button 
-                  className="button button-secondary"
-                  onClick={handleBackToResults}
-                  style={{ fontSize: '0.75rem', padding: '6px 10px' }}
-                >
-                  📊 View Results
-                </button>
-                <button 
-                  className="button button-secondary"
-                  onClick={handleBackToDashboard}
-                  style={{ fontSize: '0.75rem', padding: '6px 10px' }}
-                >
-                  🏠 Dashboard
-                </button>
-                <button 
-                  className="button button-secondary"
-                  onClick={() => goTo('/gap-analysis', 'Gap Analysis', { 
+            <QuickActions
+              layout="vertical"
+              size="compact"
+              actions={[
+                {
+                  label: 'View Results',
+                  icon: '📊',
+                  onClick: handleBackToResults
+                },
+                {
+                  label: 'Dashboard',
+                  icon: '🏠',
+                  onClick: handleBackToDashboard
+                },
+                {
+                  label: 'Gap Analysis',
+                  icon: '🎯',
+                  variant: 'accent',
+                  onClick: () => goTo('/gap-analysis', 'Gap Analysis', { 
                     action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_HEATMAP', 
                     data: { 
                       heatmap_perspective: heatmapConfig.perspective,
                       total_chunks: allChunks?.length || 0 
                     } 
-                  })}
-                  style={{ fontSize: '0.75rem', padding: '6px 10px', backgroundColor: '#e67e22', color: 'white' }}
-                >
-                  🎯 Gap Analysis
-                </button>
-              </div>
-            </div>
+                  })
+                }
+              ]}
+              style={{ padding: '8px' }}
+            />
             
             {/* Drill-down Information Panel */}
             {selectedHeatmapPoint && (

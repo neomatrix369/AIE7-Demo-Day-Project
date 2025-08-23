@@ -10,6 +10,8 @@ import { useApiCall } from '../hooks/useApiCall';
 import LoadingDisplay from '../components/ui/LoadingDisplay';
 import ErrorDisplay from '../components/ui/ErrorDisplay';
 import BalloonTooltip from '../components/ui/BalloonTooltip';
+import ExperimentStatusIndicator from '../components/ui/ExperimentStatusIndicator';
+import VectorDbStatusIndicator from '../components/ui/VectorDbStatusIndicator';
 
 const DataLoadingDashboard: React.FC = () => {
   const { data: corpusStatus, loading, error, execute } = useApiCall<CorpusStatus>();
@@ -81,6 +83,8 @@ const DataLoadingDashboard: React.FC = () => {
   return (
     <div>
       <NavigationHeader currentPage="dashboard" />
+      <VectorDbStatusIndicator position="top-left" />
+      <ExperimentStatusIndicator />
       <div className="card">
         <h2>🔍 RagCheck - Ready to Analyze</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>

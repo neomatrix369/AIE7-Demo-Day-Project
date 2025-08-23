@@ -10,6 +10,7 @@ import PageWrapper from '../components/ui/PageWrapper';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import BalloonTooltip from '../components/ui/BalloonTooltip';
 import { createStorageAdapter } from '../services/storage';
+import QuickActions from '../components/ui/QuickActions';
 
 const AnalysisResults: React.FC = () => {
   // UI state management (not moved to usePageData)
@@ -431,64 +432,50 @@ const AnalysisResults: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Actions Bar */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '10px', 
-          marginBottom: '20px',
-          padding: '15px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '6px',
-          border: '1px solid #dee2e6',
-          flexWrap: 'wrap',
-          alignItems: 'center'
-        }}>
-          <strong style={{ fontSize: '0.9rem', color: '#333', marginRight: '10px' }}>🚀 Quick Actions:</strong>
-          <button 
-            className="button button-secondary"
-            onClick={() => {
-              const poorQuestions = results.per_question.filter(q => q.status === 'poor');
-              if (poorQuestions.length > 0) {
-                setExpandedQuestion(poorQuestions[0].id);
-                setFilterStatus('poor');
+        {/* Quick Actions */}
+        <QuickActions
+          actions={[
+            {
+              label: `Focus on Poor Questions (${results.per_question.filter(q => q.status === 'poor').length})`,
+              icon: '🔍',
+              onClick: () => {
+                const poorQuestions = results.per_question.filter(q => q.status === 'poor');
+                if (poorQuestions.length > 0) {
+                  setExpandedQuestion(poorQuestions[0].id);
+                  setFilterStatus('poor');
+                  document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }
+            },
+            {
+              label: `View Top Performers (${results.per_question.filter(q => q.status === 'good').length})`,
+              icon: '✨',
+              onClick: () => {
+                setFilterStatus('good');
                 document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
               }
-            }}
-            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-          >
-            🔍 Focus on Poor Questions ({results.per_question.filter(q => q.status === 'poor').length})
-          </button>
-          <button 
-            className="button button-secondary"
-            onClick={() => {
-              setFilterStatus('good');
-              document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-          >
-            ✨ View Top Performers ({results.per_question.filter(q => q.status === 'good').length})
-          </button>
-          <button 
-            className="button"
-            onClick={() => goTo('/gap-analysis', 'Gap Analysis', { 
-              action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS', 
-              data: { 
-                total_questions: results.overall.total_questions,
-                poor_questions_count: results.per_question.filter(q => q.status === 'poor').length 
-              } 
-            })}
-            style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#e67e22' }}
-          >
-            🎯 Gap Analysis
-          </button>
-          <button 
-            className="button"
-            onClick={handleViewHeatmap}
-            style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#007bff' }}
-          >
-            🗺️ Interactive Heatmap
-          </button>
-        </div>
+            },
+            {
+              label: 'Gap Analysis',
+              icon: '🎯',
+              variant: 'accent',
+              onClick: () => goTo('/gap-analysis', 'Gap Analysis', { 
+                action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS', 
+                data: { 
+                  total_questions: results.overall.total_questions,
+                  poor_questions_count: results.per_question.filter(q => q.status === 'poor').length 
+                } 
+              })
+            },
+            {
+              label: 'Interactive Heatmap',
+              icon: '🗺️',
+              variant: 'primary',
+              onClick: handleViewHeatmap
+            }
+          ]}
+          style={{ marginBottom: '20px' }}
+        />
 
         <div className="analysis-section">
           <h3 

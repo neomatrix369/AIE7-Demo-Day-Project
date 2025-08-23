@@ -2,8 +2,6 @@ import React from 'react';
 import { GapAnalysis } from '../../types';
 import QualityScoreLegend from '../QualityScoreLegend';
 import BalloonTooltip from '../ui/BalloonTooltip';
-import usePageNavigation from '../../hooks/usePageNavigation';
-import { LABEL_RESULTS, LABEL_HEATMAP } from '../../utils/constants';
 
 interface GapAnalysisOverviewProps {
   gapData: GapAnalysis;
@@ -11,7 +9,6 @@ interface GapAnalysisOverviewProps {
 
 const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) => {
   const { gapSummary } = gapData;
-  const { goTo } = usePageNavigation('GapAnalysis');
 
   const getSeverityColor = (percentage: number) => {
     if (percentage >= 30) return '#dc3545'; // Red for high gap percentage
@@ -165,34 +162,6 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
         Poor questions indicate where your corpus needs additional or better content.
       </div>
 
-      {/* Quick Actions - reuse consistent bar style from Results */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        marginTop: '12px',
-        padding: '12px',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '6px',
-        border: '1px solid #dee2e6',
-        flexWrap: 'wrap',
-        alignItems: 'center'
-      }}>
-        <strong style={{ fontSize: '0.9rem', color: '#333', marginRight: '6px' }}>🚀 Quick Actions:</strong>
-        <button 
-          className="button button-secondary"
-          onClick={() => goTo('/results', LABEL_RESULTS, { action: 'NAVIGATE_TO_RESULTS_FROM_GAP', data: { gap_percentage: gapSummary.gapPercentage } })}
-          style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-        >
-          📊 View Results
-        </button>
-        <button 
-          className="button"
-          onClick={() => goTo('/heatmap', LABEL_HEATMAP, { action: 'NAVIGATE_TO_HEATMAP_FROM_GAP', data: { total_questions: gapSummary.totalQuestions } })}
-          style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#007bff' }}
-        >
-          🗺️ Open Heatmap
-        </button>
-      </div>
 
       {gapSummary.totalGaps === 0 && (
         <div className="no-gaps-message" style={{

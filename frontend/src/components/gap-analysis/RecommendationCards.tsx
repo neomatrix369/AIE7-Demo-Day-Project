@@ -70,6 +70,26 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
     console.log(`❌ Recommendation ${id} dismissed`);
   };
 
+  const formatExpectedImprovement = (rec: RecommendationCard) => {
+    // Extract current score from gap description
+    let currentScore = 0;
+    
+    if (rec.gapDescription.includes('Critical query failure')) {
+      // Critical queries start at 0
+      currentScore = 0;
+    } else if (rec.gapDescription.includes('averaging')) {
+      // Role-based recommendations - extract score from "averaging X.X/10"
+      const match = rec.gapDescription.match(/averaging ([\d.]+)\/10/);
+      currentScore = match ? parseFloat(match[1]) : 3.0;
+    }
+    
+    const targetScore = rec.expectedImprovement;
+    const improvement = targetScore - currentScore;
+    const sign = improvement >= 0 ? '+' : '';
+    
+    return `${targetScore.toFixed(1)} (${sign}${improvement.toFixed(1)})`;
+  };
+
   const groupedByCategory = useMemo(() => {
     const groups: Record<string, { label: string; icon: string; items: RecommendationCard[] }>
       = {};
@@ -151,7 +171,7 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', background: '#f1f8ff', border: '1px solid #d0e3ff', color: '#0d6efd', padding: '3px 8px', borderRadius: '12px' }}>
-                    Avg Boost: +{summary.avgExpectedImprovement.toFixed(1)}
+                    Avg Target: {summary.avgExpectedImprovement.toFixed(1)}
                   </span>
                   <span style={{ fontSize: '0.75rem', background: '#fff5f5', border: '1px solid #ffc9c9', color: '#c92a2a', padding: '3px 8px', borderRadius: '12px' }}>
                     High: {summary.counts['High'] || 0}
@@ -187,8 +207,8 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
                       </th>
                       <th style={{ textAlign: 'right', padding: '10px', borderBottom: '1px solid #f1f3f5', color: '#495057' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
-                          Expected Boost
-                          <BalloonTooltip content={'Estimated increase in quality score (0–10) after implementing the action.'} maxWidth={320} cursor="help">
+                          Target Score
+                          <BalloonTooltip content={'Target quality score after improvement, with boost amount in brackets. Format: target (+boost)'} maxWidth={320} cursor="help">
                             <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
                           </BalloonTooltip>
                         </span>
@@ -262,7 +282,7 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
                             </span>
                           </td>
                           <td style={{ padding: '10px', textAlign: 'right', verticalAlign: 'top', color: '#2e7d32', fontWeight: 600 }}>
-                            +{rec.expectedImprovement.toFixed(1)}
+                            {formatExpectedImprovement(rec)}
                           </td>
                           <td style={{ padding: '10px', verticalAlign: 'top' }}>{rec.impact}</td>
                           <td style={{ padding: '10px', verticalAlign: 'top' }}>{rec.implementationEffort}</td>

@@ -344,36 +344,52 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
 
         <div style={{ marginBottom: '8px' }}>
           <strong>Best Question Match:</strong>
-          <div style={{ 
-            fontSize: '0.8rem',
-            padding: '4px 8px',
-            backgroundColor: '#e8f5e8',
-            borderRadius: '3px',
-            marginTop: '3px',
-            maxWidth: '300px',
-            lineHeight: '1.3'
-          }}>
-            {data.bestQuestion.questionText.length > 120 
-              ? `${data.bestQuestion.questionText.substring(0, 120)}...` 
-              : data.bestQuestion.questionText
-            }
-            <div style={{ marginTop: '2px', fontSize: '0.75rem', color: '#666' }}>
-              Similarity: {formatScore(data.bestQuestion.similarity || 0, 3)}
-              {data.bestQuestion.roleName && (
-                <span style={{ marginLeft: '8px' }}>
-                  Role: <span style={{ 
-                    backgroundColor: '#f8f9fa', 
-                    color: '#495057',
-                    padding: '1px 4px', 
-                    borderRadius: '2px', 
-                    fontSize: '0.7rem'
-                  }}>
-                    {data.bestQuestion.roleName}
+          {data.bestQuestion ? (
+            <div style={{ 
+              fontSize: '0.8rem',
+              padding: '4px 8px',
+              backgroundColor: '#e8f5e8',
+              borderRadius: '3px',
+              marginTop: '3px',
+              maxWidth: '300px',
+              lineHeight: '1.3'
+            }}>
+              {data.bestQuestion.questionText.length > 120 
+                ? `${data.bestQuestion.questionText.substring(0, 120)}...` 
+                : data.bestQuestion.questionText
+              }
+              <div style={{ marginTop: '2px', fontSize: '0.75rem', color: '#666' }}>
+                Similarity: {formatScore(data.bestQuestion.similarity || 0, 3)}
+                {data.bestQuestion.roleName && (
+                  <span style={{ marginLeft: '8px' }}>
+                    Role: <span style={{ 
+                      backgroundColor: '#f8f9fa', 
+                      color: '#495057',
+                      padding: '1px 4px', 
+                      borderRadius: '2px', 
+                      fontSize: '0.7rem'
+                    }}>
+                      {data.bestQuestion.roleName}
+                    </span>
                   </span>
-                </span>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div style={{ 
+              fontSize: '0.8rem',
+              padding: '4px 8px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '3px',
+              marginTop: '3px',
+              maxWidth: '300px',
+              lineHeight: '1.3',
+              color: '#6c757d',
+              fontStyle: 'italic'
+            }}>
+              Unretrieved
+            </div>
+          )}
         </div>
 
         {data.retrievingQuestions.length > 1 && (
@@ -645,9 +661,13 @@ const HeatmapTooltip: React.FC<HeatmapTooltipProps> = React.memo(({
               <span style={{ 
                 fontSize: '0.8rem', 
                 fontWeight: 'bold',
-                color: '#007bff'
+                color: data.dominantRole ? '#007bff' : '#6c757d'
               }}>
-                {data.dominantRole.roleName} ({data.dominantRole.percentage}%)
+                {data.dominantRole ? (
+                  `${data.dominantRole.roleName} (${data.dominantRole.percentage}%)`
+                ) : (
+                  'No role access patterns'
+                )}
               </span>
             </div>
           </div>

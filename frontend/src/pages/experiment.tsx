@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
 import { LABEL_RESULTS } from '../utils/constants';
 import { experimentApi, questionsApi } from '../services/api';
@@ -9,6 +8,8 @@ import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import GapAnalysisDashboard from '../components/gap-analysis/GapAnalysisDashboard';
 import { createStorageAdapter, isVercelDeployment } from '../services/storage';
+import ExperimentStatusIndicator from '../components/ui/ExperimentStatusIndicator';
+import QuickActions from '../components/ui/QuickActions';
 
 interface StreamResult {
   question_id: string;
@@ -42,8 +43,8 @@ const ExperimentConfiguration: React.FC = () => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isGapAnalysisExpanded, setIsGapAnalysisExpanded] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
   const { goTo } = usePageNavigation('Experiment');
+
 
   useEffect(() => {
     const fetchExperimentConfig = async () => {
@@ -362,6 +363,7 @@ const ExperimentConfiguration: React.FC = () => {
   return (
     <div>
       <NavigationHeader currentPage="experiment" />
+      <ExperimentStatusIndicator />
       <div className="card">
         <h2>⚙️ Experiment Configuration</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -596,7 +598,7 @@ const ExperimentConfiguration: React.FC = () => {
 
         {/* Gap Analysis Section */}
         {(completed || results.length > 0) && (
-          <div className="card" style={{ marginTop: '20px', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' }}>
+          <div id="gap-analysis-section" className="card" style={{ marginTop: '20px', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' }}>
             <div 
               className="collapsible-header" 
               style={{
@@ -653,24 +655,25 @@ const ExperimentConfiguration: React.FC = () => {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-          <button 
-            className="button button-secondary" 
-            onClick={handleBackToQuestions}
-            disabled={isRunning}
-          >
-            ← Back to Questions
-          </button>
-          
-          <button 
-            className="button button-secondary" 
-            onClick={handleManageExperiments}
-            disabled={isRunning}
-            style={{ backgroundColor: '#6f42c1' }}
-          >
-            📁 Manage Experiments
-          </button>
-        </div>
+        {/* Navigation Actions */}
+        <QuickActions
+          actions={[
+            {
+              label: 'Back to Questions',
+              icon: '←',
+              onClick: handleBackToQuestions,
+              disabled: isRunning
+            },
+            {
+              label: 'Manage Experiments',
+              icon: '📁',
+              variant: 'accent',
+              onClick: handleManageExperiments,
+              disabled: isRunning
+            }
+          ]}
+          style={{ marginTop: '20px' }}
+        />
       </div>
     </div>
   );

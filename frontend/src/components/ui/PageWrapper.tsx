@@ -1,5 +1,7 @@
 import React from 'react';
 import NavigationHeader from '../NavigationHeader';
+import ExperimentStatusIndicator from './ExperimentStatusIndicator';
+import VectorDbStatusIndicator from './VectorDbStatusIndicator';
 
 interface PageWrapperProps {
   currentPage: string;
@@ -24,6 +26,8 @@ const PageWrapper: React.FC<PageWrapperProps> = ({
     return (
       <div>
         <NavigationHeader currentPage={currentPage} />
+        <VectorDbStatusIndicator position="top-left" />
+        <ExperimentStatusIndicator />
         <div className="card">
           <h2>{loadingMessage}</h2>
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -38,6 +42,8 @@ const PageWrapper: React.FC<PageWrapperProps> = ({
     return (
       <div>
         <NavigationHeader currentPage={currentPage} />
+        <VectorDbStatusIndicator position="top-left" />
+        <ExperimentStatusIndicator />
         <div className="card">
           <h2>{errorTitle}</h2>
           <div style={{ color: '#dc3545', padding: '20px', marginBottom: '20px' }}>
@@ -60,6 +66,8 @@ const PageWrapper: React.FC<PageWrapperProps> = ({
   return (
     <div>
       <NavigationHeader currentPage={currentPage} />
+      <VectorDbStatusIndicator position="top-left" />
+      <ExperimentStatusIndicator />
       {children}
     </div>
   );

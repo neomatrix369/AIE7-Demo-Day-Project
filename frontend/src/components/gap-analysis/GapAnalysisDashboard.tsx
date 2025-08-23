@@ -92,6 +92,28 @@ const GapAnalysisDashboard: React.FC = () => {
 
   if (!gapData) return null;
 
+  // Check if no experiment data is available
+  if (gapData.gapSummary.totalQuestions === 0) {
+    return (
+      <div className="gap-analysis-no-data" style={{
+        textAlign: 'center',
+        padding: '40px',
+        background: 'white',
+        borderRadius: '8px',
+        border: '2px dashed #dee2e6'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📊</div>
+        <h3 style={{ color: '#666', marginBottom: '15px' }}>No Experiment Data Available</h3>
+        <p style={{ color: '#888', marginBottom: '20px', fontSize: '16px' }}>
+          Run an experiment first to generate gap analysis insights and recommendations.
+        </p>
+        <p style={{ color: '#999', fontSize: '14px' }}>
+          Gap analysis requires experiment results to identify content gaps and generate actionable recommendations.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="gap-analysis-dashboard">
       <style jsx>{`
@@ -222,78 +244,6 @@ const GapAnalysisDashboard: React.FC = () => {
         <RecommendationCards recommendations={gapData.recommendations} />
       </div>
 
-      {/* Quick Actions */}
-      <div className="gap-section">
-        <div className="section-header">
-          <span className="section-icon">⚡</span>
-          <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            Quick Actions
-            <BalloonTooltip
-              content={'Shortcuts to related pages for deeper analysis and visualization.'}
-              maxWidth={340}
-              cursor="help"
-            >
-              <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
-            </BalloonTooltip>
-          </h3>
-        </div>
-        <div className="quick-actions" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '15px'
-        }}>
-          <button 
-            className="button"
-            onClick={() => window.open('/results', '_blank')}
-            style={{
-              background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)',
-              padding: '15px 20px',
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              justifyContent: 'center'
-            }}
-          >
-            <span>📋</span>
-            View Detailed Results
-          </button>
-          
-          <button 
-            className="button"
-            onClick={() => window.open('/heatmap', '_blank')}
-            style={{
-              background: 'linear-gradient(135deg, #28a745 0%, #1e7e34 100%)',
-              padding: '15px 20px',
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              justifyContent: 'center'
-            }}
-          >
-            <span>🗺️</span>
-            Visualize in Heatmap
-          </button>
-          
-          <button 
-            className="button"
-            onClick={reload}
-            style={{
-              background: 'linear-gradient(135deg, #6f42c1 0%, #563d7c 100%)',
-              padding: '15px 20px',
-              fontSize: '0.9rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              justifyContent: 'center'
-            }}
-          >
-            <span>🔄</span>
-            Refresh Analysis
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

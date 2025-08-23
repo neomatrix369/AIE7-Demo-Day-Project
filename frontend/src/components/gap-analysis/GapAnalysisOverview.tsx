@@ -2,8 +2,6 @@ import React from 'react';
 import { GapAnalysis } from '../../types';
 import QualityScoreLegend from '../QualityScoreLegend';
 import BalloonTooltip from '../ui/BalloonTooltip';
-import usePageNavigation from '../../hooks/usePageNavigation';
-import { LABEL_RESULTS, LABEL_HEATMAP } from '../../utils/constants';
 
 interface GapAnalysisOverviewProps {
   gapData: GapAnalysis;
@@ -11,7 +9,6 @@ interface GapAnalysisOverviewProps {
 
 const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) => {
   const { gapSummary } = gapData;
-  const { goTo } = usePageNavigation('GapAnalysis');
 
   const getSeverityColor = (percentage: number) => {
     if (percentage >= 30) return '#dc3545'; // Red for high gap percentage
@@ -19,21 +16,28 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
     return '#28a745'; // Green for low gap percentage
   };
 
-  const getImprovementColor = (potential: number) => {
-    if (potential >= 7.0) return '#28a745'; // Green for high improvement potential
-    if (potential >= 5.0) return '#e67e22'; // Orange for medium improvement potential
-    return '#dc3545'; // Red for low improvement potential
-  };
 
   const formatImprovementPotential = (gapSummary: any) => {
     // Calculate average current score of poor questions (< 5.0)
-    // Since we don't have direct access to per-question data here, 
+    // Since we don't have direct access to per-question data here,
     // we'll estimate based on the gap summary
     const avgCurrentScore = gapSummary.totalGaps > 0 ? gapSummary.avgGapScore : 0;
     const targetScore = gapSummary.improvementPotential;
     const improvement = targetScore - avgCurrentScore;
     const sign = improvement >= 0 ? '+' : '';
-    
+
+    return `${targetScore} (${sign}${improvement.toFixed(1)})`;
+  };
+
+  const formatImprovementPotential = (gapSummary: any) => {
+    // Calculate average current score of poor questions (< 5.0)
+    // Since we don't have direct access to per-question data here,
+    // we'll estimate based on the gap summary
+    const avgCurrentScore = gapSummary.totalGaps > 0 ? gapSummary.avgGapScore : 0;
+    const targetScore = gapSummary.improvementPotential;
+    const improvement = targetScore - avgCurrentScore;
+    const sign = improvement >= 0 ? '+' : '';
+
     return `${targetScore} (${sign}${improvement.toFixed(1)})`;
   };
 
@@ -41,14 +45,14 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
     <div className="gap-analysis-overview">
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
         <div className="stat-item" style={{ 
-          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-          borderLeft: `4px solid ${getSeverityColor(gapSummary.belowGoodPercentage)}`
+          background: 'linear-gradient(135deg, #fef3e2 0%, #f9e4c8 100%)',
+          borderLeft: '4px solid #e67e22'
         }}>
           <div className="stat-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>🎯</div>
           <div className="stat-value" style={{ 
             fontSize: '1.8rem', 
             fontWeight: 'bold', 
-            color: getSeverityColor(gapSummary.belowGoodPercentage)
+            color: '#e67e22'
           }}>
             {gapSummary.belowGoodCount}
           </div>
@@ -94,13 +98,13 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
           </div>
         </div>
 
-        {/* Below GOOD threshold - aligns with Results page success rate complement */}
+        {/* Questions Analyzed - neutral blue theme to complement quality score cards */}
         <div className="stat-item" style={{ 
-          background: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
-          borderLeft: '4px solid #ffc107'
+          background: 'linear-gradient(135deg, #f0f8ff 0%, #e1f0fe 100%)',
+          borderLeft: '4px solid #007bff'
         }}>
           <div className="stat-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>📊</div>
-          <div className="stat-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#856404' }}>
+          <div className="stat-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#007bff' }}>
             {gapSummary.totalQuestions || 0}
           </div>
           <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -122,14 +126,14 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
 
 
         <div className="stat-item" style={{ 
-          background: 'linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%)',
-          borderLeft: `4px solid ${getImprovementColor(gapSummary.improvementPotential)}`
+          background: 'linear-gradient(135deg, #f8fffe 0%, #e8f7f5 100%)',
+          borderLeft: '4px solid #17a2b8'
         }}>
           <div className="stat-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>🎯</div>
           <div className="stat-value" style={{ 
             fontSize: '1.8rem', 
             fontWeight: 'bold', 
-            color: getImprovementColor(gapSummary.improvementPotential)
+            color: '#17a2b8'
           }}>
             {formatImprovementPotential(gapSummary)}
           </div>
@@ -137,7 +141,7 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
             <span>Avg Target Score</span>
             <BalloonTooltip
               content={
-                'Average target quality score achievable by implementing the recommended improvements.'
+                'Average target score after improvements, with boost amount in brackets. Format: target (+boost)'
               }
               maxWidth={320}
               cursor="help"
@@ -170,34 +174,6 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
         Poor questions indicate where your corpus needs additional or better content.
       </div>
 
-      {/* Quick Actions - reuse consistent bar style from Results */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        marginTop: '12px',
-        padding: '12px',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '6px',
-        border: '1px solid #dee2e6',
-        flexWrap: 'wrap',
-        alignItems: 'center'
-      }}>
-        <strong style={{ fontSize: '0.9rem', color: '#333', marginRight: '6px' }}>🚀 Quick Actions:</strong>
-        <button 
-          className="button button-secondary"
-          onClick={() => goTo('/results', LABEL_RESULTS, { action: 'NAVIGATE_TO_RESULTS_FROM_GAP', data: { gap_percentage: gapSummary.gapPercentage } })}
-          style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-        >
-          📊 View Results
-        </button>
-        <button 
-          className="button"
-          onClick={() => goTo('/heatmap', LABEL_HEATMAP, { action: 'NAVIGATE_TO_HEATMAP_FROM_GAP', data: { total_questions: gapSummary.totalQuestions } })}
-          style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#007bff' }}
-        >
-          🗺️ Open Heatmap
-        </button>
-      </div>
 
       {gapSummary.totalGaps === 0 && (
         <div className="no-gaps-message" style={{

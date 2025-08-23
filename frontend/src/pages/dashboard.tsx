@@ -4,10 +4,14 @@ import usePageNavigation from '../hooks/usePageNavigation';
 import { corpusApi } from '../services/api';
 import { CorpusStatus } from '../types';
 import { logSuccess, logInfo, logNavigation } from '../utils/logger';
+import { LABEL_RESULTS, LABEL_HEATMAP } from '../utils/constants';
 import NavigationHeader from '../components/NavigationHeader';
 import { useApiCall } from '../hooks/useApiCall';
 import LoadingDisplay from '../components/ui/LoadingDisplay';
 import ErrorDisplay from '../components/ui/ErrorDisplay';
+import BalloonTooltip from '../components/ui/BalloonTooltip';
+import ExperimentStatusIndicator from '../components/ui/ExperimentStatusIndicator';
+import VectorDbStatusIndicator from '../components/ui/VectorDbStatusIndicator';
 
 const DataLoadingDashboard: React.FC = () => {
   const { data: corpusStatus, loading, error, execute } = useApiCall<CorpusStatus>();
@@ -79,6 +83,8 @@ const DataLoadingDashboard: React.FC = () => {
   return (
     <div>
       <NavigationHeader currentPage="dashboard" />
+      <VectorDbStatusIndicator position="top-left" />
+      <ExperimentStatusIndicator />
       <div className="card">
         <h2>🔍 RagCheck - Ready to Analyze</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -90,24 +96,68 @@ const DataLoadingDashboard: React.FC = () => {
           <div className="stats-grid">
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.document_count}</span>
-              <div className="stat-label">Documents Loaded</div>
+              <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Documents Loaded</span>
+                <BalloonTooltip 
+                  content="Total number of documents processed and loaded into the vector database. Each document is analyzed and split into searchable chunks."
+                  maxWidth={280} 
+                  cursor="help"
+                >
+                  <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                </BalloonTooltip>
+              </div>
             </div>
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.chunk_count}</span>
-              <div className="stat-label">Chunks Indexed</div>
+              <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Chunks Indexed</span>
+                <BalloonTooltip 
+                  content="Total number of text chunks created from documents. Each chunk is embedded and stored in the vector database for semantic search during RAG queries."
+                  maxWidth={280} 
+                  cursor="help"
+                >
+                  <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                </BalloonTooltip>
+              </div>
             </div>
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.corpus_metadata.total_size_mb} MB</span>
-              <div className="stat-label">Total Size</div>
+              <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Total Size</span>
+                <BalloonTooltip 
+                  content="Combined size of all processed documents in megabytes. Larger corpora provide more comprehensive knowledge but may affect retrieval performance."
+                  maxWidth={280} 
+                  cursor="help"
+                >
+                  <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                </BalloonTooltip>
+              </div>
             </div>
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.corpus_metadata.avg_doc_length}</span>
-              <div className="stat-label">Avg Document Length</div>
+              <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Avg Document Length</span>
+                <BalloonTooltip 
+                  content="Average character length of documents in the corpus. Longer documents typically contain more detailed information but are split into more chunks."
+                  maxWidth={280} 
+                  cursor="help"
+                >
+                  <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                </BalloonTooltip>
+              </div>
             </div>
           </div>
           
-          <div style={{ marginTop: '20px' }}>
-            <strong>Embedding Model:</strong> {corpusStatus.embedding_model}
+          <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <strong>Embedding Model:</strong> 
+            <span>{corpusStatus.embedding_model}</span>
+            <BalloonTooltip 
+              content="The AI model used to convert text chunks into vector embeddings for semantic search. OpenAI's text-embedding-3-small provides 1536-dimensional vectors optimized for retrieval quality."
+              maxWidth={320} 
+              cursor="help"
+            >
+              <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+            </BalloonTooltip>
           </div>
         </div>
 
@@ -157,6 +207,28 @@ const DataLoadingDashboard: React.FC = () => {
               style={{ fontSize: '18px', padding: '15px 30px', backgroundColor: '#6f42c1' }}
             >
               📁 Manage Experiments
+            </button>
+            
+            <button 
+              className="button button-secondary" 
+              onClick={() => goTo('/results', LABEL_RESULTS, { 
+                action: 'NAVIGATE_TO_RESULTS_FROM_DASHBOARD', 
+                data: { total_chunks: corpusStatus?.chunk_count || 0 } 
+              })}
+              style={{ fontSize: '18px', padding: '15px 30px', backgroundColor: '#28a745' }}
+            >
+              📊 View Results
+            </button>
+            
+            <button 
+              className="button button-secondary" 
+              onClick={() => goTo('/heatmap', LABEL_HEATMAP, { 
+                action: 'NAVIGATE_TO_HEATMAP_FROM_DASHBOARD', 
+                data: { total_documents: corpusStatus?.document_count || 0 } 
+              })}
+              style={{ fontSize: '18px', padding: '15px 30px', backgroundColor: '#007bff' }}
+            >
+              🗺️ Interactive Heatmap
             </button>
           </div>
         </div>

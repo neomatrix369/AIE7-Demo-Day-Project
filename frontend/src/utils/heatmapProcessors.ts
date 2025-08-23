@@ -447,7 +447,9 @@ export function processChunksToQuestionsRefactored(
   const maxRetrievalFrequency = Math.max(...retrievedChunks.map(c => c.questions.length), 1);
 
   // Create retrieved chunk points using original chunks-to-questions formula
-  const retrievedChunkPoints: HeatmapPoint[] = retrievedChunks.map((chunk) => {
+  const retrievedChunkPoints: HeatmapPoint[] = retrievedChunks
+    .filter(chunk => chunk.questions.length > 0) // Defensive filter
+    .map((chunk) => {
     const avgSimilarity = chunk.totalSimilarity / chunk.questions.length;
     const bestQuestion = chunk.questions.reduce((best, current) => 
       current.similarity > best.similarity ? current : best

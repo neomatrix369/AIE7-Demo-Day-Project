@@ -38,7 +38,7 @@ export interface ChunkHeatmapData {
   content: string;
   retrievalFrequency: number; // How many questions retrieve this chunk
   avgSimilarity: number;
-  bestQuestion: {
+  bestQuestion?: {
     questionId: string;
     questionText: string;
     similarity: number;
@@ -105,7 +105,7 @@ export interface ChunkToRoleHeatmapData {
     }>;
   }>;
   avgSimilarity: number; // Overall average similarity across all retrievals
-  dominantRole: {
+  dominantRole?: {
     roleName: string;
     accessCount: number;
     percentage: number; // Percentage of total retrievals from this role

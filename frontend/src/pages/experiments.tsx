@@ -8,6 +8,7 @@ import { getStatusColor as getStatusColorShared, getStatus as getStatusShared } 
 import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import { createStorageAdapter } from '../services/storage';
+import ExperimentStatusIndicator from '../components/ui/ExperimentStatusIndicator';
 
 const ExperimentManagement: React.FC = () => {
   // UI state management 
@@ -161,6 +162,7 @@ const ExperimentManagement: React.FC = () => {
   return (
     <div>
       <NavigationHeader currentPage="experiments" />
+      <ExperimentStatusIndicator />
       {loading && (
         <div className="card">
           <h2>Loading Experiments...</h2>
@@ -276,7 +278,7 @@ const ExperimentManagement: React.FC = () => {
               className="button" 
               onClick={handleBackToDashboard}
             >
-              🏠 Go to Dashboard
+              🏠 Dashboard
             </button>
           </div>
         ) : (

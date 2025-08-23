@@ -10,6 +10,7 @@ import PageWrapper from '../components/ui/PageWrapper';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import BalloonTooltip from '../components/ui/BalloonTooltip';
 import { createStorageAdapter } from '../services/storage';
+import QuickActions from '../components/ui/QuickActions';
 
 const AnalysisResults: React.FC = () => {
   // UI state management (not moved to usePageData)
@@ -221,7 +222,7 @@ const AnalysisResults: React.FC = () => {
                 className="button button-secondary" 
                 onClick={handleRunNewExperiment}
               >
-                🏠 Go to Dashboard
+                🏠 Dashboard
               </button>
             </div>
           </div>
@@ -253,7 +254,16 @@ const AnalysisResults: React.FC = () => {
               
               {/* Quality Score Card */}
               <div style={{ backgroundColor: '#e8f5e8', border: '2px solid #1e7e34', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#0a3d0f', fontSize: '0.9rem' }}>🎯 Overall Quality Score</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: '#0a3d0f', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🎯 Overall Quality Score</span>
+                  <BalloonTooltip 
+                    content="Average quality score across all questions (0-10 scale). Calculated from semantic similarity between questions and retrieved documents. Higher scores indicate better corpus coverage."
+                    maxWidth={320} 
+                    cursor="help"
+                  >
+                    <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                  </BalloonTooltip>
+                </h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span style={{ color: '#1e7e34', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
                     {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
@@ -272,7 +282,16 @@ const AnalysisResults: React.FC = () => {
 
               {/* Success Rate Card */}
               <div style={{ backgroundColor: '#fff2e6', border: '2px solid #d63384', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#6a1a3a', fontSize: '0.9rem' }}>📈 Success Rate</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: '#6a1a3a', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📈 Success Rate</span>
+                  <BalloonTooltip 
+                    content="Percentage of questions achieving GOOD quality scores (≥7.0). This indicates how well your corpus answers the tested questions."
+                    maxWidth={300} 
+                    cursor="help"
+                  >
+                    <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                  </BalloonTooltip>
+                </h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span style={{ color: '#d63384', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
                     {Math.round(results.overall.success_rate * 100)}%
@@ -283,7 +302,16 @@ const AnalysisResults: React.FC = () => {
 
               {/* Questions Processed Card */}
               <div style={{ backgroundColor: '#e6e6ff', border: '2px solid #5a3bb0', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#3a1d66', fontSize: '0.9rem' }}>📊 Processing Volume</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: '#3a1d66', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📊 Processing Volume</span>
+                  <BalloonTooltip 
+                    content="Total number of questions tested in this experiment. More questions provide better coverage assessment but take longer to process."
+                    maxWidth={300} 
+                    cursor="help"
+                  >
+                    <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                  </BalloonTooltip>
+                </h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span style={{ color: '#5a3bb0', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
                     {results.overall.total_questions}
@@ -294,7 +322,16 @@ const AnalysisResults: React.FC = () => {
 
               {/* Corpus Health Card */}
               <div style={{ backgroundColor: '#e6f7ff', border: '2px solid #0c7cd5', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem' }}>🏥 Corpus Health</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🏥 Corpus Health</span>
+                  <BalloonTooltip 
+                    content="Overall assessment of your corpus quality based on average scores. GOOD (≥7.0), FAIR (5.0-6.9), POOR (<5.0). Indicates if content needs improvement."
+                    maxWidth={320} 
+                    cursor="help"
+                  >
+                    <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
+                  </BalloonTooltip>
+                </h4>
                 <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
                   <span className={`health-indicator ${getHealthColor(results.overall.corpus_health)}`} style={{ fontSize: '0.9rem' }}>
                     {results.overall.corpus_health.replace('_', ' ')}
@@ -395,51 +432,50 @@ const AnalysisResults: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Actions Bar */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '10px', 
-          marginBottom: '20px',
-          padding: '15px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '6px',
-          border: '1px solid #dee2e6',
-          flexWrap: 'wrap',
-          alignItems: 'center'
-        }}>
-          <strong style={{ fontSize: '0.9rem', color: '#333', marginRight: '10px' }}>🚀 Quick Actions:</strong>
-          <button 
-            className="button button-secondary"
-            onClick={() => {
-              const poorQuestions = results.per_question.filter(q => q.status === 'poor');
-              if (poorQuestions.length > 0) {
-                setExpandedQuestion(poorQuestions[0].id);
-                setFilterStatus('poor');
+        {/* Quick Actions */}
+        <QuickActions
+          actions={[
+            {
+              label: `Focus on Poor Questions (${results.per_question.filter(q => q.status === 'poor').length})`,
+              icon: '🔍',
+              onClick: () => {
+                const poorQuestions = results.per_question.filter(q => q.status === 'poor');
+                if (poorQuestions.length > 0) {
+                  setExpandedQuestion(poorQuestions[0].id);
+                  setFilterStatus('poor');
+                  document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }
+            },
+            {
+              label: `View Top Performers (${results.per_question.filter(q => q.status === 'good').length})`,
+              icon: '✨',
+              onClick: () => {
+                setFilterStatus('good');
                 document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
               }
-            }}
-            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-          >
-            🔍 Focus on Poor Questions ({results.per_question.filter(q => q.status === 'poor').length})
-          </button>
-          <button 
-            className="button button-secondary"
-            onClick={() => {
-              setFilterStatus('good');
-              document.getElementById('per-question-analysis')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-          >
-            ✨ View Top Performers ({results.per_question.filter(q => q.status === 'good').length})
-          </button>
-          <button 
-            className="button"
-            onClick={handleViewHeatmap}
-            style={{ fontSize: '0.8rem', padding: '6px 12px', backgroundColor: '#007bff' }}
-          >
-            🗺️ Visualize Data
-          </button>
-        </div>
+            },
+            {
+              label: 'Gap Analysis',
+              icon: '🎯',
+              variant: 'accent',
+              onClick: () => goTo('/gap-analysis', 'Gap Analysis', { 
+                action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS', 
+                data: { 
+                  total_questions: results.overall.total_questions,
+                  poor_questions_count: results.per_question.filter(q => q.status === 'poor').length 
+                } 
+              })
+            },
+            {
+              label: 'Interactive Heatmap',
+              icon: '🗺️',
+              variant: 'primary',
+              onClick: handleViewHeatmap
+            }
+          ]}
+          style={{ marginBottom: '20px' }}
+        />
 
         <div className="analysis-section">
           <h3 
@@ -594,17 +630,53 @@ const AnalysisResults: React.FC = () => {
               </div>
             </div>
             
-            <button 
-              className="button"
-              onClick={handleViewHeatmap}
-              style={{ 
-                fontSize: '16px', 
-                padding: '12px 24px',
-                backgroundColor: '#007bff'
-              }}
-            >
-              🗺️ Open Interactive Heatmap Visualization →
-            </button>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button 
+                className="button"
+                onClick={handleViewHeatmap}
+                style={{ 
+                  fontSize: '14px', 
+                  padding: '10px 20px',
+                  backgroundColor: '#007bff'
+                }}
+              >
+                🗺️ Interactive Heatmap
+              </button>
+              
+              <button 
+                className="button button-secondary"
+                onClick={() => goTo('/gap-analysis', 'Gap Analysis', { 
+                  action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_RESULTS_ADVANCED', 
+                  data: { 
+                    from_section: 'advanced_visualization',
+                    total_questions: results.overall.total_questions 
+                  } 
+                })}
+                style={{ 
+                  fontSize: '14px', 
+                  padding: '10px 20px',
+                  backgroundColor: '#e67e22',
+                  color: 'white'
+                }}
+              >
+                🎯 Gap Analysis
+              </button>
+              
+              <button 
+                className="button button-secondary"
+                onClick={() => goTo('/', LABEL_DASHBOARD, { 
+                  action: 'NAVIGATE_TO_DASHBOARD_FROM_RESULTS_ADVANCED', 
+                  data: { corpus_health: results.overall.corpus_health } 
+                })}
+                style={{ 
+                  fontSize: '14px', 
+                  padding: '10px 20px',
+                  backgroundColor: '#28a745'
+                }}
+              >
+                🏠 Dashboard
+              </button>
+            </div>
           </div>
           )}
         </div>

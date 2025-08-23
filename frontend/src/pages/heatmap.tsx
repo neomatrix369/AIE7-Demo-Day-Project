@@ -11,6 +11,7 @@ import HeatmapLegend from '../components/heatmap/HeatmapLegend';
 import { HeatmapPoint } from '../utils/heatmapData';
 import useApiCache from '../hooks/useApiCache';
 import { DEFAULT_CACHE_TTL_MS, DEFAULT_CACHE_MAX_SIZE, LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
+import QuickActions from '../components/ui/QuickActions';
 
 const InteractiveHeatmapVisualization: React.FC = () => {
   // Complex UI state (kept separate from usePageData)
@@ -306,7 +307,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                 ← Back to Results
               </button>
               <button className="button button-secondary" onClick={handleBackToDashboard}>
-                🏠 Go to Dashboard
+                🏠 Dashboard
               </button>
             </div>
           </div>
@@ -397,57 +398,81 @@ const InteractiveHeatmapVisualization: React.FC = () => {
             </div>
           </div>
 
-          {/* Perspective-specific Coverage Statistics */}
-          {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'roles-to-chunks') && (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-              gap: '15px'
-            }}>
-              {/* Coverage Percentage Card */}
-              <div style={{ backgroundColor: '#f0f8ff', border: '2px solid #007bff', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#0056b3', fontSize: '0.9rem' }}>📊 Chunk Coverage</h4>
-                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                  <span style={{ color: '#007bff', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.coveragePercentage}%` : '⏳'}
-                  </span>
-                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                    {chunkCoverageStats.isDataAvailable 
-                      ? `${chunkCoverageStats.retrievedChunks} of ${chunkCoverageStats.totalChunks} Chunks Retrieved`
-                      : 'Calculating coverage...'}
-                  </div>
+          {/* Coverage Statistics - Now shown on all perspectives */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '15px'
+          }}>
+            {/* Coverage Percentage Card */}
+            <div style={{ backgroundColor: '#f0f8ff', border: '2px solid #007bff', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#0056b3', fontSize: '0.9rem' }}>📊 Chunk Coverage</h4>
+              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                <span style={{ color: '#007bff', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                  {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.coveragePercentage}%` : '⏳'}
+                </span>
+                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                  {chunkCoverageStats.isDataAvailable 
+                    ? `${chunkCoverageStats.retrievedChunks} of ${chunkCoverageStats.totalChunks} Chunks Retrieved`
+                    : 'Calculating coverage...'}
                 </div>
               </div>
-
-              {/* Unretrieved Chunks Card */}
-              <div style={{ backgroundColor: '#f8f9fa', border: '2px solid #6c757d', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '0.9rem' }}>🔍 Unretrieved Chunks</h4>
-                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                  <span style={{ color: '#6c757d', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.unretrievedPercentage}%` : '⏳'}
-                  </span>
-                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                    {chunkCoverageStats.isDataAvailable 
-                      ? `${chunkCoverageStats.unretrievedChunks} Chunks Never Retrieved`
-                      : 'Loading unretrieved data...'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Unique Roles Card (only for roles-to-chunks) */}
-              {heatmapConfig.perspective === 'roles-to-chunks' && (
-                <div style={{ backgroundColor: '#fff8dc', border: '2px solid #b8860b', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: '#5c4b00', fontSize: '0.9rem' }}>👥 User Roles</h4>
-                  <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                    <span style={{ color: '#b8860b', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                      {totalRoles}
-                    </span>
-                    <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Distinct User Roles</div>
-                  </div>
-                </div>
-              )}
             </div>
-          )}
+
+            {/* Unretrieved Chunks Card */}
+            <div style={{ backgroundColor: '#f8f9fa', border: '2px solid #6c757d', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '0.9rem' }}>🔍 Unretrieved Chunks</h4>
+              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                <span style={{ color: '#6c757d', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                  {chunkCoverageStats.isDataAvailable ? `${chunkCoverageStats.unretrievedPercentage}%` : '⏳'}
+                </span>
+                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
+                  {chunkCoverageStats.isDataAvailable 
+                    ? `${chunkCoverageStats.unretrievedChunks} Chunks Never Retrieved`
+                    : 'Loading unretrieved data...'}
+                </div>
+              </div>
+            </div>
+
+            {/* Perspective-specific count cards */}
+            {heatmapConfig.perspective === 'roles-to-chunks' && (
+              <div style={{ backgroundColor: '#fff8dc', border: '2px solid #b8860b', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#5c4b00', fontSize: '0.9rem' }}>👥 User Roles</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#b8860b', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                    {totalRoles}
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Distinct User Roles</div>
+                </div>
+              </div>
+            )}
+
+            {/* Questions Card (for questions-to-chunks and chunks-to-questions) */}
+            {(heatmapConfig.perspective === 'questions-to-chunks' || heatmapConfig.perspective === 'chunks-to-questions') && (
+              <div style={{ backgroundColor: '#f0f0ff', border: '2px solid #6610f2', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#4a0f8b', fontSize: '0.9rem' }}>❓ Questions</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#6610f2', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                    {results.overall.total_questions}
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Total Questions Analyzed</div>
+                </div>
+              </div>
+            )}
+
+            {/* Documents Card (for documents-to-chunks perspective) */}
+            {heatmapConfig.perspective === 'documents-to-chunks' && (
+              <div style={{ backgroundColor: '#f8f0ff', border: '2px solid #9c27b0', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#6a1b9a', fontSize: '0.9rem' }}>📄 Documents</h4>
+                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
+                  <span style={{ color: '#9c27b0', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
+                    {totalDocuments || '⏳'}
+                  </span>
+                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Documents Analyzed</div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Smart Insights Section */}
           {advancedInsights && (
@@ -457,54 +482,7 @@ const InteractiveHeatmapVisualization: React.FC = () => {
               gap: '15px',
               marginTop: '15px'
             }}>
-              {/* Performance Gap Insight */}
-              <div style={{ backgroundColor: '#fff3cd', border: '2px solid #ffc107', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#856404', fontSize: '0.9rem' }}>⚡ Performance Gap</h4>
-                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                  <span style={{ color: '#ffc107', fontSize: '1.4rem', fontWeight: 'bold', display: 'block' }}>
-                    {advancedInsights.performanceDiff}
-                  </span>
-                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                    Points between {advancedInsights.betterPerformer} & others
-                  </div>
-                </div>
-              </div>
 
-              {/* Role Performance Spread */}
-              {advancedInsights.topRole && advancedInsights.worstRole && (
-                <div style={{ backgroundColor: '#e7f3ff', border: '2px solid #0066cc', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: '#004099', fontSize: '0.9rem' }}>🎭 Role Spread</h4>
-                  <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                    <span style={{ color: '#0066cc', fontSize: '1.4rem', fontWeight: 'bold', display: 'block' }}>
-                      {advancedInsights.roleSpread}
-                    </span>
-                    <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                      Best: {advancedInsights.topRole.role} vs Worst: {advancedInsights.worstRole.role}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Coverage Efficiency (for chunk views) */}
-              {(heatmapConfig.perspective === 'chunks-to-questions' || heatmapConfig.perspective === 'roles-to-chunks') && (
-                <div style={{ backgroundColor: '#f0fff0', border: '2px solid #28a745', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: '#155724', fontSize: '0.9rem' }}>🎯 Efficiency</h4>
-                  <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                    <span style={{ color: '#28a745', fontSize: '1.4rem', fontWeight: 'bold', display: 'block' }}>
-                      {chunkCoverageStats.isDataAvailable 
-                        ? (chunkCoverageStats.coveragePercentage! > 80 ? '🏆' : chunkCoverageStats.coveragePercentage! > 60 ? '👍' : '⚠️')
-                        : '⏳'}
-                    </span>
-                    <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                      {chunkCoverageStats.isDataAvailable
-                        ? (chunkCoverageStats.coveragePercentage! > 80 ? 'Excellent Coverage' 
-                           : chunkCoverageStats.coveragePercentage! > 60 ? 'Good Coverage' 
-                           : 'Coverage Needs Improvement')
-                        : 'Calculating efficiency...'}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -594,27 +572,35 @@ const InteractiveHeatmapVisualization: React.FC = () => {
             />
             
             {/* Quick Actions Panel */}
-            <div className="card" style={{ padding: '10px' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '0.8rem' }}>
-                🔗 Quick Actions
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <button 
-                  className="button button-secondary"
-                  onClick={handleBackToResults}
-                  style={{ fontSize: '0.75rem', padding: '6px 10px' }}
-                >
-                  📊 Analysis Results
-                </button>
-                <button 
-                  className="button button-secondary"
-                  onClick={handleBackToDashboard}
-                  style={{ fontSize: '0.75rem', padding: '6px 10px' }}
-                >
-                  🏠 Dashboard
-                </button>
-              </div>
-            </div>
+            <QuickActions
+              layout="vertical"
+              size="compact"
+              actions={[
+                {
+                  label: 'View Results',
+                  icon: '📊',
+                  onClick: handleBackToResults
+                },
+                {
+                  label: 'Dashboard',
+                  icon: '🏠',
+                  onClick: handleBackToDashboard
+                },
+                {
+                  label: 'Gap Analysis',
+                  icon: '🎯',
+                  variant: 'accent',
+                  onClick: () => goTo('/gap-analysis', 'Gap Analysis', { 
+                    action: 'NAVIGATE_TO_GAP_ANALYSIS_FROM_HEATMAP', 
+                    data: { 
+                      heatmap_perspective: heatmapConfig.perspective,
+                      total_chunks: allChunks?.length || 0 
+                    } 
+                  })
+                }
+              ]}
+              style={{ padding: '8px' }}
+            />
             
             {/* Drill-down Information Panel */}
             {selectedHeatmapPoint && (
@@ -642,7 +628,11 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                     <>
                       <strong>Retrieval Frequency:</strong> {selectedHeatmapPoint.data.retrievalFrequency} questions<br/>
                       <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
-                      <strong>Best Match:</strong> {selectedHeatmapPoint.data.bestQuestion.similarity.toFixed(3)}
+                      {selectedHeatmapPoint.data.bestQuestion ? (
+                        <><strong>Best Match:</strong> {selectedHeatmapPoint.data.bestQuestion.similarity.toFixed(3)}</>
+                      ) : (
+                        <><strong>Status:</strong> Unretrieved (no matching questions)</>
+                      )}
                     </>
                   ) : selectedHeatmapPoint.data.type === 'role' ? (
                     <>
@@ -654,7 +644,11 @@ const InteractiveHeatmapVisualization: React.FC = () => {
                     <>
                       <strong>Total Retrievals:</strong> {selectedHeatmapPoint.data.totalRetrievals}<br/>
                       <strong>Avg Similarity:</strong> {selectedHeatmapPoint.data.avgSimilarity.toFixed(3)}<br/>
-                      <strong>Dominant Role:</strong> {selectedHeatmapPoint.data.dominantRole.roleName}
+                      {selectedHeatmapPoint.data.dominantRole ? (
+                        <><strong>Dominant Role:</strong> {selectedHeatmapPoint.data.dominantRole.roleName}</>
+                      ) : (
+                        <><strong>Status:</strong> No role access patterns</>
+                      )}
                     </>
                   ) : selectedHeatmapPoint.data.type === 'unassociated-cluster' ? (
                     <>

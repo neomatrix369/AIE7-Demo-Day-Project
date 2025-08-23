@@ -251,12 +251,6 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     };
   }, [results, allChunks]);
 
-  // Helper function to get quality score status
-  const getStatusText = (score: number) => {
-    if (score >= 7.0) return 'GOOD';
-    if (score >= 5.0) return 'WEAK';
-    return 'POOR';
-  };
 
   // Calculate advanced insights
   const advancedInsights = React.useMemo(() => {
@@ -332,73 +326,8 @@ const InteractiveHeatmapVisualization: React.FC = () => {
           Explore multi-dimensional RAG relationships through interactive scatter plot heatmaps with three distinct perspectives: document clustering, role-based access patterns, and chunk retrieval analysis
         </p>
         
-        {/* Summary Statistics */}
+        {/* Coverage Statistics - Essential visualization metrics */}
         <div style={{ marginBottom: '30px' }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-            gap: '15px', 
-            marginBottom: '20px'
-          }}>
-            {/* Average Quality Score Card */}
-            <div style={{ backgroundColor: '#e6f7e6', border: '2px solid #28a745', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#155724', fontSize: '0.9rem' }}>🎯 Quality Score</h4>
-              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                <span style={{ color: '#28a745', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
-                  {results.overall.avg_quality_score ? results.overall.avg_quality_score.toFixed(1) : 0}
-                </span>
-                <div style={{ 
-                  backgroundColor: results.overall.avg_quality_score >= 7.0 ? '#28a745' : results.overall.avg_quality_score >= 5.0 ? '#e67e22' : '#dc3545',
-                  color: 'white',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  fontSize: '0.7rem',
-                  marginTop: '3px',
-                  display: 'inline-block'
-                }}>
-                  {getStatusText(results.overall.avg_quality_score)}
-                </div>
-                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Quality Score</div>
-              </div>
-            </div>
-
-            {/* Success Rate Card */}
-            <div style={{ backgroundColor: '#fff2e6', border: '2px solid #d63384', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#6a1a3a', fontSize: '0.9rem' }}>📈 Success Rate</h4>
-              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                <span style={{ color: '#d63384', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
-                  {Math.round(results.overall.success_rate * 100)}%
-                </span>
-                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>High Quality Rate (≥7.0)</div>
-              </div>
-            </div>
-
-            {/* Questions Processed Card */}
-            <div style={{ backgroundColor: '#e6e6ff', border: '2px solid #5a3bb0', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#3a1d66', fontSize: '0.9rem' }}>📊 Processing Volume</h4>
-              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                <span style={{ color: '#5a3bb0', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
-                  {results.overall.total_questions}
-                </span>
-                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Questions Processed</div>
-              </div>
-            </div>
-
-            {/* Total Chunks Card */}
-            <div style={{ backgroundColor: '#e6f7ff', border: '2px solid #0c7cd5', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem' }}>📄 Total Chunks</h4>
-              <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                <span style={{ color: '#0c7cd5', fontSize: '1.8rem', fontWeight: 'bold', display: 'block' }}>
-                  {chunkCoverageStats.isDataAvailable ? chunkCoverageStats.totalChunks : '⏳'}
-                </span>
-                <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>
-                  {chunkCoverageStats.isDataAvailable ? 'Document Chunks Available' : 'Loading chunk data...'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Coverage Statistics - Now shown on all perspectives */}
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
@@ -434,44 +363,6 @@ const InteractiveHeatmapVisualization: React.FC = () => {
               </div>
             </div>
 
-            {/* Perspective-specific count cards */}
-            {heatmapConfig.perspective === 'roles-to-chunks' && (
-              <div style={{ backgroundColor: '#fff8dc', border: '2px solid #b8860b', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#5c4b00', fontSize: '0.9rem' }}>👥 User Roles</h4>
-                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                  <span style={{ color: '#b8860b', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {totalRoles}
-                  </span>
-                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Distinct User Roles</div>
-                </div>
-              </div>
-            )}
-
-            {/* Questions Card (for questions-to-chunks and chunks-to-questions) */}
-            {(heatmapConfig.perspective === 'questions-to-chunks' || heatmapConfig.perspective === 'chunks-to-questions') && (
-              <div style={{ backgroundColor: '#f0f0ff', border: '2px solid #6610f2', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#4a0f8b', fontSize: '0.9rem' }}>❓ Questions</h4>
-                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                  <span style={{ color: '#6610f2', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {results.overall.total_questions}
-                  </span>
-                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Total Questions Analyzed</div>
-                </div>
-              </div>
-            )}
-
-            {/* Documents Card (for documents-to-chunks perspective) */}
-            {heatmapConfig.perspective === 'documents-to-chunks' && (
-              <div style={{ backgroundColor: '#f8f0ff', border: '2px solid #9c27b0', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#6a1b9a', fontSize: '0.9rem' }}>📄 Documents</h4>
-                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                  <span style={{ color: '#9c27b0', fontSize: '1.6rem', fontWeight: 'bold', display: 'block' }}>
-                    {totalDocuments || '⏳'}
-                  </span>
-                  <div style={{ color: '#666', marginTop: '3px', fontSize: '0.8rem' }}>Documents Analyzed</div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Smart Insights Section */}

@@ -18,9 +18,12 @@ Following the Four Rules of Simple Design:
 import os
 import json
 import logging
+import sys
+import subprocess
 from datetime import datetime
 from typing import List, Dict, Any
 from services.quality_score_service import QualityScoreService
+from config.settings import CHUNK_SIZE, CHUNK_OVERLAP, CHUNK_STRATEGY, RETRIEVAL_METHOD, VECTOR_DB_CONFIG, COLLECTION_NAMES
 
 logger = logging.getLogger(__name__)
 
@@ -31,37 +34,225 @@ class ExperimentService:
     def __init__(self):
         self.experiments_folder = os.path.join(os.path.dirname(__file__), '..', '..', 'experiments')
         
-    def save_experiment_results(self, results: List[Dict[str, Any]]) -> str:
-        """Save experiment results to a timestamped JSON file in experiments folder."""
+    def _get_environment_info(self) -> Dict[str, Any]:
+        """Get environment information for reproducibility."""
+        try:
+            git_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()[:8] if os.path.exists('.git') else 'N/A'
+        except:
+            git_commit = 'N/A'
+            
+        return {
+            "python_version": sys.version,
+            "git_commit": git_commit,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    def _get_corpus_info(self) -> Dict[str, Any]:
+        """Get corpus information from available data."""
+        try:
+            from simple_document_processor import SimpleDocumentProcessor
+            doc_processor = SimpleDocumentProcessor()
+            corpus_stats = doc_processor.get_corpus_stats()
+            
+            return {
+                "name": COLLECTION_NAMES['DEFAULT_COLLECTION'],
+                "total_documents": corpus_stats.get("document_count", 0),
+                "total_chunks": corpus_stats.get("chunk_count", 0),
+                "chunk_size": CHUNK_SIZE,
+                "chunk_overlap": CHUNK_OVERLAP,
+                "chunking_strategy": list(CHUNK_STRATEGY.keys())[0] if CHUNK_STRATEGY else "recursive",
+                "source_path": os.getenv("DATA_FOLDER", "./data/"),
+                "document_types": corpus_stats.get("corpus_metadata", {}).get("document_types", {}),
+                "preprocessing": "standard_text_cleaning",
+                "min_chunk_length": 50  # Default minimum chunk length
+            }
+        except Exception as e:
+            logger.warning(f"Could not get corpus info: {e}")
+            return {
+                "name": COLLECTION_NAMES['DEFAULT_COLLECTION'],
+                "total_documents": 0,
+                "total_chunks": 0,
+                "chunk_size": CHUNK_SIZE,
+                "chunk_overlap": CHUNK_OVERLAP,
+                "chunking_strategy": list(CHUNK_STRATEGY.keys())[0] if CHUNK_STRATEGY else "recursive",
+                "source_path": os.getenv("DATA_FOLDER", "./data/"),
+                "document_types": {},
+                "preprocessing": "standard_text_cleaning",
+                "min_chunk_length": 50
+            }
+            
+    def _get_embedding_info(self) -> Dict[str, Any]:
+        """Get embedding model information."""
+        return {
+            "model": "text-embedding-3-small",  # Default model
+            "model_version": "latest",
+            "dimension": VECTOR_DB_CONFIG['VECTOR_SIZE'],
+            "local_vs_api": "api",  # Default to API
+            "normalize_embeddings": True,
+            "batch_size": 100
+        }
+        
+    def _get_vector_db_info(self) -> Dict[str, Any]:
+        """Get vector database information."""
+        return {
+            "type": "Qdrant",
+            "version": "1.7.0",  # Default version
+            "collection_name": COLLECTION_NAMES['DEFAULT_COLLECTION'],
+            "similarity_metric": "cosine",
+            "index_config": {
+                "distance": "cosine",
+                "vector_size": VECTOR_DB_CONFIG['VECTOR_SIZE']
+            }
+        }
+        
+    def _get_assessment_info(self, config: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Get assessment configuration information."""
+        return {
+            "tier_level": 1,  # Default tier
+            "similarity_threshold": config.get("similarity_threshold", 0.5) if config else 0.5,
+            "top_k_retrieval": config.get("top_k", 5) if config else 5,
+            "total_queries": len(config.get("results", [])) if config else 0,
+            "random_seed": 42,  # Default seed
+            "evaluation_metrics": ["cosine_similarity", "quality_score", "success_rate"]
+        }
+        
+    def _get_performance_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate comprehensive performance metrics."""
+        if not results:
+            return {
+                "avg_cosine_similarity": 0.0,
+                "median_similarity": 0.0,
+                "min_similarity": 0.0,
+                "max_similarity": 0.0,
+                "success_rate_percent": 0.0,
+                "queries_passed": 0,
+                "queries_failed": 0
+            }
+            
+        similarities = [r["avg_similarity"] for r in results]
+        similarities.sort()
+        
+        avg_similarity = sum(similarities) / len(similarities)
+        median_similarity = similarities[len(similarities) // 2] if similarities else 0.0
+        min_similarity = min(similarities) if similarities else 0.0
+        max_similarity = max(similarities) if similarities else 0.0
+        
+        # Calculate success rate (queries with similarity >= 0.7)
+        passed_threshold = 0.7
+        queries_passed = sum(1 for s in similarities if s >= passed_threshold)
+        queries_failed = len(similarities) - queries_passed
+        success_rate_percent = (queries_passed / len(similarities)) * 100 if similarities else 0.0
+        
+        return {
+            "avg_cosine_similarity": round(avg_similarity, 3),
+            "median_similarity": round(median_similarity, 3),
+            "min_similarity": round(min_similarity, 3),
+            "max_similarity": round(max_similarity, 3),
+            "success_rate_percent": round(success_rate_percent, 1),
+            "queries_passed": queries_passed,
+            "queries_failed": queries_failed
+        }
+        
+    def _get_query_info(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Get query information."""
+        if not results:
+            return {
+                "query_source": "generated",
+                "sample_queries": [],
+                "shuffle_queries": False
+            }
+            
+        # Get sample queries (first 3)
+        sample_queries = [r["question"] for r in results[:3]]
+        
+        return {
+            "query_source": "json_files",  # From LLM/RAGAS JSON files
+            "sample_queries": sample_queries,
+            "shuffle_queries": False
+        }
+        
+    def _get_top_recommendations(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Generate top recommendations based on gap analysis."""
+        try:
+            from services.gap_analysis_service import GapAnalysisService
+            gap_analysis_service = GapAnalysisService()
+            gap_analysis = gap_analysis_service.analyze_gaps(results)
+            
+            # Extract top 3 recommendations
+            recommendations = gap_analysis.get("recommendations", [])[:3]
+            
+            top_recommendations = []
+            for rec in recommendations:
+                top_recommendations.append({
+                    "action": rec.get("action", "Improve RAG system"),
+                    "expected_improvement": f"{rec.get('current_score', 0.0):.2f} → {rec.get('target_score', 0.8):.2f}",
+                    "effort_days": rec.get("effort_days", 3),
+                    "priority": rec.get("priority", "medium")
+                })
+            
+            return top_recommendations
+        except Exception as e:
+            logger.warning(f"Could not generate recommendations: {e}")
+            return [
+                {
+                    "action": "Improve document quality and coverage",
+                    "expected_improvement": "0.5 → 0.8",
+                    "effort_days": 3,
+                    "priority": "high"
+                }
+            ]
+        
+    def save_experiment_results(self, results: List[Dict[str, Any]], config: Dict[str, Any] = None) -> str:
+        """Save experiment results to a timestamped JSON file in experiments folder with comprehensive metadata."""
         try:
             # Create experiments folder if it doesn't exist
             os.makedirs(self.experiments_folder, exist_ok=True)
             
-            # Generate timestamp for filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"experiment_{timestamp}.json"
+            # Generate timestamp and experiment ID
+            timestamp = datetime.now()
+            experiment_id = f"exp_{timestamp.strftime('%Y%m%d_%H%M%S')}"
+            filename = f"experiment_{timestamp.strftime('%Y%m%d_%H%M%S')}.json"
             results_file = os.path.join(self.experiments_folder, filename)
             
-            # Add metadata to results
+            # Calculate basic metrics
             avg_similarity = sum(r["avg_similarity"] for r in results) / len(results) if results else 0
             avg_quality_score = QualityScoreService.similarity_to_quality_score(avg_similarity)
             
+            # Build comprehensive experiment data
             experiment_data = {
+                "experiment_id": experiment_id,
+                "name": f"RAG Assessment - {timestamp.strftime('%Y-%m-%d %H:%M')}",
+                "timestamp": timestamp.isoformat(),
+                "inputs": {
+                    "corpus": self._get_corpus_info(),
+                    "embedding": self._get_embedding_info(),
+                    "vector_db": self._get_vector_db_info(),
+                    "assessment": self._get_assessment_info(config),
+                    "query": self._get_query_info(results)
+                },
+                "results": {
+                    "performance": self._get_performance_metrics(results),
+                    "processing_time_seconds": 0.0,  # Would need to be tracked during execution
+                    "api_calls_made": 0  # Would need to be tracked during execution
+                },
+                "top_recommendations": self._get_top_recommendations(results),
                 "metadata": {
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": timestamp.isoformat(),
                     "filename": filename,
                     "total_questions": len(results),
                     "sources": list(set(r["source"] for r in results)),
                     "avg_similarity": avg_similarity,
                     "avg_quality_score": avg_quality_score
                 },
-                "results": results
+                "results": results,
+                "environment": self._get_environment_info()
             }
             
             with open(results_file, 'w', encoding='utf-8') as f:
                 json.dump(experiment_data, f, indent=2, ensure_ascii=False)
             
             logger.info(f"💾 Saved {len(results)} experiment results to {filename}")
+            logger.info(f"📊 Experiment ID: {experiment_id}")
             return filename
             
         except Exception as e:

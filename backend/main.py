@@ -519,7 +519,7 @@ async def set_test_results():
     ]
     
     experiment_results = test_results
-    experiment_service.save_experiment_results(experiment_results)
+    experiment_service.save_experiment_results(experiment_results, {"config": {"top_k": 5, "similarity_threshold": 0.5}})
     
     logger.info("🧪 Set test experiment results")
     return {"success": True, "message": "Test results set", "count": len(test_results)}
@@ -621,8 +621,8 @@ async def websocket_experiment_stream(websocket: WebSocket):
         experiment_results.clear()  # Clear previous results
         await stream_question_results(websocket, all_questions, config)
         
-        # Save experiment results
-        experiment_service.save_experiment_results(experiment_results)
+        # Save experiment results with config
+        experiment_service.save_experiment_results(experiment_results, {"config": config.dict()})
         
         # Send completion signal
         logger.info("🏁 Sending completion signal")

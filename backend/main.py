@@ -14,6 +14,7 @@ from managers.qdrant_manager import QdrantManager
 from managers.data_manager import DataManager
 from managers.search_manager import SearchManager
 from managers.enhanced_rag_manager import EnhancedRAGManager
+from managers.advanced_rag_v2 import AdvancedRAGv2
 from services.quality_score_service import QualityScoreService
 from services.experiment_service import ExperimentService
 from services.gap_analysis_service import GapAnalysisService
@@ -36,6 +37,7 @@ qdrant_manager = QdrantManager(collection_name="student_loan_corpus")
 data_manager = DataManager(data_folder=data_folder)
 search_manager = SearchManager(data_manager, qdrant_manager)
 enhanced_rag_manager = EnhancedRAGManager(search_manager)
+advanced_rag_v2 = AdvancedRAGv2(search_manager)
 experiment_service = ExperimentService()
 gap_analysis_service = GapAnalysisService()
 documents_loaded = False
@@ -228,6 +230,7 @@ class ExperimentConfig(BaseModel):
     top_k: int = 5
     similarity_threshold: float = 0.5  # Keep internal processing in 0-1 scale
     use_enhanced_retrieval: bool = True  # Enable enhanced RAG by default
+    use_advanced_v2: bool = False  # Enable Advanced RAG v2 (opt-in for testing)
 
 class QuestionResult(BaseModel):
     question_id: str
@@ -854,8 +857,22 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
     try:
         query = question["question"]
         
+        # Use Advanced RAG v2 if enabled
+        if config.use_advanced_v2:
+            search_results, avg_similarity, diagnostics = advanced_rag_v2.advanced_retrieve(
+                query=query,
+                top_k=config.top_k
+            )
+            
+            # Log diagnostics for monitoring
+            logger.info(f"🚀 Advanced RAG v2 - Query type: {diagnostics.get('query_type')}, "
+                       f"Sub-queries: {len(diagnostics.get('sub_queries', []))}, "
+                       f"Final score: {avg_similarity:.3f}")
+            
+            retrieval_method = "advanced_v2"
+            
         # Use enhanced RAG manager for better retrieval accuracy
-        if config.use_enhanced_retrieval:
+        elif config.use_enhanced_retrieval:
             search_results, avg_similarity = enhanced_rag_manager.enhanced_retrieve(
                 query=query,
                 top_k=config.top_k
@@ -864,6 +881,9 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
             # Analyze retrieval quality for diagnostics
             quality_analysis = enhanced_rag_manager.analyze_retrieval_quality(query, search_results)
             logger.info(f"📊 Retrieval quality for '{query[:50]}...': {quality_analysis['quality']}")
+            
+            retrieval_method = "enhanced"
+            
         else:
             # Fallback to standard search
             search_results = search_manager.search_with_similarity_threshold(
@@ -877,6 +897,8 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
                 avg_similarity = sum(r["similarity"] for r in search_results) / len(search_results)
             else:
                 avg_similarity = 0.0
+            
+            retrieval_method = "standard"
         
         # Format retrieved documents
         retrieved_docs = []
@@ -894,7 +916,7 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
             **question,
             "avg_similarity": round(avg_similarity, 3),
             "retrieved_docs": retrieved_docs,
-            "retrieval_method": "enhanced" if config.use_enhanced_retrieval else "standard"
+            "retrieval_method": retrieval_method
         }
         
     except Exception as e:
@@ -966,6 +988,58 @@ async def configure_rag(config: Dict[str, Any]):
         return {
             "status": "error",
             "message": str(e)
+        }
+
+@app.post("/api/rag/compare")
+async def compare_rag_methods(query: str = "What is GPT-5's performance?", top_k: int = 5):
+    """Compare different RAG methods for a given query."""
+    try:
+        results = {}
+        
+        # Standard RAG
+        standard_results = search_manager.vector_search(query, top_k)
+        standard_score = sum(r.get('similarity', 0) for r in standard_results) / len(standard_results) if standard_results else 0
+        results['standard'] = {
+            'avg_score': round(standard_score, 3),
+            'num_docs': len(standard_results),
+            'method': 'Cosine similarity only'
+        }
+        
+        # Enhanced RAG v1
+        enhanced_results, enhanced_score = enhanced_rag_manager.enhanced_retrieve(query, top_k)
+        results['enhanced_v1'] = {
+            'avg_score': round(enhanced_score, 3),
+            'num_docs': len(enhanced_results),
+            'method': 'Query expansion + Hybrid scoring + Reranking',
+            'improvement': round(((enhanced_score - standard_score) / standard_score * 100) if standard_score > 0 else 0, 1)
+        }
+        
+        # Advanced RAG v2
+        advanced_results, advanced_score, diagnostics = advanced_rag_v2.advanced_retrieve(query, top_k)
+        results['advanced_v2'] = {
+            'avg_score': round(advanced_score, 3),
+            'num_docs': len(advanced_results),
+            'method': 'Multi-stage + Contextual expansion + Answer-aware reranking',
+            'improvement_vs_standard': round(((advanced_score - standard_score) / standard_score * 100) if standard_score > 0 else 0, 1),
+            'improvement_vs_enhanced': round(((advanced_score - enhanced_score) / enhanced_score * 100) if enhanced_score > 0 else 0, 1),
+            'diagnostics': {
+                'query_type': diagnostics.get('query_type'),
+                'sub_queries': diagnostics.get('sub_queries', []),
+                'stages': len(diagnostics.get('stages', []))
+            }
+        }
+        
+        return {
+            'query': query,
+            'results': results,
+            'recommendation': 'Advanced RAG v2' if advanced_score > enhanced_score else 'Enhanced RAG v1'
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ RAG comparison failed: {e}")
+        return {
+            'error': str(e),
+            'query': query
         }
 
 @app.get("/api/rag/config")

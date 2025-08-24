@@ -18,20 +18,36 @@ from services.experiment_service import ExperimentService
 from services.gap_analysis_service import GapAnalysisService
 from services.error_response_service import ErrorResponseService, ErrorType
 from dotenv import load_dotenv
+from config.settings import (
+    SERVER_CONFIG, 
+    CORS_CONFIG, 
+    COLLECTION_NAMES, 
+    FILE_CONFIG, 
+    EXPERIMENT_CONFIG,
+    MOCK_DATA_CONFIG,
+    ERROR_MESSAGES,
+    SUCCESS_MESSAGES,
+    LOG_MESSAGES,
+    ENV_DEFAULTS,
+    CHUNK_STRATEGY,
+    RETRIEVAL_METHOD,
+    CHUNK_SIZE,
+    CHUNK_OVERLAP
+)
 
 # Load environment variables from root .env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-data_folder = os.getenv("DATA_FOLDER")
+data_folder = os.getenv("DATA_FOLDER", ENV_DEFAULTS['DATA_FOLDER'])
 
-app = FastAPI(title="RagCheck API", version="1.0.0")
+app = FastAPI(title=SERVER_CONFIG['APP_TITLE'], version=SERVER_CONFIG['APP_VERSION'])
 
 # Set up logging
 logger = setup_logging(__name__)
 
 # Initialize managers and services
 doc_processor = SimpleDocumentProcessor()
-qdrant_manager = QdrantManager(collection_name="student_loan_corpus")
+qdrant_manager = QdrantManager(collection_name=COLLECTION_NAMES['DEFAULT_COLLECTION'])
 data_manager = DataManager(data_folder=data_folder)
 search_manager = SearchManager(data_manager, qdrant_manager)
 experiment_service = ExperimentService()
@@ -46,11 +62,11 @@ experiment_results = experiment_service.load_experiment_results()
 
 # Try to load documents on startup
 try:
-    logger.info("🚀 Initializing document processing and vector store...")
+    logger.info(LOG_MESSAGES['INIT_DOC_PROCESSING'])
     stats = doc_processor.get_corpus_stats()
     if stats["corpus_loaded"]:
         documents_loaded = True
-        logger.info("✅ Document processing initialized successfully")
+        logger.info(LOG_MESSAGES['DOC_PROCESSING_SUCCESS'])
         
         # Initialize vector store if needed
         try:
@@ -58,21 +74,21 @@ try:
             if combined_docs:
                 qdrant_manager.initialize_collection()
                 search_manager.get_vector_store()  # Test connection
-                logger.info("✅ Vector store initialized successfully")
+                logger.info(LOG_MESSAGES['VECTOR_STORE_SUCCESS'])
             else:
-                logger.warning("⚠️ No documents found for vector store")
+                logger.warning(LOG_MESSAGES['NO_DOCUMENTS_FOUND'])
         except Exception as e:
-            logger.error(f"❌ Vector store initialization failed: {str(e)}")
-            logger.info("📝 Will use keyword search fallback")
+            logger.error(f"❌ {ERROR_MESSAGES['VECTOR_STORE_INIT_FAILED']}: {str(e)}")
+            logger.info(LOG_MESSAGES['VECTOR_STORE_FALLBACK'])
     else:
-        logger.warning("⚠️ No documents found - using mock data")
+        logger.warning(LOG_MESSAGES['MOCK_DATA_FALLBACK'])
 except Exception as e:
-    logger.error(f"❌ Document processing initialization failed: {str(e)}")
+    logger.error(f"❌ {ERROR_MESSAGES['DOCUMENT_PROCESSING_FAILED']}: {str(e)}")
     logger.error(traceback.format_exc())
-    logger.info("📝 Falling back to mock data mode")
+    logger.info(LOG_MESSAGES['DOC_PROCESSING_FALLBACK'])
 
 # Configure CORS for both local and Vercel deployments
-cors_origins = ["http://localhost:3000"]
+cors_origins = CORS_CONFIG['DEFAULT_ORIGINS'].copy()
 
 # Add production frontend URLs from environment
 frontend_url = os.getenv("FRONTEND_URL")
@@ -89,14 +105,14 @@ vercel_domain = os.getenv("VERCEL_DOMAIN")
 if vercel_domain and vercel_domain not in cors_origins:
     cors_origins.append(vercel_domain)
 
-logger.info(f"🌐 CORS origins configured: {cors_origins}")
+logger.info(f"🌐 {LOG_MESSAGES['CORS_CONFIGURED']}: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=CORS_CONFIG['ALLOW_METHODS'],
+    allow_headers=CORS_CONFIG['ALLOW_HEADERS'],
 )
 
 # Health check endpoint for CORS testing
@@ -169,21 +185,21 @@ logger.info(f"📁 Data folder: {data_folder}")
 
 # Load LLM questions from the JSON file
 LLM_QUESTIONS = load_questions_from_file(
-    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'llm-generated.json')
+    os.path.join(os.path.dirname(__file__), data_folder, FILE_CONFIG['QUESTIONS_SUBFOLDER'], FILE_CONFIG['LLM_QUESTIONS_FILE'])
 )
 
 # Load RAGAS questions from the JSON file
 RAGAS_QUESTIONS = load_questions_from_file(
-    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ragas-generated.json')
+    os.path.join(os.path.dirname(__file__), data_folder, FILE_CONFIG['QUESTIONS_SUBFOLDER'], FILE_CONFIG['RAGAS_QUESTIONS_FILE'])
 )
 
-from config.settings import CHUNK_STRATEGY, RETRIEVAL_METHOD, CHUNK_SIZE, CHUNK_OVERLAP
+
 
 # Pydantic models
 class ExperimentConfig(BaseModel):
     selected_groups: List[str]
-    top_k: int = 5
-    similarity_threshold: float = 0.5  # Keep internal processing in 0-1 scale
+    top_k: int = EXPERIMENT_CONFIG['DEFAULT_TOP_K']
+    similarity_threshold: float = EXPERIMENT_CONFIG['DEFAULT_SIMILARITY_THRESHOLD']  # Keep internal processing in 0-1 scale
 
 class QuestionResult(BaseModel):
     question_id: str

@@ -17,13 +17,7 @@ Following the Four Rules of Simple Design:
 """
 
 from typing import List, Dict, Any, Literal
-
-# Quality score thresholds - single source of truth
-QUALITY_THRESHOLDS = {
-    'GOOD': 7.0,    # High quality threshold
-    'WEAK': 5.0,    # Minimum acceptable threshold
-    'POOR': 0.0     # Below minimum threshold
-}
+from config.settings import QUALITY_THRESHOLDS, CORPUS_HEALTH_THRESHOLDS
 
 QualityStatus = Literal['good', 'weak', 'poor']
 
@@ -90,9 +84,9 @@ class QualityScoreService:
         Returns:
             Health status: 'excellent', 'good', or 'needs_work'
         """
-        if avg_quality_score >= 8.0:
+        if avg_quality_score >= CORPUS_HEALTH_THRESHOLDS['EXCELLENT']:
             return "excellent"
-        elif avg_quality_score >= 6.0:
+        elif avg_quality_score >= CORPUS_HEALTH_THRESHOLDS['GOOD']:
             return "good"
         else:
             return "needs_work"

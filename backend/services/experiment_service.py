@@ -268,44 +268,62 @@ class ExperimentService:
                 }
             ]
         
-    def _get_business_impact_scores(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Calculate business impact scores based on experiment results."""
+    def _get_quality_score_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Get quality score related metrics from experiment results."""
         if not results:
             return {
-                "overall_business_score": 0.0,
-                "relevance_score": 0.0,
-                "accuracy_score": 0.0,
-                "efficiency_score": 0.0,
-                "cost_effectiveness": 0.0
+                "overall_quality_score": 0.0,
+                "avg_quality_score": 0.0,
+                "min_quality_score": 0.0,
+                "max_quality_score": 0.0,
+                "quality_score_distribution": {},
+                "quality_threshold_analysis": {}
             }
         
-        # Calculate average similarity and quality score
-        avg_similarity = sum(r["avg_similarity"] for r in results) / len(results)
-        avg_quality_score = QualityScoreService.similarity_to_quality_score(avg_similarity)
+        # Extract quality scores from results
+        quality_scores = []
+        for result in results:
+            if "quality_score" in result:
+                quality_scores.append(result["quality_score"])
         
-        # Business impact calculations
-        relevance_score = min(avg_quality_score / 10.0, 1.0)  # Normalize to 0-1
-        accuracy_score = avg_similarity  # Direct correlation with similarity
-        efficiency_score = 1.0 - (len([r for r in results if r["avg_similarity"] < 0.3]) / len(results))  # Fewer low-quality results = higher efficiency
+        if not quality_scores:
+            return {
+                "overall_quality_score": 0.0,
+                "avg_quality_score": 0.0,
+                "min_quality_score": 0.0,
+                "max_quality_score": 0.0,
+                "quality_score_distribution": {},
+                "quality_threshold_analysis": {}
+            }
         
-        # Cost effectiveness (simplified - lower processing time = better)
-        # This would be more sophisticated with actual cost data
-        cost_effectiveness = 0.8  # Placeholder - would be calculated based on actual costs
+        # Calculate quality score statistics
+        avg_quality = sum(quality_scores) / len(quality_scores)
+        min_quality = min(quality_scores)
+        max_quality = max(quality_scores)
         
-        # Overall business score (weighted average)
-        overall_business_score = (
-            relevance_score * 0.3 +
-            accuracy_score * 0.3 +
-            efficiency_score * 0.2 +
-            cost_effectiveness * 0.2
-        )
+        # Quality score distribution (buckets)
+        distribution = {
+            "excellent": len([s for s in quality_scores if s >= 8.0]),
+            "good": len([s for s in quality_scores if 6.0 <= s < 8.0]),
+            "fair": len([s for s in quality_scores if 4.0 <= s < 6.0]),
+            "poor": len([s for s in quality_scores if s < 4.0])
+        }
+        
+        # Quality threshold analysis
+        threshold_analysis = {
+            "above_7": len([s for s in quality_scores if s >= 7.0]),
+            "above_6": len([s for s in quality_scores if s >= 6.0]),
+            "above_5": len([s for s in quality_scores if s >= 5.0]),
+            "below_5": len([s for s in quality_scores if s < 5.0])
+        }
         
         return {
-            "overall_business_score": round(overall_business_score, 3),
-            "relevance_score": round(relevance_score, 3),
-            "accuracy_score": round(accuracy_score, 3),
-            "efficiency_score": round(efficiency_score, 3),
-            "cost_effectiveness": round(cost_effectiveness, 3)
+            "overall_quality_score": round(avg_quality, 2),
+            "avg_quality_score": round(avg_quality, 2),
+            "min_quality_score": round(min_quality, 2),
+            "max_quality_score": round(max_quality, 2),
+            "quality_score_distribution": distribution,
+            "quality_threshold_analysis": threshold_analysis
         }
         
     def _get_user_satisfaction_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -399,7 +417,7 @@ class ExperimentService:
                     "performance": self._get_performance_metrics(results),
                     **self._get_experiment_timing_info(timing_data)
                 },
-                "business_impact": self._get_business_impact_scores(results),
+                "quality_score_metrics": self._get_quality_score_metrics(results),
                 "user_satisfaction": self._get_user_satisfaction_metrics(results),
                 "question_group_statistics": self._get_question_group_statistics(results),
                 "top_recommendations": self._get_top_recommendations(results),

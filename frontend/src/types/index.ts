@@ -29,6 +29,7 @@ export interface ExperimentConfig {
   selected_groups: string[];
   top_k: number;
   similarity_threshold: number;
+  use_enhanced_retrieval?: boolean;
 }
 
 export interface QuestionResult {

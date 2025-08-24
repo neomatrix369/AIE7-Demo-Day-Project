@@ -13,6 +13,7 @@ from simple_document_processor import SimpleDocumentProcessor
 from managers.qdrant_manager import QdrantManager
 from managers.data_manager import DataManager
 from managers.search_manager import SearchManager
+from managers.enhanced_rag_manager import EnhancedRAGManager
 from services.quality_score_service import QualityScoreService
 from services.experiment_service import ExperimentService
 from services.gap_analysis_service import GapAnalysisService
@@ -34,6 +35,7 @@ doc_processor = SimpleDocumentProcessor()
 qdrant_manager = QdrantManager(collection_name="student_loan_corpus")
 data_manager = DataManager(data_folder=data_folder)
 search_manager = SearchManager(data_manager, qdrant_manager)
+enhanced_rag_manager = EnhancedRAGManager(search_manager)
 experiment_service = ExperimentService()
 gap_analysis_service = GapAnalysisService()
 documents_loaded = False
@@ -225,6 +227,7 @@ class ExperimentConfig(BaseModel):
     selected_groups: List[str]
     top_k: int = 5
     similarity_threshold: float = 0.5  # Keep internal processing in 0-1 scale
+    use_enhanced_retrieval: bool = True  # Enable enhanced RAG by default
 
 class QuestionResult(BaseModel):
     question_id: str
@@ -839,7 +842,7 @@ async def stream_question_results(websocket: WebSocket, questions: List[Dict[str
 
 async def process_question_with_search(question: Dict[str, Any], config: ExperimentConfig) -> Dict[str, Any]:
     """
-    Process a single question using real vector search.
+    Process a single question using enhanced RAG retrieval.
     
     Args:
         question: Question dictionary
@@ -851,18 +854,29 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
     try:
         query = question["question"]
         
-        # Perform vector search with configuration
-        search_results = search_manager.search_with_similarity_threshold(
-            query=query,
-            top_k=config.top_k,
-            threshold=config.similarity_threshold
-        )
-        
-        # Calculate average similarity
-        if search_results:
-            avg_similarity = sum(r["similarity"] for r in search_results) / len(search_results)
+        # Use enhanced RAG manager for better retrieval accuracy
+        if config.use_enhanced_retrieval:
+            search_results, avg_similarity = enhanced_rag_manager.enhanced_retrieve(
+                query=query,
+                top_k=config.top_k
+            )
+            
+            # Analyze retrieval quality for diagnostics
+            quality_analysis = enhanced_rag_manager.analyze_retrieval_quality(query, search_results)
+            logger.info(f"📊 Retrieval quality for '{query[:50]}...': {quality_analysis['quality']}")
         else:
-            avg_similarity = 0.0
+            # Fallback to standard search
+            search_results = search_manager.search_with_similarity_threshold(
+                query=query,
+                top_k=config.top_k,
+                threshold=config.similarity_threshold
+            )
+            
+            # Calculate average similarity
+            if search_results:
+                avg_similarity = sum(r["similarity"] for r in search_results) / len(search_results)
+            else:
+                avg_similarity = 0.0
         
         # Format retrieved documents
         retrieved_docs = []
@@ -872,13 +886,15 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
                 "chunk_id": result.get("chunk_id", "unknown"),
                 "content": result.get("content", ""),
                 "similarity": result["similarity"],
-                "title": result["title"]
+                "title": result["title"],
+                "scoring_method": result.get("scoring_method", "standard")
             })
         
         return {
             **question,
             "avg_similarity": round(avg_similarity, 3),
-            "retrieved_docs": retrieved_docs
+            "retrieved_docs": retrieved_docs,
+            "retrieval_method": "enhanced" if config.use_enhanced_retrieval else "standard"
         }
         
     except Exception as e:
@@ -934,6 +950,38 @@ async def search_corpus(query: str, top_k: int = 5):
             "message": str(e),
             "results": []
         }
+
+@app.post("/api/rag/configure")
+async def configure_rag(config: Dict[str, Any]):
+    """Configure enhanced RAG retrieval settings."""
+    try:
+        enhanced_rag_manager.update_config(**config)
+        return {
+            "status": "success",
+            "message": "RAG configuration updated",
+            "config": enhanced_rag_manager.config
+        }
+    except Exception as e:
+        logger.error(f"❌ Failed to update RAG config: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@app.get("/api/rag/config")
+async def get_rag_config():
+    """Get current enhanced RAG configuration."""
+    return {
+        "config": enhanced_rag_manager.config,
+        "description": {
+            "use_query_expansion": "Expands queries with related terms",
+            "use_reranking": "Reranks results for better relevance",
+            "use_hybrid_search": "Combines semantic and keyword matching",
+            "semantic_weight": "Weight for semantic similarity (0-1)",
+            "keyword_weight": "Weight for keyword matching (0-1)",
+            "min_similarity_threshold": "Minimum similarity score to include results"
+        }
+    }
 
 @app.post("/api/corpus/reload")
 async def reload_corpus(force_reindex: bool = False):

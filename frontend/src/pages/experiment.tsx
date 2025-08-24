@@ -29,7 +29,8 @@ const ExperimentConfiguration: React.FC = () => {
   const [config, setConfig] = useState<ExperimentConfig>({
     selected_groups: ['llm', 'ragas'],
     top_k: 5,
-    similarity_threshold: 0.5
+    similarity_threshold: 0.5,
+    use_enhanced_retrieval: true
   });
   const [experimentConfig, setExperimentConfig] = useState<{chunk_strategy: Record<string, string>, retrieval_method: Record<string, string>, chunk_size: number, chunk_overlap: number}>({chunk_strategy: {}, retrieval_method: {}, chunk_size: 0, chunk_overlap: 0});
   const [isRunning, setIsRunning] = useState(false);
@@ -441,6 +442,22 @@ const ExperimentConfiguration: React.FC = () => {
                   <option key={key} value={key}>{value}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-group">
+              <div className="checkbox">
+                <input
+                  type="checkbox"
+                  id="enhanced-retrieval"
+                  checked={config.use_enhanced_retrieval}
+                  onChange={(e) => handleConfigChange('use_enhanced_retrieval', e.target.checked)}
+                  disabled={isRunning}
+                />
+                <label htmlFor="enhanced-retrieval" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span>Enhanced RAG</span>
+                  <span style={{ fontSize: '12px', color: '#666' }}>(Query expansion + Reranking)</span>
+                </label>
+              </div>
             </div>
           </div>
 

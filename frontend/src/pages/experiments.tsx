@@ -145,20 +145,38 @@ const ExperimentManagement: React.FC = () => {
     goTo('/dashboard', LABEL_DASHBOARD, { action: 'NAVIGATE_TO_DASHBOARD' });
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const formatTimestamp = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString();
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      return new Date(timestamp).toLocaleString();
-    } catch {
-      return timestamp;
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatTiming = (experiment: ExperimentFile) => {
+    if (!experiment.start_time && !experiment.end_time && !experiment.duration_seconds) {
+      return null;
     }
+    
+    const parts = [];
+    
+    if (experiment.start_time) {
+      parts.push(`Started: ${new Date(experiment.start_time).toLocaleTimeString()}`);
+    }
+    
+    if (experiment.end_time) {
+      parts.push(`Ended: ${new Date(experiment.end_time).toLocaleTimeString()}`);
+    }
+    
+    if (experiment.duration_seconds) {
+      const minutes = Math.floor(experiment.duration_seconds / 60);
+      const seconds = Math.floor(experiment.duration_seconds % 60);
+      parts.push(`Duration: ${minutes}:${seconds.toString().padStart(2, '0')}`);
+    }
+    
+    return parts.join(' | ');
   };
 
   const getStatusColor = (qualityScore: number) => getStatusColorShared(qualityScore);
@@ -328,6 +346,14 @@ const ExperimentManagement: React.FC = () => {
                       <div>
                         <strong>💾 Size:</strong> {formatFileSize(experiment.file_size)}
                       </div>
+                      {formatTiming(experiment) && (
+                        <div>
+                          <strong>⏱️ Timing:</strong>
+                          <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
+                            {formatTiming(experiment)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginLeft: '20px' }}>

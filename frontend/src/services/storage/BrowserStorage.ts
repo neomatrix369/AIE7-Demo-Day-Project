@@ -21,7 +21,11 @@ export class BrowserStorage implements StorageAdapter {
         total_questions: data.total_questions,
         sources: data.sources,
         avg_quality_score: data.avg_quality_score,
-        file_size: JSON.stringify(data).length
+        file_size: JSON.stringify(data).length,
+        // Extract timing information if available
+        start_time: data.results?.start_time,
+        end_time: data.results?.end_time,
+        duration_seconds: data.results?.processing_time_seconds
       };
       
       metadata[filename] = experimentFile;

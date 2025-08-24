@@ -182,14 +182,22 @@ class ExperimentService:
             "queries_failed": queries_failed
         }
         
-    def _get_experiment_timing_info(self) -> Dict[str, Any]:
+    def _get_experiment_timing_info(self, timing_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """Get experiment timing and API call information."""
-        return {
-            "processing_time_seconds": 0.0,  # Would need to be tracked during execution
-            "api_calls_made": 0,  # Would need to be tracked during execution
-            "start_time": datetime.now().isoformat(),
-            "end_time": datetime.now().isoformat()
-        }
+        if timing_data:
+            return {
+                "processing_time_seconds": timing_data.get("duration_seconds", 0.0),
+                "api_calls_made": 0,  # Would need to be tracked during execution
+                "start_time": timing_data.get("start_time", datetime.now().isoformat()),
+                "end_time": timing_data.get("end_time", datetime.now().isoformat())
+            }
+        else:
+            return {
+                "processing_time_seconds": 0.0,  # Would need to be tracked during execution
+                "api_calls_made": 0,  # Would need to be tracked during execution
+                "start_time": datetime.now().isoformat(),
+                "end_time": datetime.now().isoformat()
+            }
         
     def _get_query_info(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Get comprehensive query information."""
@@ -278,6 +286,9 @@ class ExperimentService:
             avg_similarity = sum(r["avg_similarity"] for r in results) / len(results) if results else 0
             avg_quality_score = QualityScoreService.similarity_to_quality_score(avg_similarity)
             
+            # Extract timing information if available
+            timing_data = config.get("timing", {}) if config else {}
+            
             # Build comprehensive experiment data
             experiment_data = {
                 "experiment_id": experiment_id,
@@ -292,7 +303,7 @@ class ExperimentService:
                 },
                 "results": {
                     "performance": self._get_performance_metrics(results),
-                    **self._get_experiment_timing_info()
+                    **self._get_experiment_timing_info(timing_data)
                 },
                 "top_recommendations": self._get_top_recommendations(results),
                 "metadata": {
@@ -312,6 +323,8 @@ class ExperimentService:
             
             logger.info(f"💾 Saved {len(results)} experiment results to {filename}")
             logger.info(f"📊 Experiment ID: {experiment_id}")
+            if timing_data:
+                logger.info(f"⏱️ Experiment duration: {timing_data.get('duration_seconds', 0):.2f} seconds")
             return filename
             
         except Exception as e:
@@ -379,6 +392,16 @@ class ExperimentService:
                             avg_similarity = metadata.get("avg_similarity", 0)
                             avg_quality_score = metadata.get("avg_quality_score", QualityScoreService.similarity_to_quality_score(avg_similarity))
                             
+                            # Extract timing information from results if available
+                            timing_info = {}
+                            if "results" in data and isinstance(data["results"], dict):
+                                results_data = data["results"]
+                                timing_info = {
+                                    "start_time": results_data.get("start_time"),
+                                    "end_time": results_data.get("end_time"),
+                                    "duration_seconds": results_data.get("processing_time_seconds")
+                                }
+                            
                             experiment_files.append({
                                 "filename": filename,
                                 "timestamp": metadata.get("timestamp", ""),
@@ -386,7 +409,8 @@ class ExperimentService:
                                 "sources": metadata.get("sources", []),
                                 "avg_similarity": avg_similarity,
                                 "avg_quality_score": avg_quality_score,
-                                "file_size": os.path.getsize(filepath)
+                                "file_size": os.path.getsize(filepath),
+                                **timing_info
                             })
                         else:
                             # Old format file

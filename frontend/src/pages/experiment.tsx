@@ -42,6 +42,13 @@ const ExperimentConfiguration: React.FC = () => {
   const [loadingCounts, setLoadingCounts] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [isGapAnalysisExpanded, setIsGapAnalysisExpanded] = useState(false);
+  const [experimentTiming, setExperimentTiming] = useState<{
+    start_time?: string;
+    end_time?: string;
+    duration_seconds?: number;
+  }>({});
+  const [experimentStartTime, setExperimentStartTime] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const { goTo } = usePageNavigation('Experiment');
 
@@ -83,6 +90,27 @@ const ExperimentConfiguration: React.FC = () => {
       setProgress(newProgress);
     }
   }, [results.length, totalQuestions]);
+
+  // Timer effect for elapsed time
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isRunning && experimentStartTime) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - experimentStartTime.getTime()) / 1000);
+        setElapsedTime(elapsed);
+      }, 1000);
+    } else if (!isRunning) {
+      setElapsedTime(0);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isRunning, experimentStartTime]);
 
   useEffect(() => {
     const fetchQuestionCounts = async () => {
@@ -167,6 +195,8 @@ const ExperimentConfiguration: React.FC = () => {
     setProgress(0);
     setResults([]);
     setCompleted(false);
+    setExperimentStartTime(new Date());
+    setElapsedTime(0);
 
     // Connect to WebSocket for real-time streaming (with fallback for Vercel)
     const getWebSocketUrl = () => {
@@ -217,6 +247,13 @@ const ExperimentConfiguration: React.FC = () => {
           console.log('🏁 Experiment completed');
           setCompleted(true);
           setIsRunning(false);
+          
+          // Handle timing information
+          if (data.timing) {
+            setExperimentTiming(data.timing);
+            console.log('⏱️ Experiment timing:', data.timing);
+          }
+          
           websocket.close();
           
           // Auto-save will be handled by useEffect when results are ready
@@ -229,6 +266,13 @@ const ExperimentConfiguration: React.FC = () => {
           console.error('❌ Experiment error:', data.message);
           alert(`Experiment failed: ${data.message}`);
           setIsRunning(false);
+          
+          // Handle timing information even for errors
+          if (data.timing) {
+            setExperimentTiming(data.timing);
+            console.log('⏱️ Experiment timing (error):', data.timing);
+          }
+          
           websocket.close();
         } else if (data.type === 'progress') {
           // Handle progress updates
@@ -277,6 +321,8 @@ const ExperimentConfiguration: React.FC = () => {
       ws.close();
     }
     setIsRunning(false);
+    setExperimentStartTime(null);
+    setElapsedTime(0);
   };
 
   const saveExperimentToBrowser = useCallback(async () => {
@@ -509,6 +555,26 @@ const ExperimentConfiguration: React.FC = () => {
         {isRunning && (
           <div className="card" style={{ backgroundColor: '#fff3cd', marginTop: '20px' }}>
             <h3>🔄 Experiment Running</h3>
+            
+            {/* Real-time Timing Display */}
+            {experimentStartTime && (
+              <div style={{ 
+                textAlign: 'center', 
+                marginBottom: '15px',
+                padding: '10px',
+                backgroundColor: 'rgba(255,255,255,0.7)',
+                borderRadius: '8px',
+                border: '1px solid #ffeaa7'
+              }}>
+                <div style={{ fontSize: '0.9rem', color: '#856404', marginBottom: '5px' }}>
+                  ⏱️ <strong>Started:</strong> {experimentStartTime.toLocaleTimeString()}
+                </div>
+                <div style={{ fontSize: '1.1rem', color: '#856404', fontWeight: 'bold' }}>
+                  ⏰ <strong>Elapsed:</strong> {Math.floor(elapsedTime / 60)}:{(elapsedTime % 60).toString().padStart(2, '0')}
+                </div>
+              </div>
+            )}
+            
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
@@ -535,6 +601,31 @@ const ExperimentConfiguration: React.FC = () => {
             <div style={{ textAlign: 'center', color: '#155724' }}>
               Successfully processed {results.length} questions!
             </div>
+            
+            {/* Timing Information */}
+            {experimentTiming.duration_seconds && (
+              <div style={{ 
+                textAlign: 'center', 
+                marginTop: '10px',
+                padding: '10px',
+                backgroundColor: 'rgba(255,255,255,0.7)',
+                borderRadius: '8px',
+                border: '1px solid #c3e6cb'
+              }}>
+                <div style={{ fontSize: '0.9rem', color: '#155724', marginBottom: '5px' }}>
+                  ⏱️ <strong>Experiment Duration:</strong> {experimentTiming.duration_seconds.toFixed(2)} seconds
+                </div>
+                {experimentTiming.start_time && experimentTiming.end_time && (
+                  <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>
+                    Started: {new Date(experimentTiming.start_time).toLocaleTimeString()} | 
+                    Ended: {new Date(experimentTiming.end_time).toLocaleTimeString()}
+                  </div>
+                )}
+                
+
+              </div>
+            )}
+            
             <div style={{ textAlign: 'center', marginTop: '15px' }}>
               <button 
                 className="button" 

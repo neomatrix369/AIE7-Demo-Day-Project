@@ -77,6 +77,10 @@ export interface ExperimentFile {
   sources: string[];
   avg_quality_score: number;
   file_size: number;
+  // Timing information (optional, for experiments with timing data)
+  start_time?: string;
+  end_time?: string;
+  duration_seconds?: number;
 }
 
 // Heatmap-specific interfaces

@@ -34,6 +34,7 @@ from config.settings import (
     CHUNK_SIZE,
     CHUNK_OVERLAP
 )
+from datetime import datetime
 
 # Load environment variables from root .env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -605,6 +606,10 @@ async def websocket_experiment_stream(websocket: WebSocket):
     await websocket.accept()
     logger.info("✅ WebSocket connection accepted")
     
+    # Track experiment timing
+    experiment_start_time = datetime.now()
+    logger.info(f"⏱️ Experiment started at: {experiment_start_time.isoformat()}")
+    
     try:
         # Wait for configuration from the client
         logger.info("⏳ Waiting for configuration from client...")
@@ -621,14 +626,48 @@ async def websocket_experiment_stream(websocket: WebSocket):
         experiment_results.clear()  # Clear previous results
         await stream_question_results(websocket, all_questions, config)
         
-        # Save experiment results with config
-        experiment_service.save_experiment_results(experiment_results, {"config": config.dict()})
+        # Calculate experiment timing
+        experiment_end_time = datetime.now()
+        experiment_duration = (experiment_end_time - experiment_start_time).total_seconds()
+        logger.info(f"⏱️ Experiment completed in {experiment_duration:.2f} seconds")
         
-        # Send completion signal
+        # Save experiment results with config and timing
+        experiment_service.save_experiment_results(
+            experiment_results, 
+            {
+                "config": config.dict(),
+                "timing": {
+                    "start_time": experiment_start_time.isoformat(),
+                    "end_time": experiment_end_time.isoformat(),
+                    "duration_seconds": experiment_duration
+                }
+            }
+        )
+        
+        # Send completion signal with timing info
         logger.info("🏁 Sending completion signal")
-        await websocket.send_json({"type": "completed", "message": "Experiment completed"})
+        await websocket.send_json({
+            "type": "completed", 
+            "message": "Experiment completed",
+            "timing": {
+                "start_time": experiment_start_time.isoformat(),
+                "end_time": experiment_end_time.isoformat(),
+                "duration_seconds": experiment_duration
+            }
+        })
     except Exception as e:
-        await websocket.send_json({"type": "error", "message": f"Experiment failed: {str(e)}"})
+        experiment_end_time = datetime.now()
+        experiment_duration = (experiment_end_time - experiment_start_time).total_seconds()
+        logger.error(f"❌ Experiment failed after {experiment_duration:.2f} seconds: {e}")
+        await websocket.send_json({
+            "type": "error", 
+            "message": f"Experiment failed: {str(e)}",
+            "timing": {
+                "start_time": experiment_start_time.isoformat(),
+                "end_time": experiment_end_time.isoformat(),
+                "duration_seconds": experiment_duration
+            }
+        })
         await websocket.close()
 
 def generate_experiment_questions() -> List[Dict[str, Any]]:

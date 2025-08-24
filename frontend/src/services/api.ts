@@ -159,6 +159,9 @@ export const experimentsApi = {
     sources: string[];
     avg_quality_score: number;
     file_size: number;
+    start_time?: string;
+    end_time?: string;
+    duration_seconds?: number;
   }>}> =>
     api.get('/experiments/list').then(res => {
       const data = res.data;

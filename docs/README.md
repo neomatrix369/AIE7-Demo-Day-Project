@@ -10,6 +10,8 @@ Welcome to the RagCheck documentation! This directory contains comprehensive gui
 | 🏗️ [Architecture](architecture.md) | Technical architecture and system design | Developers, Architects |
 | ⭐ [Features](features.md) | Complete feature overview and capabilities | Users, Product Managers |
 | 🔌 [API Reference](api.md) | REST endpoints, WebSocket API, and technologies | Developers, Integrators |
+| 🔍 [Gap Analysis Feature](gap-analysis-feature.md) | Gap analysis implementation and usage details | Developers, Product Managers |
+| 🌍 [Generic System Analysis](generic-system-analysis.md) | Domain-agnostic system capabilities | Developers, Architects |
 | 🚀 [Cloud Deployment](deployment.md) | Vercel, Railway deployment guides | DevOps, SRE |
 | 🔧 [Troubleshooting](troubleshooting.md) | Common issues and debugging tips | Support, Developers |
 | 📁 [Project Structure](project-structure.md) | Codebase organization and file structure | Developers |

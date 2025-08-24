@@ -7,7 +7,7 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 ## Architecture
 
 ### Component Structure
-- **5-Screen Wizard Flow**: Dashboard → Questions → Experiment → Results → Heatmap
+- **6-Screen Wizard Flow**: Dashboard → Questions → Experiment → Results → Gap Analysis → Heatmap
 - **TypeScript**: Full type safety throughout the application
 - **Real-time Updates**: WebSocket integration for experiment streaming
 - **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts
@@ -20,8 +20,9 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 - **TypeScript Safety**: Enhanced null safety with proper optional field handling
   - Fixed critical TypeScript errors in heatmap tooltips
   - Improved defensive programming with graceful fallbacks
-- **Gap Analysis Dashboard**: Intelligent content gap detection with actionable recommendations
-- **Smart Recommendations Engine**: Interactive cards with priority scoring and implementation tracking
+- **Advanced Gap Analysis Dashboard**: Domain-agnostic content gap detection with practical improvement strategies
+- **Smart Recommendations Engine**: Role-specific recommendations with rich text formatting and implementation tracking
+- **Rule-Based Analysis Badge**: Feature-flagged indicator showing "Rule-Based Analysis (non-ML)" with tooltip
 - **Cross-Page Navigation**: Enhanced navigation flow between Gap Analysis and other screens
 - **UI Consistency & Polish**: Standardized button text, tooltips, and "No data available" messaging
 - **Comprehensive Logging**: User-friendly messages with development context
@@ -36,7 +37,7 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 
 - **Shared Utilities** (`src/utils/`)
   - `qualityScore.ts`: Centralized quality score calculations and threshold logic
-  - `constants.ts`: Shared constants for quality score thresholds, colors, and categorization
+  - `constants.ts`: Shared constants, feature flags, and text formatting utilities (markdown bold support)
   - `heatmapData.ts`: Data processing utilities for multiple visualization perspectives
 - **Heatmap Utilities** (`src/components/heatmap/` and `src/utils/`)
   - `ScatterHeatmap.tsx`: D3.js hexagonal scatter plots with optimized rendering and concentric layouts

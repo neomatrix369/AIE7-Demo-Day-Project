@@ -1,10 +1,10 @@
 # RagCheck
 
-A 5-screen wizard application for comprehensive RAG system quality assessment using AI-generated and RAGAS-generated questions with real document processing, vector similarity search, and interactive data visualization.
+A 6-screen wizard application for comprehensive RAG system quality assessment using AI-generated and RAGAS-generated questions with real document processing, vector similarity search, advanced gap analysis, and interactive data visualization.
 
 ## Visuals
 
-*Screenshots of the 5-screen wizard application will be added here soon.*
+*Screenshots of the 6-screen wizard application will be added here soon.*
 
 ## Quick Start
 
@@ -54,8 +54,8 @@ npm install && npm run dev
 
 ## Key Features
 
-- **🎯 5-Screen Wizard**: Dashboard → Questions → Experiment → Results → Heatmap
-- **📊 Gap Analysis Dashboard**: NEW! Intelligent content gap detection with actionable recommendations
+- **🎯 6-Screen Wizard**: Dashboard → Questions → Experiment → Results → Gap Analysis → Heatmap
+- **📊 Advanced Gap Analysis**: Domain-agnostic intelligent content gap detection with practical improvement strategies
 - **💡 Smart Recommendations**: Non-ML rule-based engine with priority scoring and impact assessment
 - **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics (Documents→Chunks, Roles→Chunks) and smart collision detection
 - **📈 Real-time Analytics**: Coverage statistics, unretrieved chunk detection, performance insights

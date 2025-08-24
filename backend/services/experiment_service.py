@@ -314,7 +314,7 @@ class ExperimentService:
                     "avg_similarity": avg_similarity,
                     "avg_quality_score": avg_quality_score
                 },
-                "results": results,
+                "question_results": results,
                 "environment": self._get_environment_info()
             }
             
@@ -364,7 +364,8 @@ class ExperimentService:
                 if isinstance(data, list):
                     results = data
                 else:
-                    results = data.get("results", [])
+                    # Check for question_results first (new format), then fall back to results
+                    results = data.get("question_results", data.get("results", []))
                 
                 logger.info(f"📂 Loaded {len(results)} experiment results from {os.path.basename(results_file)}")
                 return results
@@ -400,6 +401,13 @@ class ExperimentService:
                                     "start_time": results_data.get("start_time"),
                                     "end_time": results_data.get("end_time"),
                                     "duration_seconds": results_data.get("processing_time_seconds")
+                                }
+                            elif "question_results" in data:
+                                # Handle case where timing info might be in the main results object
+                                timing_info = {
+                                    "start_time": data.get("start_time"),
+                                    "end_time": data.get("end_time"),
+                                    "duration_seconds": data.get("duration_seconds")
                                 }
                             
                             experiment_files.append({

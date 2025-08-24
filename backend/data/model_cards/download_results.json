@@ -1,0 +1,20 @@
+[
+  {
+    "name": "GPT-5 System Card",
+    "status": "success",
+    "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/gpt-5_system_card.pdf",
+    "size_mb": 4.450201034545898
+  },
+  {
+    "name": "Grok 4 Model Card",
+    "status": "success",
+    "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/grok_4_model_card.pdf",
+    "size_mb": 0.2409801483154297
+  },
+  {
+    "name": "GPT-OSS Model Card",
+    "status": "success",
+    "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/gpt-oss_model_card.pdf",
+    "size_mb": 2.99845027923584
+  }
+]

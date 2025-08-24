@@ -1,0 +1,67 @@
+[
+  {
+    "role-id": "ai-researcher",
+    "role": "AI Researcher", 
+    "description": "Researcher comparing model capabilities and benchmarks",
+    "emoji": "🔬",
+    "questions": [
+      { "text": "How does gpt-5-main perform compared to GPT-4o model in terms of scores?", "focus": "Benchmarks" },
+      { "text": "What are the results for gpt-5-thinking on virology plasmid design tasks?", "focus": "Performance" },
+      { "text": "What reasoning and factuality benchmarks are used to evaluate GPT-OSS models?", "focus": "Evaluation" },
+      { "text": "How does gpt-5-thinking-mini perform relative to other OpenAI models?", "focus": "Comparison" },
+      { "text": "What are Grok 4's advanced reasoning and tool-use capabilities?", "focus": "Capabilities" }
+    ]
+  },
+  {
+    "role-id": "safety-researcher",
+    "role": "Safety Researcher",
+    "description": "Researcher focused on AI safety and security",
+    "emoji": "🔒",
+    "questions": [
+      { "text": "What safety measures are implemented in the gpt-5-thinking model?", "focus": "Safety" },
+      { "text": "How does the model perform on cyber range exercises?", "focus": "Security" },
+      { "text": "What are the health-related safety evaluations for GPT-5 models?", "focus": "Health Safety" },
+      { "text": "What security vulnerabilities were identified in ChatGPT's connectors?", "focus": "Vulnerabilities" },
+      { "text": "How do the models handle harmful content requests?", "focus": "Content Safety" }
+    ]
+  },
+  {
+    "role-id": "ml-engineer",
+    "role": "ML Engineer",
+    "description": "Engineer implementing and deploying AI models",
+    "emoji": "⚙️",
+    "questions": [
+      { "text": "What are the context window capabilities of gpt-oss models?", "focus": "Technical Specs" },
+      { "text": "How many CoT tokens does gpt-oss-20b use for AIME problems?", "focus": "Implementation" },
+      { "text": "What are the memory and compute requirements for running these models?", "focus": "Deployment" },
+      { "text": "What terminal access capabilities are available for coding evaluations?", "focus": "Features" },
+      { "text": "How are the models evaluated on SWE-bench Verified?", "focus": "Benchmarks" }
+    ]
+  },
+  {
+    "role-id": "product-manager",
+    "role": "Product Manager",
+    "description": "PM evaluating models for product integration",
+    "emoji": "📊",
+    "questions": [
+      { "text": "What are the Codeforces Elo ratings for different models?", "focus": "Performance Metrics" },
+      { "text": "Which models are available through API versus open-source?", "focus": "Availability" },
+      { "text": "What are the main capabilities demonstrated on AIME and MMLU benchmarks?", "focus": "Capabilities" },
+      { "text": "How do the thinking models compare to non-thinking variants?", "focus": "Model Types" },
+      { "text": "What vetted customer applications are supported for restricted model versions?", "focus": "Use Cases" }
+    ]
+  },
+  {
+    "role-id": "data-scientist",
+    "role": "Data Scientist",
+    "description": "Scientist analyzing model performance and capabilities",
+    "emoji": "📈",
+    "questions": [
+      { "text": "What are the aggregate scores on knowledge and reasoning tasks?", "focus": "Metrics" },
+      { "text": "How do models perform on HLE benchmark evaluations?", "focus": "Benchmarks" },
+      { "text": "What is the performance difference between helpful-only variants?", "focus": "Ablations" },
+      { "text": "What evaluation protocols are used for factuality testing?", "focus": "Methodology" },
+      { "text": "How do chain-of-thought capabilities affect problem-solving performance?", "focus": "Reasoning" }
+    ]
+  }
+]

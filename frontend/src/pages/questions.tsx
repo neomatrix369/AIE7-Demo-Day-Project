@@ -9,6 +9,7 @@ import PageWrapper from '../components/ui/PageWrapper';
 interface QuestionsData {
   llmQuestions: QuestionGroup;
   ragasQuestions: QuestionGroup;
+  aiModelQuestions?: QuestionGroup;
 }
 
 const QuestionGroupsOverview: React.FC = () => {
@@ -16,14 +17,17 @@ const QuestionGroupsOverview: React.FC = () => {
 
   // Stable data loader function
   const dataLoader = useCallback(async () => {
-    const [llmQuestionsData, ragasQuestionsData] = await Promise.all([
+    // Try to load AI model questions as well, but don't fail if not available
+    const [llmQuestionsData, ragasQuestionsData, aiModelQuestionsData] = await Promise.all([
       questionsApi.getLLMQuestions(),
-      questionsApi.getRAGASQuestions()
+      questionsApi.getRAGASQuestions(),
+      questionsApi.getAIModelQuestions().catch(() => null)
     ]);
     
     return {
       llmQuestions: llmQuestionsData,
-      ragasQuestions: ragasQuestionsData
+      ragasQuestions: ragasQuestionsData,
+      aiModelQuestions: aiModelQuestionsData
     };
   }, []);
 
@@ -39,7 +43,9 @@ const QuestionGroupsOverview: React.FC = () => {
       successMessage: (data: QuestionsData) => {
         const totalLlm = data.llmQuestions.reduce((acc, role) => acc + role.questions.length, 0);
         const totalRagas = data.ragasQuestions.reduce((acc, role) => acc + role.questions.length, 0);
-        return `Questions loaded: ${totalLlm} LLM + ${totalRagas} RAGAS`;
+        const totalAI = data.aiModelQuestions ? data.aiModelQuestions.reduce((acc, role) => acc + role.questions.length, 0) : 0;
+        const aiPart = totalAI > 0 ? ` + ${totalAI} AI Model` : '';
+        return `Questions loaded: ${totalLlm} LLM + ${totalRagas} RAGAS${aiPart}`;
       },
       successData: (data: QuestionsData) => ({
         llm_count: data.llmQuestions.length,
@@ -187,13 +193,67 @@ const QuestionGroupsOverview: React.FC = () => {
           </div>
         </div>
 
+        {questionsData?.aiModelQuestions && (
+          <div className="card" style={{ backgroundColor: '#fff8f0', border: '2px solid #ff9800', marginTop: '20px' }}>
+            <h3>🤖 AI Model Questions</h3>
+            <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: '20px' }}>
+              <div className="stat-item" style={{ backgroundColor: 'white' }}>
+                <span className="stat-value" style={{ color: '#ff9800' }}>
+                  {questionsData.aiModelQuestions.reduce((acc, role) => acc + role.questions.length, 0)}
+                </span>
+                <div className="stat-label">Questions Generated</div>
+              </div>
+              <div className="stat-item" style={{ backgroundColor: 'white' }}>
+                <span className="stat-value" style={{ color: '#ff9800' }}>{questionsData.aiModelQuestions.length}</span>
+                <div className="stat-label">Role Types</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <h4>Question Roles:</h4>
+              <div style={{ padding: '10px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '4px' }}>
+                {questionsData.aiModelQuestions.map((role, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      display: 'inline-block',
+                      backgroundColor: '#ff9800',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.85rem',
+                      margin: '2px 4px',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {role.role.replace('_', ' ')}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4>Sample Questions:</h4>
+              <div className="question-list">
+                {questionsData.aiModelQuestions.slice(0, 5).map((role) => (
+                  role.questions.slice(0, 1).map((question, index) => (
+                    <div key={`${role.role_id}-${index}`} className="question-item">
+                      <span style={{ color: '#666', fontSize: '0.9rem' }}>{role.emoji}</span> {question.text}
+                    </div>
+                  ))
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="card" style={{ backgroundColor: '#e8f5e8', marginTop: '20px', textAlign: 'center' }}>
           <h3>✅ Generation Status</h3>
           <div style={{ fontSize: '18px', color: '#28a745', marginBottom: '10px' }}>
-            Both question sets ready for analysis
+            {questionsData?.aiModelQuestions ? 'All question sets' : 'Both question sets'} ready for analysis
           </div>
           <div style={{ color: '#666' }}>
-            Total: {totalLlmQuestions + totalRagasQuestions} questions available for experiment
+            Total: {totalLlmQuestions + totalRagasQuestions + (questionsData?.aiModelQuestions ? questionsData.aiModelQuestions.reduce((acc, role) => acc + role.questions.length, 0) : 0)} questions available for experiment
           </div>
         </div>
 

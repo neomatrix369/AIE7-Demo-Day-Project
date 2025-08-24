@@ -20,3 +20,33 @@ export const convertMarkdownBold = (text: string): string => {
   // Convert **text** to <strong>text</strong>
   return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 };
+
+// Corpus Health constants
+export const CORPUS_HEALTH_THRESHOLDS = {
+  EXCELLENT: 8.0,
+  GOOD: 6.0,
+} as const;
+
+export const CORPUS_HEALTH_INFO = [
+  { 
+    status: 'excellent', 
+    label: 'EXCELLENT', 
+    cssClass: 'health-excellent',
+    range: '≥8.0',
+    description: 'Optimal performance'
+  },
+  { 
+    status: 'good', 
+    label: 'GOOD', 
+    cssClass: 'health-good',
+    range: '6.0-7.9',
+    description: 'Solid performance'
+  },
+  { 
+    status: 'needs_work', 
+    label: 'NEEDS WORK', 
+    cssClass: 'health-needs-work',
+    range: '<6.0',
+    description: 'Requires improvement'
+  }
+] as const;

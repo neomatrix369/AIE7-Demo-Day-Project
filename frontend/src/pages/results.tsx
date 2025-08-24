@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import usePageNavigation from '../hooks/usePageNavigation';
 import usePageData from '../hooks/usePageData';
-import { LABEL_DASHBOARD, LABEL_HEATMAP } from '../utils/constants';
+import { LABEL_DASHBOARD, LABEL_HEATMAP, CORPUS_HEALTH_INFO } from '../utils/constants';
 import { resultsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logInfo, logSuccess, logError } from '../utils/logger';
@@ -325,8 +325,8 @@ const AnalysisResults: React.FC = () => {
                 <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>🏥 Corpus Health</span>
                   <BalloonTooltip 
-                    content="Overall assessment of your corpus quality based on average scores. GOOD (≥7.0), FAIR (5.0-6.9), POOR (<5.0). Indicates if content needs improvement."
-                    maxWidth={320} 
+                    content={`Overall corpus health assessment based on average quality scores. ${CORPUS_HEALTH_INFO.map(h => `${h.label} (${h.range}) - ${h.description.toLowerCase()}`).join(', ')}.`}
+                    maxWidth={380} 
                     cursor="help"
                   >
                     <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
@@ -337,6 +337,20 @@ const AnalysisResults: React.FC = () => {
                     {results.overall.corpus_health.replace('_', ' ')}
                   </span>
                   <div style={{ color: '#666', marginTop: '6px', fontSize: '0.8rem' }}>System Status</div>
+                </div>
+                
+                {/* Corpus Health Legend */}
+                <div style={{ marginTop: '8px', fontSize: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                    {CORPUS_HEALTH_INFO.map((health) => (
+                      <div key={health.status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className={`health-indicator ${health.cssClass}`} style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                          {health.label}
+                        </span>
+                        <span style={{ color: '#666' }}>{health.range}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

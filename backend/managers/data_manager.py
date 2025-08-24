@@ -56,7 +56,7 @@ class DataManager:
         Load raw CSV documents using LangChain CSVLoader.
         """
         loader = CSVLoader(file_path=csv_path, metadata_columns=self._get_csv_metadata_columns())
-        logger.info(f"📊 Loading student loan complaints from: {csv_path}")
+        logger.info(f"📊 Loading complaint data from: {csv_path}")
         loan_complaint_data = loader.load()
         initial_count = len(loan_complaint_data)
         logger.info(f"📋 STEP 1 - Raw CSV loaded: {initial_count:,} records")
@@ -142,7 +142,7 @@ class DataManager:
         if not os.path.exists(pdf_folder):
             logger.warning(f"⚠️ Folder for PDF file(s) not found: {pdf_folder}")
             return []
-        logger.info(f"📄 Loading student loan PDFs from: {pdf_folder}")
+        logger.info(f"📄 Loading PDF documents from: {pdf_folder}")
         loader = DirectoryLoader(pdf_folder, glob="*.pdf", loader_cls=PyMuPDFLoader)
         pdf_files = list(Path(pdf_folder).glob("*.pdf"))
         docs = loader.load()

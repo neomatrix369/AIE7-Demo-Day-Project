@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Gap Analysis Service - Non-ML rule-based gap detection and recommendations
+Generic implementation that works with any dataset
 """
 from typing import List, Dict, Any, Optional
 import logging
@@ -12,25 +13,12 @@ from services.quality_score_service import QualityScoreService
 logger = logging.getLogger(__name__)
 
 class GapAnalysisService:
-    """Service for detecting content gaps and generating actionable recommendations"""
+    """Generic service for detecting content gaps and generating actionable recommendations"""
     
     def __init__(self):
         self.logger = logger
         
-        # Rule-based topic patterns for categorization
-        self.topic_patterns = {
-            'payment': ['payment', 'pay', 'monthly', 'installment', 'amount', 'due'],
-            'forgiveness': ['forgive', 'forgiveness', 'cancel', 'discharge', 'elimination'],
-            'interest': ['interest', 'rate', 'apr', 'compound', 'accrue'],
-            'eligibility': ['eligible', 'qualify', 'requirement', 'criteria', 'condition'],
-            'application': ['apply', 'application', 'form', 'submit', 'process'],
-            'consolidation': ['consolidate', 'consolidation', 'combine', 'merge'],
-            'deferment': ['defer', 'deferment', 'postpone', 'delay', 'suspend'],
-            'default': ['default', 'delinquent', 'missed', 'late', 'overdue'],
-            'servicer': ['servicer', 'service', 'provider', 'company', 'lender']
-        }
-        
-        # Effort estimation rules
+        # Generic effort estimation rules (domain-agnostic)
         self.effort_rules = {
             'content_addition': {'Low': 1, 'Medium': 2, 'High': 3},
             'content_improvement': {'Low': 1, 'Medium': 1.5, 'High': 2.5},
@@ -40,6 +28,7 @@ class GapAnalysisService:
     def analyze_gaps(self, experiment_results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Main gap analysis function using non-ML rule-based approach
+        Generic implementation that works with any dataset
         """
         self.logger.info(f"🔍 Starting gap analysis for {len(experiment_results)} results")
         
@@ -59,7 +48,7 @@ class GapAnalysisService:
         # Filter low-performing queries (< 5.0 on 0-10 scale)
         low_score_queries = [r for r in normalized_results if r.get('avg_quality_score', 0.0) < 5.0]
         
-        # Detect uncovered topics using topic pattern matching
+        # Detect uncovered topics using dynamic analysis (no hardcoded patterns)
         uncovered_topics = self._detect_uncovered_topics(normalized_results)
         
         # Identify weak coverage areas
@@ -83,10 +72,11 @@ class GapAnalysisService:
         return result
     
     def _detect_uncovered_topics(self, experiment_results: List[Dict[str, Any]]) -> List[str]:
-        """Repurposed: Detect underperforming roles (avg quality < 4.0)."""
+        """Detect underperforming roles/categories (avg quality < 4.0) - generic implementation."""
         role_scores = defaultdict(list)
         for result in experiment_results:
-            role = (result.get('role_name') or 'Unknown').strip() or 'Unknown'
+            # Use role_name if available, otherwise fall back to source or create generic category
+            role = (result.get('role_name') or result.get('source') or 'General').strip() or 'General'
             role_scores[role].append(result.get('avg_quality_score', 0))
 
         underperforming_roles = []
@@ -99,11 +89,12 @@ class GapAnalysisService:
         return underperforming_roles
     
     def _identify_weak_coverage_areas(self, experiment_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Identify roles with poor performance (aligns with Results page role analysis)."""
+        """Identify roles/categories with poor performance - generic implementation."""
         role_stats = defaultdict(lambda: {'scores': [], 'queries': []})
 
         for result in experiment_results:
-            role = (result.get('role_name') or 'Unknown').strip() or 'Unknown'
+            # Use role_name if available, otherwise fall back to source or create generic category
+            role = (result.get('role_name') or result.get('source') or 'General').strip() or 'General'
             score = result.get('avg_quality_score', 0)
             query = result.get('question', '')
             role_stats[role]['scores'].append(score)
@@ -134,17 +125,8 @@ class GapAnalysisService:
         weak_areas.sort(key=lambda x: x['avgScore'])  # Sort by worst performance first
         return weak_areas
     
-    def _determine_gap_type(self, avg_score: float, queries: List[str]) -> str:
-        """Determine the type of gap based on score and query patterns"""
-        if avg_score < 3.0:
-            return 'coverage'  # Very poor scores indicate content gaps
-        elif avg_score < 5.0:
-            return 'quality'   # Medium-poor scores indicate quality issues
-        else:
-            return 'retrieval' # Relatively better scores indicate retrieval issues
-    
     def _determine_performance_category(self, avg_score: float) -> str:
-        """Determine performance category using Results page concepts"""
+        """Determine performance category using generic thresholds"""
         if avg_score < 3.0:
             return 'critical'  # Critical performance issues
         elif avg_score < 5.0:
@@ -154,7 +136,7 @@ class GapAnalysisService:
     
     def _generate_recommendations(self, low_score_queries: List[Dict[str, Any]], 
                                 weak_areas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Generate actionable recommendations using rule-based approach"""
+        """Generate actionable recommendations using rule-based approach - generic implementation"""
         recommendations = []
         
         # Generate recommendations for weak coverage areas
@@ -176,13 +158,13 @@ class GapAnalysisService:
         return recommendations[:6]  # Return top 6 recommendations
     
     def _create_area_recommendation(self, area: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create a recommendation for a role with poor performance"""
-        role = area['topic'].lower()  # 'topic' field contains role name
-        performance_type = area['gapType']  # Using existing field but with new meaning
+        """Create a recommendation for a role/category with poor performance - generic implementation"""
+        role = area['topic'].lower()  # 'topic' field contains role/category name
+        performance_type = area['gapType']
         avg_score = area['avgScore']
         query_count = area['queryCount']
         
-        # Determine recommendation based on performance level and role
+        # Determine recommendation based on performance level - generic approach
         if performance_type == 'critical':
             suggested_content = f"Review and enhance content for {role}-related questions. Current performance is critical (avg score: {avg_score})"
             category = 'role_improvement'
@@ -196,7 +178,7 @@ class GapAnalysisService:
             category = 'quality_boost'
             effort = 'Low' if query_count <= 3 else 'Medium'
         
-        # Calculate impact and priority based on Results page concepts
+        # Calculate impact and priority based on generic performance metrics
         impact = 'High' if avg_score < 3.0 else ('Medium' if avg_score < 5.0 else 'Low')
         effort_score = {'Low': 1, 'Medium': 2, 'High': 3}[effort]
         impact_score = {'High': 3, 'Medium': 2, 'Low': 1}[impact]
@@ -206,7 +188,7 @@ class GapAnalysisService:
         
         return {
             'id': str(uuid.uuid4())[:8],
-            'gapDescription': f"Role '{role}' shows poor performance: {query_count} questions averaging {avg_score}/10",
+            'gapDescription': f"Category '{role}' shows poor performance: {query_count} questions averaging {avg_score}/10",
             'suggestedContent': suggested_content,
             'expectedImprovement': min(10.0, avg_score + (10 - avg_score) * 0.6),  # 60% improvement potential
             'priorityLevel': priority_level,
@@ -218,7 +200,7 @@ class GapAnalysisService:
         }
     
     def _create_query_recommendation(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create a specific recommendation for a critical query"""
+        """Create a specific recommendation for a critical query - generic implementation"""
         question = query.get('question', '')
         score = query.get('avg_quality_score', 0)
         
@@ -239,7 +221,7 @@ class GapAnalysisService:
         }
     
     def _extract_key_terms(self, question: str) -> List[str]:
-        """Extract key terms from a question for content suggestions"""
+        """Extract key terms from a question for content suggestions - generic implementation"""
         # Simple keyword extraction - remove common words and extract meaningful terms
         common_words = {'what', 'how', 'when', 'where', 'why', 'is', 'are', 'can', 'do', 'does', 'will', 'would', 'should', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'about', 'my', 'i', 'me'}
         
@@ -251,7 +233,7 @@ class GapAnalysisService:
     def _calculate_gap_summary(self, all_results: List[Dict[str, Any]], 
                              low_score_queries: List[Dict[str, Any]], 
                              recommendations: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Calculate summary statistics for the gap analysis"""
+        """Calculate summary statistics for the gap analysis - generic implementation"""
         total_questions = len(all_results)
         total_gaps = len(low_score_queries)
         critical_gaps = len([q for q in low_score_queries if q.get('avg_quality_score', 0) < 3.0])

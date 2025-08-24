@@ -458,46 +458,46 @@ async def set_test_results():
     test_results = [
         {
             "question_id": "llm_q_001",
-            "question": "How much can I borrow for my degree program?",
+            "question": "How do I implement feature X in my application?",
             "source": "llm",
-            "role_name": "Current Student",
+            "role_name": "Developer",
             "avg_similarity": 0.75,
             "retrieved_docs": [
-                {"doc_id": "doc_1", "chunk_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "similarity": 0.8, "title": "Student Loan Limits"},
-                {"doc_id": "doc_2", "chunk_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901", "similarity": 0.7, "title": "Borrowing Guidelines"}
+                {"doc_id": "doc_1", "chunk_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "similarity": 0.8, "title": "Implementation Guide"},
+                {"doc_id": "doc_2", "chunk_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901", "similarity": 0.7, "title": "Best Practices"}
             ]
         },
         {
             "question_id": "ragas_q_001", 
-            "question": "What is the issue with Aidvantage in the borrower's complaint?",
+            "question": "What are the common issues with system Y?",
             "source": "ragas",
-            "role_name": "Borrower in Repayment",
+            "role_name": "System Administrator",
             "avg_similarity": 0.65,
             "retrieved_docs": [
-                {"doc_id": "doc_3", "chunk_id": "c3d4e5f6-a7b8-9012-cdef-123456789012", "similarity": 0.7, "title": "Servicer Complaints"},
-                {"doc_id": "doc_4", "chunk_id": "d4e5f6a7-b8c9-0123-def1-234567890123", "similarity": 0.6, "title": "Aidvantage Issues"}
+                {"doc_id": "doc_3", "chunk_id": "c3d4e5f6-a7b8-9012-cdef-123456789012", "similarity": 0.7, "title": "Troubleshooting Guide"},
+                {"doc_id": "doc_4", "chunk_id": "d4e5f6a7-b8c9-0123-def1-234567890123", "similarity": 0.6, "title": "Common Issues"}
             ]
         },
         {
             "question_id": "llm_q_002",
-            "question": "What are my repayment options after graduation?",
+            "question": "What are the configuration options for service Z?",
             "source": "llm",
-            "role_name": "Recent Graduate",
+            "role_name": "DevOps Engineer",
             "avg_similarity": 0.85,
             "retrieved_docs": [
-                {"doc_id": "doc_5", "chunk_id": "e5f6a7b8-c9d0-1234-ef12-345678901234", "similarity": 0.9, "title": "Repayment Plans"},
-                {"doc_id": "doc_6", "chunk_id": "f6a7b8c9-d0e1-2345-f123-456789012345", "similarity": 0.8, "title": "Graduation Options"}
+                {"doc_id": "doc_5", "chunk_id": "e5f6a7b8-c9d0-1234-ef12-345678901234", "similarity": 0.9, "title": "Configuration Guide"},
+                {"doc_id": "doc_6", "chunk_id": "f6a7b8c9-d0e1-2345-f123-456789012345", "similarity": 0.8, "title": "Service Documentation"}
             ]
         },
         {
             "question_id": "ragas_q_002",
-            "question": "What happens if I default on my student loans?",
+            "question": "How do I resolve critical error ABC?",
             "source": "ragas",
-            "role_name": "Borrower in Default",
+            "role_name": "Support Engineer",
             "avg_similarity": 0.72,
             "retrieved_docs": [
-                {"doc_id": "doc_7", "chunk_id": "g7h8i9j0-k1l2-3456-mno7-890123456789", "similarity": 0.75, "title": "Default Consequences"},
-                {"doc_id": "doc_8", "chunk_id": "h8i9j0k1-l2m3-4567-nop8-901234567890", "similarity": 0.69, "title": "Recovery Options"}
+                {"doc_id": "doc_7", "chunk_id": "g7h8i9j0-k1l2-3456-mno7-890123456789", "similarity": 0.75, "title": "Error Resolution"},
+                {"doc_id": "doc_8", "chunk_id": "h8i9j0k1-l2m3-4567-nop8-901234567890", "similarity": 0.69, "title": "Troubleshooting Steps"}
             ]
         }
     ]

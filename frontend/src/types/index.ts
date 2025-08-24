@@ -120,6 +120,7 @@ export interface RecommendationCard {
   id: string;
   gapDescription: string;
   suggestedContent: string;
+  improvementStrategies?: string[]; // Array of practical improvement strategies
   expectedImprovement: number; // 0-10 scale
   priorityLevel: 'High' | 'Medium' | 'Low';
   priorityScore: number; // impact * (1/effort)

@@ -164,17 +164,20 @@ class GapAnalysisService:
         avg_score = area['avgScore']
         query_count = area['queryCount']
         
+        # Generate practical improvement strategies based on performance level and role characteristics
+        improvement_strategies = self._generate_improvement_strategies(role, performance_type, avg_score, query_count)
+        
         # Determine recommendation based on performance level - generic approach
         if performance_type == 'critical':
-            suggested_content = f"Review and enhance content for {role}-related questions. Current performance is critical (avg score: {avg_score})"
+            suggested_content = improvement_strategies['primary_strategy']
             category = 'role_improvement'
             effort = 'High' if query_count > 5 else 'Medium'
         elif performance_type == 'poor':
-            suggested_content = f"Improve content quality for {role} questions to reach acceptable performance levels"
+            suggested_content = improvement_strategies['primary_strategy']
             category = 'content_improvement'  
             effort = 'Medium'
         else:  # weak
-            suggested_content = f"Enhance {role} content to achieve GOOD quality score (≥7.0) from current WEAK level"
+            suggested_content = improvement_strategies['primary_strategy']
             category = 'quality_boost'
             effort = 'Low' if query_count <= 3 else 'Medium'
         
@@ -190,6 +193,7 @@ class GapAnalysisService:
             'id': str(uuid.uuid4())[:8],
             'gapDescription': f"Category '{role}' shows poor performance: {query_count} questions averaging {avg_score}/10",
             'suggestedContent': suggested_content,
+            'improvementStrategies': improvement_strategies['all_strategies'],
             'expectedImprovement': min(10.0, avg_score + (10 - avg_score) * 0.6),  # 60% improvement potential
             'priorityLevel': priority_level,
             'priorityScore': round(priority_score, 2),
@@ -220,6 +224,162 @@ class GapAnalysisService:
             'category': 'content_addition'
         }
     
+    def _generate_improvement_strategies(self, role: str, performance_type: str, avg_score: float, query_count: int) -> Dict[str, Any]:
+        """Generate practical improvement strategies based on role and performance characteristics"""
+        
+        # Define role-based improvement strategies
+        role_strategies = {
+            'developer': {
+                'critical': [
+                    f"📚 **Documentation Audit**: Review existing technical documentation for {role} workflows and identify missing API references, code examples, and troubleshooting guides",
+                    f"🔍 **Knowledge Gap Analysis**: Conduct interviews with senior {role}s to identify common pain points and undocumented solutions",
+                    f"📝 **Code Repository Mining**: Extract code comments, README files, and commit messages to build comprehensive technical knowledge base"
+                ],
+                'poor': [
+                    f"📖 **Enhanced Documentation**: Create step-by-step guides with code examples for {role} common tasks and error scenarios",
+                    f"🎯 **Best Practices Compilation**: Gather and document proven solutions from experienced {role}s in your organization",
+                    f"🔄 **Process Documentation**: Document development workflows, deployment procedures, and debugging methodologies"
+                ],
+                'weak': [
+                    f"📋 **Quick Reference Guides**: Create concise cheat sheets for {role} daily tasks and common commands",
+                    f"💡 **Tips & Tricks Collection**: Compile practical tips from team members to improve {role} productivity",
+                    f"📊 **Performance Optimization**: Document performance tuning techniques and optimization strategies"
+                ]
+            },
+            'support': {
+                'critical': [
+                    f"📞 **Support Ticket Analysis**: Analyze recent support tickets for {role} to identify recurring issues and knowledge gaps",
+                    f"🎤 **Customer Feedback Collection**: Conduct surveys and interviews with {role} users to understand their most pressing needs",
+                    f"📋 **FAQ Development**: Create comprehensive FAQ sections based on actual {role} support interactions"
+                ],
+                'poor': [
+                    f"📚 **Knowledge Base Enhancement**: Expand troubleshooting guides with detailed step-by-step solutions for {role} issues",
+                    f"🎯 **Escalation Procedures**: Document clear escalation paths and resolution procedures for {role} complex problems",
+                    f"📱 **Self-Service Tools**: Develop self-service resources to reduce {role} support ticket volume"
+                ],
+                'weak': [
+                    f"📖 **Quick Start Guides**: Create easy-to-follow onboarding materials for {role} new users",
+                    f"🔧 **Common Solutions**: Compile quick fixes for {role} frequently encountered issues",
+                    f"📈 **Performance Metrics**: Document key performance indicators and optimization strategies"
+                ]
+            },
+            'admin': {
+                'critical': [
+                    f"🔐 **Security Documentation**: Create comprehensive security protocols and access management guides for {role}",
+                    f"⚙️ **System Configuration**: Document all system configurations, backup procedures, and disaster recovery plans",
+                    f"📊 **Monitoring Setup**: Establish comprehensive monitoring and alerting documentation for {role} responsibilities"
+                ],
+                'poor': [
+                    f"📋 **Operational Procedures**: Develop detailed operational runbooks for {role} daily tasks and maintenance",
+                    f"🔄 **Automation Documentation**: Document automation scripts and tools used by {role} for efficiency",
+                    f"📈 **Performance Tuning**: Create guides for system optimization and performance monitoring"
+                ],
+                'weak': [
+                    f"📖 **Quick Reference**: Develop quick reference cards for {role} common administrative tasks",
+                    f"💡 **Best Practices**: Compile best practices for {role} system management and user administration",
+                    f"🔧 **Troubleshooting**: Create troubleshooting guides for {role} common system issues"
+                ]
+            },
+            'customer': {
+                'critical': [
+                    f"📞 **Customer Journey Mapping**: Analyze complete customer journey to identify {role} pain points and information needs",
+                    f"🎯 **User Research**: Conduct user interviews and surveys to understand {role} expectations and knowledge gaps",
+                    f"📊 **Usage Analytics**: Analyze user behavior data to identify where {role} users struggle most"
+                ],
+                'poor': [
+                    f"📚 **User Guide Enhancement**: Improve user guides with more examples, screenshots, and troubleshooting for {role}",
+                    f"🎨 **UI/UX Documentation**: Create comprehensive guides for {role} interface navigation and feature usage",
+                    f"📱 **Mobile Experience**: Develop mobile-specific documentation for {role} on-the-go users"
+                ],
+                'weak': [
+                    f"📖 **Getting Started**: Create engaging onboarding materials for {role} new users",
+                    f"💡 **Feature Highlights**: Develop guides highlighting key features and benefits for {role}",
+                    f"🔧 **Quick Tips**: Compile quick tips and shortcuts for {role} power users"
+                ]
+            }
+        }
+        
+        # Default strategies for any role
+        default_strategies = {
+            'critical': [
+                f"📚 **Comprehensive Content Audit**: Review all existing documentation for {role} and identify major knowledge gaps",
+                f"🎤 **Stakeholder Interviews**: Conduct interviews with {role} team members to understand their information needs",
+                f"📊 **Usage Pattern Analysis**: Analyze how {role} currently searches for information and identify improvement opportunities"
+            ],
+            'poor': [
+                f"📖 **Content Enhancement**: Improve existing {role} documentation with more detailed explanations and examples",
+                f"🎯 **Gap Filling**: Identify specific topics where {role} needs more information and create targeted content",
+                f"🔄 **Process Documentation**: Document {role} workflows and procedures that are currently undocumented"
+            ],
+            'weak': [
+                f"📋 **Quick Wins**: Focus on low-effort improvements to existing {role} content quality and organization",
+                f"💡 **Best Practices**: Compile and document best practices for {role} from experienced team members",
+                f"🔧 **Tool Integration**: Improve how {role} accesses and searches for information"
+            ]
+        }
+        
+        # Select appropriate strategies based on role and performance
+        role_key = self._identify_role_type(role)
+        if role_key in role_strategies:
+            strategies = role_strategies[role_key][performance_type]
+        else:
+            strategies = default_strategies[performance_type]
+        
+        # Add data collection strategies based on performance severity
+        data_collection_strategies = self._generate_data_collection_strategies(role, performance_type, query_count)
+        
+        # Combine all strategies
+        all_strategies = strategies + data_collection_strategies
+        
+        return {
+            'primary_strategy': strategies[0] if strategies else f"Improve content quality for {role} questions",
+            'all_strategies': all_strategies
+        }
+    
+    def _identify_role_type(self, role: str) -> str:
+        """Identify the type of role for strategy selection"""
+        role_lower = role.lower()
+        
+        if any(word in role_lower for word in ['developer', 'engineer', 'programmer', 'coder', 'dev']):
+            return 'developer'
+        elif any(word in role_lower for word in ['support', 'helpdesk', 'customer service', 'service desk']):
+            return 'support'
+        elif any(word in role_lower for word in ['admin', 'administrator', 'system admin', 'sysadmin']):
+            return 'admin'
+        elif any(word in role_lower for word in ['customer', 'user', 'client', 'end user']):
+            return 'customer'
+        else:
+            return 'general'
+    
+    def _generate_data_collection_strategies(self, role: str, performance_type: str, query_count: int) -> List[str]:
+        """Generate data collection strategies based on performance and query count"""
+        strategies = []
+        
+        if performance_type == 'critical':
+            strategies.extend([
+                "🔍 **Internal Knowledge Mining**: Extract tacit knowledge from {role} team members through structured interviews and knowledge sharing sessions",
+                "📊 **External Research**: Gather industry best practices and standards relevant to {role} from professional communities and publications",
+                "🤖 **LLM-Generated Content**: Use AI to generate initial content drafts for {role} topics, then validate with subject matter experts"
+            ])
+        elif performance_type == 'poor':
+            strategies.extend([
+                "📋 <b>Survey Implementation</b>: Conduct targeted surveys with {role} team to identify specific information gaps and improvement areas",
+                "📚 **External Documentation**: Research and incorporate relevant external documentation and resources for {role}",
+                "🔄 **Content Validation**: Use LLMs to generate content variations for {role} topics and validate accuracy with domain experts"
+            ])
+        else:  # weak
+            strategies.extend([
+                "💡 **Quick Content Generation**: Use AI tools to quickly generate additional content for {role} based on existing high-performing topics",
+                "📖 **Resource Compilation**: Gather and organize existing internal resources and external references for {role}",
+                "🎯 **Targeted Enhancement**: Focus on improving specific {role} content areas based on user feedback and usage patterns"
+            ])
+        
+        # Add role-specific data collection strategies
+        if query_count > 10:
+            strategies.append("📈 **Analytics-Driven Enhancement**: Use query analytics to identify {role} topics with high search volume but low satisfaction scores")
+        
+        return strategies
+
     def _extract_key_terms(self, question: str) -> List[str]:
         """Extract key terms from a question for content suggestions - generic implementation"""
         # Simple keyword extraction - remove common words and extract meaningful terms

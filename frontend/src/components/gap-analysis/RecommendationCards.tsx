@@ -292,9 +292,36 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
                               <span>{parsed.text}</span>
                             </div>
                             <details>
-                              <summary style={{ cursor: 'pointer', color: '#0d6efd', fontSize: '0.85rem' }}>View Suggested Action</summary>
-                              <div style={{ marginTop: '6px', background: '#f9fbff', border: '1px solid #dbeafe', borderRadius: '6px', padding: '8px', color: '#2f3237' }}>
-                                {rec.suggestedContent}
+                              <summary style={{ cursor: 'pointer', color: '#0d6efd', fontSize: '0.85rem' }}>View Improvement Strategies</summary>
+                              <div style={{ marginTop: '6px', background: '#f9fbff', border: '1px solid #dbeafe', borderRadius: '6px', padding: '12px', color: '#2f3237' }}>
+                                <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#1a365d' }}>
+                                  Primary Strategy:
+                                </div>
+                                <div style={{ marginBottom: '12px', padding: '8px', background: '#e6f3ff', borderRadius: '4px', borderLeft: '3px solid #007bff' }}>
+                                  {rec.suggestedContent}
+                                </div>
+                                
+                                {rec.improvementStrategies && rec.improvementStrategies.length > 1 && (
+                                  <>
+                                    <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#1a365d' }}>
+                                      Additional Strategies:
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                      {rec.improvementStrategies.slice(1).map((strategy, idx) => (
+                                        <div key={idx} style={{ 
+                                          padding: '6px 8px', 
+                                          background: '#f8f9fa', 
+                                          borderRadius: '4px', 
+                                          borderLeft: '2px solid #6c757d',
+                                          fontSize: '0.85rem',
+                                          lineHeight: '1.4'
+                                        }}>
+                                          {strategy}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </details>
                           </td>

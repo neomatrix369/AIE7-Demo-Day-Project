@@ -34,8 +34,8 @@ const VectorDbStatusIndicator: React.FC<VectorDbStatusIndicatorProps> = ({
 
     checkVectorDbConnection();
     
-    // Recheck every 30 seconds to maintain connection status
-    const interval = setInterval(checkVectorDbConnection, 30000);
+    // Recheck every 2 minutes to maintain connection status (reduced frequency)
+    const interval = setInterval(checkVectorDbConnection, 120000);
     
     return () => clearInterval(interval);
   }, []);

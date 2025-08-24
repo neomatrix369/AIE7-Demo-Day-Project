@@ -1295,6 +1295,33 @@ async def delete_document(filename: str):
             error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to delete document"
         )
 
+# Note: Document config APIs removed - now handled by unified storage adapter system
+
+@app.get("/api/environment")
+async def get_environment_info():
+    """Get environment information for client-side adaptation."""
+    try:
+        from utils.environment import get_deployment_info
+        
+        deployment_info = get_deployment_info()
+        logger.info("🌐 Retrieved environment information")
+        
+        return {
+            "success": True,
+            "environment": {
+                "is_cloud": deployment_info["is_cloud"],
+                "is_railway": deployment_info["is_railway"],
+                "is_vercel": deployment_info["is_vercel"],
+                "deployment_env": deployment_info["deployment_env"],
+                "supports_file_system": not deployment_info["is_filesystem_readonly"]
+            }
+        }
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to get environment info",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to retrieve environment information"
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

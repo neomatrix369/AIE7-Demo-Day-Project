@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { documentsApi } from '../services/api';
 import { DocumentStatus, DocumentInfo } from '../types';
 import { logSuccess, logError, logInfo } from '../utils/logger';
+import { createStorageAdapter, isVercelDeployment } from '../services/storage';
+import { DocumentConfig } from '../services/storage/StorageAdapter';
 
 interface DocumentManagementProps {
   onStatusChange?: () => void;
@@ -13,30 +15,158 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true); // Collapsed by default
+  const [documentConfig, setDocumentConfig] = useState<DocumentConfig | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Get storage adapter (cloud-compatible)
+  const storageAdapter = createStorageAdapter();
 
-  useEffect(() => {
-    loadDocumentStatus();
-  }, []);
+  const syncWithStorageAdapter = useCallback(async (status: DocumentStatus) => {
+    try {
+      // Convert DocumentStatus to DocumentConfig format
+      const config: DocumentConfig = {
+        version: "1.0",
+        last_updated: new Date().toISOString(),
+        documents: {},
+        settings: {
+          auto_ingest_new: true,
+          retain_deselected: true
+        }
+      };
+      
+      // Convert documents to config format
+      status.documents.forEach(doc => {
+        config.documents[doc.filename] = {
+          is_selected: doc.is_selected,
+          is_ingested: doc.is_ingested,
+          ingested_at: doc.ingested_at,
+          hash: doc.hash,
+          size_bytes: doc.size_bytes,
+          modified: doc.modified,
+          chunk_count: doc.chunk_count
+        };
+      });
+      
+      // Save to storage adapter - use fresh adapter instance to avoid stale closures
+      const currentStorageAdapter = createStorageAdapter();
+      await currentStorageAdapter.saveDocumentConfig(config);
+      setDocumentConfig(config);
+      
+      logInfo('Document config synced to browser storage', { component: 'DocumentManagement' });
+    } catch (err) {
+      logError(`Failed to sync with storage adapter: ${err}`, { component: 'DocumentManagement' });
+    }
+  }, []); // Empty deps - using fresh adapter instance inside
+  
+  const loadFromStorageAdapter = useCallback(async () => {
+    try {
+      // Use fresh adapter instance to avoid stale closures
+      const currentStorageAdapter = createStorageAdapter();
+      const configResponse = await currentStorageAdapter.loadDocumentConfig();
+      
+      if (configResponse.success && configResponse.config) {
+        // Convert DocumentConfig back to DocumentStatus format
+        const documentInfo: DocumentInfo[] = Object.entries(configResponse.config.documents).map(([filename, doc]) => ({
+          filename,
+          full_path: `./data/${filename}`,
+          file_type: filename.split('.').pop() || 'unknown',
+          size_bytes: doc.size_bytes,
+          modified: doc.modified,
+          hash: doc.hash,
+          is_selected: doc.is_selected,
+          is_ingested: doc.is_ingested,
+          ingested_at: doc.ingested_at,
+          chunk_count: doc.chunk_count,
+          has_changed: false
+        }));
+        
+        // Create mock status from config
+        const status: DocumentStatus = {
+          selection_summary: {
+            total_documents: documentInfo.length,
+            selected_documents: documentInfo.filter(d => d.is_selected).length,
+            deselected_documents: documentInfo.filter(d => !d.is_selected).length,
+            ingested_documents: documentInfo.filter(d => d.is_ingested).length,
+            needing_ingestion: documentInfo.filter(d => d.is_selected && !d.is_ingested).length,
+            needing_reingestion: 0,
+            last_updated: configResponse.config.last_updated
+          },
+          qdrant_statistics: {
+            total_chunks: documentInfo.reduce((sum, d) => sum + d.chunk_count, 0),
+            selected_chunks: documentInfo.filter(d => d.is_selected).reduce((sum, d) => sum + d.chunk_count, 0),
+            deselected_chunks: documentInfo.filter(d => !d.is_selected).reduce((sum, d) => sum + d.chunk_count, 0),
+            document_sources: {},
+            collection_name: 'student_loan_corpus'
+          },
+          documents: documentInfo,
+          last_updated: configResponse.config.last_updated
+        };
+        
+        setDocumentStatus(status);
+        setDocumentConfig(configResponse.config);
+        logInfo('Document status loaded from browser storage', { component: 'DocumentManagement' });
+      } else {
+        throw new Error('No document configuration found in storage');
+      }
+    } catch (err) {
+      logError(`Failed to load from storage adapter: ${err}`, { component: 'DocumentManagement' });
+      throw err;
+    }
+  }, []); // Empty deps - using fresh adapter instance inside
 
-  const loadDocumentStatus = async () => {
+  // Use useRef to store stable function references and prevent infinite loops
+  const loadDocumentStatusRef = useRef<() => Promise<void>>();
+  
+  loadDocumentStatusRef.current = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Try to load from backend API first
       const response = await documentsApi.getStatus();
       if (response.success) {
         setDocumentStatus(response.data);
+        
+        // In cloud environments, also sync with browser storage
+        if (isVercelDeployment()) {
+          await syncWithStorageAdapter(response.data);
+        }
+        
         logInfo('Document status loaded', { component: 'DocumentManagement' });
       } else {
-        throw new Error('Failed to load document status');
+        // Fallback: try to load from storage adapter in cloud environments
+        if (isVercelDeployment()) {
+          await loadFromStorageAdapter();
+        } else {
+          throw new Error('Failed to load document status');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load document status');
       logError(`Failed to load document status: ${err.message}`, { component: 'DocumentManagement' });
+      
+      // Final fallback: try storage adapter if available
+      if (isVercelDeployment()) {
+        try {
+          await loadFromStorageAdapter();
+        } catch (storageErr) {
+          logError(`Storage adapter fallback also failed: ${storageErr}`, { component: 'DocumentManagement' });
+        }
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const loadDocumentStatus = useCallback(async () => {
+    if (loadDocumentStatusRef.current) {
+      await loadDocumentStatusRef.current();
+    }
+  }, []); // Empty dependency array prevents infinite loops
+
+  useEffect(() => {
+    loadDocumentStatus();
+  }, []); // Remove dependency to prevent infinite loops
 
   const handleSelectDocument = async (filename: string) => {
     try {

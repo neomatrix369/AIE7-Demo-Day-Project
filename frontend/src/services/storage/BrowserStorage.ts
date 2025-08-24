@@ -1,8 +1,9 @@
-import { StorageAdapter, ExperimentData } from './StorageAdapter';
+import { StorageAdapter, ExperimentData, DocumentConfig } from './StorageAdapter';
 import { ExperimentFile } from '../../types';
 
 const STORAGE_PREFIX = 'ragcheck_experiment_';
 const METADATA_KEY = 'ragcheck_experiments_metadata';
+const DOCUMENT_CONFIG_KEY = 'ragcheck_document_config';
 
 export class BrowserStorage implements StorageAdapter {
   async saveExperiment(data: ExperimentData): Promise<{ success: boolean; filename?: string; message: string }> {
@@ -127,6 +128,48 @@ export class BrowserStorage implements StorageAdapter {
       return {
         success: false,
         message: `Failed to clear results: ${error}`
+      };
+    }
+  }
+
+  async saveDocumentConfig(config: DocumentConfig): Promise<{ success: boolean; message: string }> {
+    try {
+      config.last_updated = new Date().toISOString();
+      localStorage.setItem(DOCUMENT_CONFIG_KEY, JSON.stringify(config));
+      return {
+        success: true,
+        message: 'Document configuration saved to browser storage'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to save document configuration: ${error}`
+      };
+    }
+  }
+
+  async loadDocumentConfig(): Promise<{ success: boolean; config?: DocumentConfig; message: string }> {
+    try {
+      const configStr = localStorage.getItem(DOCUMENT_CONFIG_KEY);
+      
+      if (!configStr) {
+        return {
+          success: false,
+          message: 'No document configuration found in browser storage'
+        };
+      }
+      
+      const config = JSON.parse(configStr);
+      
+      return {
+        success: true,
+        config,
+        message: 'Document configuration loaded from browser storage'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to load document configuration: ${error}`
       };
     }
   }

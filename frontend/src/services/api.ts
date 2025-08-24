@@ -225,4 +225,9 @@ export const documentsApi = {
   
   searchDocuments: (query: string, limit: number = 10, filterSelected: boolean = true): Promise<{success: boolean, data: any, count: number}> =>
     api.get('/documents/search', { params: { query, limit, filter_selected: filterSelected } }).then(res => res.data),
+  
+  // Note: Document config APIs removed - now handled by unified storage adapter system
+    
+  getEnvironmentInfo: (): Promise<{success: boolean, environment: any}> =>
+    api.get('/environment').then(res => res.data),
 };

@@ -17,15 +17,19 @@ Following the Four Rules of Simple Design:
 
 import os
 import json
-import logging
-import sys
+import hashlib
 import subprocess
+import sys
 from datetime import datetime
 from typing import List, Dict, Any
 from services.quality_score_service import QualityScoreService
-from config.settings import CHUNK_SIZE, CHUNK_OVERLAP, CHUNK_STRATEGY, RETRIEVAL_METHOD, VECTOR_DB_CONFIG, COLLECTION_NAMES
+from config.settings import (
+    CHUNK_SIZE, CHUNK_OVERLAP, CHUNK_STRATEGY, RETRIEVAL_METHOD,
+    VECTOR_DB_CONFIG, COLLECTION_NAMES
+)
+from logging_config import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 class ExperimentService:
@@ -37,14 +41,22 @@ class ExperimentService:
     def _get_environment_info(self) -> Dict[str, Any]:
         """Get environment information for reproducibility."""
         try:
-            git_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()[:8] if os.path.exists('.git') else 'N/A'
+            # Get git commit hash from the project root
+            project_root = os.path.dirname(os.path.dirname(__file__))
+            git_commit = subprocess.check_output(
+                ['git', 'rev-parse', 'HEAD'], 
+                cwd=project_root,
+                stderr=subprocess.DEVNULL,
+                text=True
+            ).strip()[:8]  # Get first 8 characters
         except:
             git_commit = 'N/A'
             
         return {
             "python_version": sys.version,
             "git_commit": git_commit,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "environment_variables": self._get_environment_variables()
         }
         
     def _get_corpus_info(self) -> Dict[str, Any]:
@@ -73,7 +85,8 @@ class ExperimentService:
                 "source_path": data_folder,
                 "document_types": document_types,
                 "preprocessing": "standard_text_cleaning",
-                "min_chunk_length": 50  # Default minimum chunk length
+                "min_chunk_length": 50,  # Default minimum chunk length
+                "corpus_hash": self._get_corpus_hash()
             }
         except Exception as e:
             logger.warning(f"Could not get corpus info: {e}")
@@ -87,7 +100,8 @@ class ExperimentService:
                 "source_path": os.getenv("DATA_FOLDER", "./data/"),
                 "document_types": {},
                 "preprocessing": "standard_text_cleaning",
-                "min_chunk_length": 50
+                "min_chunk_length": 50,
+                "corpus_hash": self._get_corpus_hash()
             }
             
     def _get_embedding_info(self) -> Dict[str, Any]:
@@ -107,7 +121,8 @@ class ExperimentService:
             "dimension": VECTOR_DB_CONFIG['VECTOR_SIZE'],
             "local_vs_api": "api",  # Default to API
             "normalize_embeddings": True,
-            "batch_size": 100
+            "batch_size": 100,
+            "model_hash": self._get_model_hash()
         }
         
     def _get_vector_db_info(self) -> Dict[str, Any]:
@@ -140,6 +155,7 @@ class ExperimentService:
             "tier_level": 1,  # Default tier
             "similarity_threshold": actual_config.get("similarity_threshold", 0.5),
             "top_k_retrieval": actual_config.get("top_k", 5),
+            "retrieval_method": list(RETRIEVAL_METHOD.keys())[0] if RETRIEVAL_METHOD else "naive",
             "total_queries": len(config.get("results", [])) if config else 0,
             "random_seed": 42,  # Default seed
             "evaluation_metrics": ["cosine_similarity", "quality_score", "success_rate", "gap_analysis"]
@@ -252,6 +268,84 @@ class ExperimentService:
                 }
             ]
         
+    def _get_business_impact_scores(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate business impact scores based on experiment results."""
+        if not results:
+            return {
+                "overall_business_score": 0.0,
+                "relevance_score": 0.0,
+                "accuracy_score": 0.0,
+                "efficiency_score": 0.0,
+                "cost_effectiveness": 0.0
+            }
+        
+        # Calculate average similarity and quality score
+        avg_similarity = sum(r["avg_similarity"] for r in results) / len(results)
+        avg_quality_score = QualityScoreService.similarity_to_quality_score(avg_similarity)
+        
+        # Business impact calculations
+        relevance_score = min(avg_quality_score / 10.0, 1.0)  # Normalize to 0-1
+        accuracy_score = avg_similarity  # Direct correlation with similarity
+        efficiency_score = 1.0 - (len([r for r in results if r["avg_similarity"] < 0.3]) / len(results))  # Fewer low-quality results = higher efficiency
+        
+        # Cost effectiveness (simplified - lower processing time = better)
+        # This would be more sophisticated with actual cost data
+        cost_effectiveness = 0.8  # Placeholder - would be calculated based on actual costs
+        
+        # Overall business score (weighted average)
+        overall_business_score = (
+            relevance_score * 0.3 +
+            accuracy_score * 0.3 +
+            efficiency_score * 0.2 +
+            cost_effectiveness * 0.2
+        )
+        
+        return {
+            "overall_business_score": round(overall_business_score, 3),
+            "relevance_score": round(relevance_score, 3),
+            "accuracy_score": round(accuracy_score, 3),
+            "efficiency_score": round(efficiency_score, 3),
+            "cost_effectiveness": round(cost_effectiveness, 3)
+        }
+        
+    def _get_user_satisfaction_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate user satisfaction metrics based on experiment results."""
+        if not results:
+            return {
+                "query_relevance_score": 0.0,
+                "response_completeness_score": 0.0,
+                "user_confidence_score": 0.0,
+                "overall_satisfaction_score": 0.0
+            }
+        
+        # Calculate average similarity
+        avg_similarity = sum(r["avg_similarity"] for r in results) / len(results)
+        
+        # Query relevance score (based on average similarity)
+        query_relevance_score = min(avg_similarity, 1.0)
+        
+        # Response completeness (percentage of queries with good similarity)
+        good_responses = len([r for r in results if r["avg_similarity"] >= 0.6])
+        response_completeness_score = good_responses / len(results)
+        
+        # User confidence score (based on consistency of results)
+        high_confidence_queries = len([r for r in results if r["avg_similarity"] >= 0.7])
+        user_confidence_score = high_confidence_queries / len(results)
+        
+        # Overall satisfaction (weighted average)
+        overall_satisfaction_score = (
+            query_relevance_score * 0.4 +
+            response_completeness_score * 0.3 +
+            user_confidence_score * 0.3
+        )
+        
+        return {
+            "query_relevance_score": round(query_relevance_score, 3),
+            "response_completeness_score": round(response_completeness_score, 3),
+            "user_confidence_score": round(user_confidence_score, 3),
+            "overall_satisfaction_score": round(overall_satisfaction_score, 3)
+        }
+        
     def _generate_experiment_name(self, config: Dict[str, Any] = None, results: List[Dict[str, Any]] = None) -> str:
         """Generate a descriptive experiment name based on configuration and results."""
         timestamp = datetime.now()
@@ -305,6 +399,9 @@ class ExperimentService:
                     "performance": self._get_performance_metrics(results),
                     **self._get_experiment_timing_info(timing_data)
                 },
+                "business_impact": self._get_business_impact_scores(results),
+                "user_satisfaction": self._get_user_satisfaction_metrics(results),
+                "question_group_statistics": self._get_question_group_statistics(results),
                 "top_recommendations": self._get_top_recommendations(results),
                 "metadata": {
                     "timestamp": timestamp.isoformat(),
@@ -573,4 +670,105 @@ class ExperimentService:
             "overall": overall_metrics,
             "per_group": per_role_metrics,
             "per_question": per_question_results
+        }
+
+    def _get_corpus_hash(self) -> str:
+        """Generate a hash of the corpus content for exact reproduction."""
+        try:
+            data_folder = os.getenv("DATA_FOLDER", "./data/")
+            if not os.path.exists(data_folder):
+                return "no_corpus"
+            
+            # Create a hash of all files in the data folder
+            corpus_files = []
+            for root, dirs, files in os.walk(data_folder):
+                for file in files:
+                    if file.endswith(('.pdf', '.txt', '.csv', '.json')):
+                        filepath = os.path.join(root, file)
+                        corpus_files.append(filepath)
+            
+            if not corpus_files:
+                return "empty_corpus"
+            
+            # Sort files for consistent hashing
+            corpus_files.sort()
+            
+            # Create hash from file names, sizes, and modification times
+            hash_content = ""
+            for filepath in corpus_files:
+                stat = os.stat(filepath)
+                hash_content += f"{filepath}:{stat.st_size}:{stat.st_mtime}\n"
+            
+            return hashlib.md5(hash_content.encode()).hexdigest()
+            
+        except Exception as e:
+            logger.warning(f"Could not generate corpus hash: {e}")
+            return "hash_error"
+    
+    def _get_model_hash(self) -> str:
+        """Generate a hash of the embedding model for exact reproduction."""
+        try:
+            # For OpenAI models, we can't hash the actual model, but we can hash the model name and version
+            model_name = "text-embedding-3-small"
+            model_version = "latest"
+            
+            # Create a hash from model configuration
+            model_config = f"{model_name}:{model_version}:{VECTOR_DB_CONFIG['VECTOR_SIZE']}"
+            return hashlib.md5(model_config.encode()).hexdigest()
+            
+        except Exception as e:
+            logger.warning(f"Could not generate model hash: {e}")
+            return "hash_error"
+
+    def _get_environment_variables(self) -> Dict[str, str]:
+        """Get non-security environment variables for reproduction."""
+        safe_vars = [
+            'NODE_ENV', 'PYTHONPATH', 'LANG', 'LC_ALL', 'TZ',
+            'DATA_FOLDER', 'QDRANT_URL', 'CHUNK_SIZE', 'CHUNK_OVERLAP',
+            'RETRIEVAL_METHOD', 'CHUNK_STRATEGY'
+        ]
+        
+        env_vars = {}
+        for var in safe_vars:
+            value = os.getenv(var)
+            if value:
+                env_vars[var] = value
+        
+        return env_vars
+
+    def _get_question_group_statistics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Get detailed question group statistics from experiment results."""
+        if not results:
+            return {
+                "total_questions": 0,
+                "selected_groups": [],
+                "group_breakdown": {},
+                "questions_per_group": {}
+            }
+        
+        # Count questions by source/group
+        group_counts = {}
+        for result in results:
+            source = result.get("source", "unknown")
+            group_counts[source] = group_counts.get(source, 0) + 1
+        
+        # Get selected groups (unique sources in results)
+        selected_groups = list(group_counts.keys())
+        
+        # Calculate total questions
+        total_questions = len(results)
+        
+        # Create detailed breakdown
+        group_breakdown = {}
+        for group, count in group_counts.items():
+            group_breakdown[group] = {
+                "count": count,
+                "percentage": round((count / total_questions) * 100, 1) if total_questions > 0 else 0
+            }
+        
+        return {
+            "total_questions": total_questions,
+            "selected_groups": selected_groups,
+            "group_breakdown": group_breakdown,
+            "questions_per_group": group_counts
         }

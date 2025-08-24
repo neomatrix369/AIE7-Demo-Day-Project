@@ -167,20 +167,56 @@ def load_questions_from_file(filename: str) -> Dict[str, Any]:
 
 logger.info(f"📁 Data folder: {data_folder}")
 
-# Load LLM questions from the JSON file
-LLM_QUESTIONS = load_questions_from_file(
-    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'llm-generated.json')
-)
+# Check if we should use AI model questions mode
+USE_AI_MODEL_MODE = os.getenv('USE_AI_MODEL_MODE', 'true').lower() == 'true'
+logger.info(f"🤖 AI Model Mode: {USE_AI_MODEL_MODE}")
 
-# Load RAGAS questions from the JSON file
-RAGAS_QUESTIONS = load_questions_from_file(
-    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ragas-generated.json')
-)
-
-# Load AI Model questions from the JSON file
-AI_MODEL_QUESTIONS = load_questions_from_file(
-    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models.json')
-)
+if USE_AI_MODEL_MODE:
+    # In AI model mode, load AI model questions for all three categories
+    logger.info("Loading AI model questions for all categories")
+    
+    # Create AI model questions for LLM category
+    llm_ai_questions_path = os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models-llm.json')
+    if os.path.exists(llm_ai_questions_path):
+        LLM_QUESTIONS = load_questions_from_file(llm_ai_questions_path)
+    else:
+        # Use the main AI model questions as fallback
+        LLM_QUESTIONS = load_questions_from_file(
+            os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models.json')
+        )
+    
+    # Create AI model questions for RAGAS category
+    ragas_ai_questions_path = os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models-ragas.json')
+    if os.path.exists(ragas_ai_questions_path):
+        RAGAS_QUESTIONS = load_questions_from_file(ragas_ai_questions_path)
+    else:
+        # Use the main AI model questions as fallback
+        RAGAS_QUESTIONS = load_questions_from_file(
+            os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models.json')
+        )
+    
+    # Load AI Model questions
+    AI_MODEL_QUESTIONS = load_questions_from_file(
+        os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models.json')
+    )
+else:
+    # Original student loan questions mode
+    logger.info("Loading student loan questions")
+    
+    # Load LLM questions from the JSON file
+    LLM_QUESTIONS = load_questions_from_file(
+        os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'llm-generated.json')
+    )
+    
+    # Load RAGAS questions from the JSON file
+    RAGAS_QUESTIONS = load_questions_from_file(
+        os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ragas-generated.json')
+    )
+    
+    # Load AI Model questions from the JSON file (still available as third option)
+    AI_MODEL_QUESTIONS = load_questions_from_file(
+        os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models.json')
+    )
 
 from config.settings import CHUNK_STRATEGY, RETRIEVAL_METHOD, CHUNK_SIZE, CHUNK_OVERLAP
 
@@ -205,12 +241,26 @@ async def get_corpus_status():
     # Check database connectivity
     database_connected = False
     database_error = None
+    vector_store_info = {}
     
     try:
         # Test Qdrant connection
         collections = qdrant_manager.client.get_collections()
         database_connected = True
         logger.info("✅ Database connectivity verified")
+        
+        # Get vector store statistics
+        try:
+            collection_info = qdrant_manager.client.get_collection(qdrant_manager.collection_name)
+            vector_store_info = {
+                "points_count": collection_info.points_count,
+                "vectors_count": collection_info.vectors_count,
+                "indexed_vectors": collection_info.indexed_vectors_count,
+                "collection_status": collection_info.status
+            }
+        except:
+            vector_store_info = {"status": "collection_not_found"}
+            
     except Exception as e:
         database_connected = False
         database_error = str(e)
@@ -221,6 +271,27 @@ async def get_corpus_status():
         corpus_stats = doc_processor.get_corpus_stats()
         corpus_stats["database_connected"] = True
         corpus_stats["database_error"] = None
+        corpus_stats["vector_store"] = vector_store_info
+        
+        # Check for specific model coverage
+        if vector_store_info.get("points_count", 0) > 0:
+            try:
+                # Sample check for new PDFs
+                sample_results = qdrant_manager.client.scroll(
+                    collection_name=qdrant_manager.collection_name,
+                    limit=100
+                )
+                titles = [p.payload.get("metadata", {}).get("title", "") for p in sample_results[0]]
+                corpus_stats["indexed_models"] = {
+                    "claude": any("claude" in t.lower() for t in titles),
+                    "gemini": any("gemini" in t.lower() for t in titles),
+                    "gpt5": any("gpt-5" in t.lower() or "gpt_5" in t.lower() for t in titles),
+                    "grok": any("grok" in t.lower() for t in titles),
+                    "deepseek": any("deepseek" in t.lower() for t in titles)
+                }
+            except:
+                pass
+                
         return corpus_stats
     else:
         # Return mock data with connectivity status
@@ -229,6 +300,7 @@ async def get_corpus_status():
         mock_status["database_connected"] = database_connected
         mock_status["database_error"] = database_error
         mock_status["documents_loaded"] = documents_loaded
+        mock_status["vector_store"] = vector_store_info
         return mock_status
 
 @app.get("/api/v1/experiment/config")
@@ -864,25 +936,68 @@ async def search_corpus(query: str, top_k: int = 5):
         }
 
 @app.post("/api/corpus/reload")
-async def reload_corpus():
-    """Reload the corpus data (for development/testing)."""
+async def reload_corpus(force_reindex: bool = False):
+    """Reload the corpus data and optionally force re-indexing in vector store."""
     global documents_loaded
     
     try:
         logger.info("🔄 Reloading corpus data...")
         
-        # Reinitialize simple document processor
+        # Force reload of documents from disk
+        doc_processor.__init__()  # Reinitialize to clear cache
         stats = doc_processor.get_corpus_stats()
         
         if stats["corpus_loaded"]:
             documents_loaded = True
-            logger.info("✅ Corpus reloaded successfully")
-            return {
-                "success": True,
-                "message": "Corpus reloaded successfully",
-                "documents_loaded": stats["document_count"],
-                "processor_ready": True
-            }
+            logger.info(f"✅ Found {stats['document_count']} documents")
+            
+            # If force_reindex is true, rebuild the vector store
+            if force_reindex:
+                logger.info("🔄 Force re-indexing documents in vector store...")
+                try:
+                    # Clear existing collection
+                    qdrant_manager.client.delete_collection(qdrant_manager.collection_name)
+                    logger.info("🗑️ Cleared existing vector store collection")
+                    
+                    # Reinitialize collection
+                    qdrant_manager.initialize_collection()
+                    logger.info("✨ Created new vector store collection")
+                    
+                    # Load and index all documents
+                    combined_docs = data_manager.load_all_documents()
+                    if combined_docs:
+                        # Force re-creation of vector store with documents
+                        doc_processor.vector_store_manager.initialize_vector_store_if_needed(combined_docs, force_rebuild=True)
+                        search_manager.vector_store = None
+                        search_manager.get_vector_store()
+                        logger.info(f"✅ Re-indexed {len(combined_docs)} documents in vector store")
+                    
+                    return {
+                        "success": True,
+                        "message": "Corpus reloaded and re-indexed successfully",
+                        "documents_loaded": stats["document_count"],
+                        "chunks_created": stats.get("chunk_count", 0),
+                        "vector_store_rebuilt": True,
+                        "processor_ready": True
+                    }
+                except Exception as e:
+                    logger.error(f"❌ Vector store re-indexing failed: {str(e)}")
+                    return {
+                        "success": True,
+                        "message": f"Corpus reloaded but vector store re-indexing failed: {str(e)}",
+                        "documents_loaded": stats["document_count"],
+                        "vector_store_rebuilt": False,
+                        "processor_ready": True
+                    }
+            else:
+                return {
+                    "success": True,
+                    "message": "Corpus reloaded successfully (use force_reindex=true to rebuild vector store)",
+                    "documents_loaded": stats["document_count"],
+                    "chunks_created": stats.get("chunk_count", 0),
+                    "vector_store_rebuilt": False,
+                    "processor_ready": True
+                }
         else:
             documents_loaded = False
             logger.warning("⚠️ Corpus reload failed - no documents found")

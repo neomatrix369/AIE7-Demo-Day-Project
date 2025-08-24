@@ -101,6 +101,9 @@ export const questionsApi = {
   
   getRAGASQuestions: (): Promise<QuestionGroup> =>
     api.get('/questions/ragas').then(res => res.data),
+  
+  getAIModelQuestions: (): Promise<QuestionGroup> =>
+    api.get('/questions/ai-models').then(res => res.data),
 };
 
 export const experimentApi = {

@@ -1,15 +1,28 @@
 [
   {
     "role-id": "ai-researcher",
-    "role": "AI Researcher",
+    "role": "AI Researcher", 
     "description": "Researcher comparing model capabilities and benchmarks",
     "emoji": "🔬",
     "questions": [
-      { "text": "What is GPT-5's performance on the GPQA benchmark?", "focus": "Benchmarks" },
-      { "text": "How does Grok 4 compare to GPT-5 on reasoning tasks?", "focus": "Comparison" },
-      { "text": "What are the key architectural differences between o3 and Claude models?", "focus": "Architecture" },
-      { "text": "Which models support multimodal inputs and what modalities?", "focus": "Capabilities" },
-      { "text": "What is the HLE benchmark score for DeepSeek-V3.1?", "focus": "Benchmarks" }
+      { "text": "How does gpt-5-main perform compared to GPT-4o model in terms of scores?", "focus": "Benchmarks" },
+      { "text": "What are the results for gpt-5-thinking on virology plasmid design tasks?", "focus": "Performance" },
+      { "text": "What reasoning and factuality benchmarks are used to evaluate GPT-OSS models?", "focus": "Evaluation" },
+      { "text": "How does gpt-5-thinking-mini perform relative to other OpenAI models?", "focus": "Comparison" },
+      { "text": "What are Grok 4's advanced reasoning and tool-use capabilities?", "focus": "Capabilities" }
+    ]
+  },
+  {
+    "role-id": "safety-researcher",
+    "role": "Safety Researcher",
+    "description": "Researcher focused on AI safety and security",
+    "emoji": "🔒",
+    "questions": [
+      { "text": "What safety measures are implemented in the gpt-5-thinking model?", "focus": "Safety" },
+      { "text": "How does the model perform on cyber range exercises?", "focus": "Security" },
+      { "text": "What are the health-related safety evaluations for GPT-5 models?", "focus": "Health Safety" },
+      { "text": "What security vulnerabilities were identified in ChatGPT's connectors?", "focus": "Vulnerabilities" },
+      { "text": "How do the models handle harmful content requests?", "focus": "Content Safety" }
     ]
   },
   {
@@ -18,11 +31,11 @@
     "description": "Engineer implementing and deploying AI models",
     "emoji": "⚙️",
     "questions": [
-      { "text": "What are the memory requirements for GPT-OSS-120B?", "focus": "Deployment" },
-      { "text": "How many active parameters does Qwen3-235B use?", "focus": "Technical" },
-      { "text": "What is the context window size for DeepSeek models?", "focus": "Technical" },
-      { "text": "Which models can run on a single 80GB GPU?", "focus": "Deployment" },
-      { "text": "What are the API rate limits for Claude Opus 4?", "focus": "Integration" }
+      { "text": "What are the context window capabilities of gpt-oss models?", "focus": "Technical Specs" },
+      { "text": "How many CoT tokens does gpt-oss-20b use for AIME problems?", "focus": "Implementation" },
+      { "text": "What are the memory and compute requirements for running these models?", "focus": "Deployment" },
+      { "text": "What terminal access capabilities are available for coding evaluations?", "focus": "Features" },
+      { "text": "How are the models evaluated on SWE-bench Verified?", "focus": "Benchmarks" }
     ]
   },
   {
@@ -31,11 +44,11 @@
     "description": "PM evaluating models for product integration",
     "emoji": "📊",
     "questions": [
-      { "text": "Which model is best for real-time applications?", "focus": "Use Cases" },
-      { "text": "What are the licensing terms for GPT-OSS models?", "focus": "Legal" },
-      { "text": "How much does it cost to use GPT-5 via API?", "focus": "Pricing" },
-      { "text": "Which models support tool calling and function execution?", "focus": "Features" },
-      { "text": "What safety features does Claude 3.7 Sonnet provide?", "focus": "Safety" }
+      { "text": "What are the Codeforces Elo ratings for different models?", "focus": "Performance Metrics" },
+      { "text": "Which models are available through API versus open-source?", "focus": "Availability" },
+      { "text": "What are the main capabilities demonstrated on AIME and MMLU benchmarks?", "focus": "Capabilities" },
+      { "text": "How do the thinking models compare to non-thinking variants?", "focus": "Model Types" },
+      { "text": "What vetted customer applications are supported for restricted model versions?", "focus": "Use Cases" }
     ]
   },
   {
@@ -44,50 +57,11 @@
     "description": "Scientist analyzing model performance and capabilities",
     "emoji": "📈",
     "questions": [
-      { "text": "What mathematical reasoning capabilities does Grok 4 have?", "focus": "Capabilities" },
-      { "text": "How does o3-preview perform on coding benchmarks?", "focus": "Performance" },
-      { "text": "What is the training data cutoff for Gemini 2.5 Pro?", "focus": "Data" },
-      { "text": "Which models excel at chain-of-thought reasoning?", "focus": "Reasoning" },
-      { "text": "What are the fine-tuning options for open-source models?", "focus": "Customization" }
-    ]
-  },
-  {
-    "role-id": "startup-founder",
-    "role": "Startup Founder",
-    "description": "Founder evaluating models for startup use",
-    "emoji": "🚀",
-    "questions": [
-      { "text": "Which models offer the best cost-performance ratio?", "focus": "Economics" },
-      { "text": "What are the usage restrictions for commercial applications?", "focus": "Legal" },
-      { "text": "How reliable is the uptime for different model APIs?", "focus": "Reliability" },
-      { "text": "Which models can be self-hosted for data privacy?", "focus": "Privacy" },
-      { "text": "What support and documentation is available for each model?", "focus": "Support" }
-    ]
-  },
-  {
-    "role-id": "ai-ethicist",
-    "role": "AI Ethicist",
-    "description": "Ethicist evaluating model safety and alignment",
-    "emoji": "⚖️",
-    "questions": [
-      { "text": "What bias mitigation techniques are used in GPT-5?", "focus": "Ethics" },
-      { "text": "How does Claude handle harmful content requests?", "focus": "Safety" },
-      { "text": "What transparency reports are available for these models?", "focus": "Transparency" },
-      { "text": "Which models have undergone third-party safety audits?", "focus": "Auditing" },
-      { "text": "What are the environmental impacts of running these models?", "focus": "Sustainability" }
-    ]
-  },
-  {
-    "role-id": "academic-researcher",
-    "role": "Academic Researcher",
-    "description": "Academic studying model architectures and innovations",
-    "emoji": "🎓",
-    "questions": [
-      { "text": "What novel techniques does GPT-5 introduce?", "focus": "Innovation" },
-      { "text": "How does the MoE architecture in Qwen3 work?", "focus": "Architecture" },
-      { "text": "What papers describe the training methodology for o3?", "focus": "Research" },
-      { "text": "Which models have reproducible training procedures?", "focus": "Reproducibility" },
-      { "text": "What are the theoretical foundations of hybrid reasoning models?", "focus": "Theory" }
+      { "text": "What are the aggregate scores on knowledge and reasoning tasks?", "focus": "Metrics" },
+      { "text": "How do models perform on HLE benchmark evaluations?", "focus": "Benchmarks" },
+      { "text": "What is the performance difference between helpful-only variants?", "focus": "Ablations" },
+      { "text": "What evaluation protocols are used for factuality testing?", "focus": "Methodology" },
+      { "text": "How do chain-of-thought capabilities affect problem-solving performance?", "focus": "Reasoning" }
     ]
   }
 ]

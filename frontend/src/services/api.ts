@@ -184,3 +184,45 @@ export const experimentsApi = {
   delete: (filename: string): Promise<{success: boolean, message: string}> =>
     api.delete('/experiments/delete', { params: { filename } }).then(res => res.data),
 };
+
+export const documentsApi = {
+  getStatus: (): Promise<{success: boolean, data: any}> =>
+    api.get('/documents/status').then(res => res.data),
+  
+  uploadDocument: (file: File): Promise<{success: boolean, message: string, filename?: string, size_bytes?: number}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then(res => res.data);
+  },
+  
+  deleteDocument: (filename: string): Promise<{success: boolean, message: string}> =>
+    api.post(`/documents/delete/${filename}`).then(res => res.data),
+  
+  selectDocument: (filename: string): Promise<{success: boolean, message: string}> =>
+    api.post(`/documents/select/${filename}`).then(res => res.data),
+  
+  deselectDocument: (filename: string): Promise<{success: boolean, message: string}> =>
+    api.post(`/documents/deselect/${filename}`).then(res => res.data),
+  
+  ingestDocument: (filename: string): Promise<{success: boolean, message: string}> =>
+    api.post(`/documents/ingest/${filename}`).then(res => res.data),
+  
+  ingestPending: (): Promise<{success: boolean, message: string}> =>
+    api.post('/documents/ingest-pending').then(res => res.data),
+  
+  reingestChanged: (): Promise<{success: boolean, message: string}> =>
+    api.post('/documents/reingest-changed').then(res => res.data),
+  
+  scanDocuments: (): Promise<{success: boolean, data: any, message: string}> =>
+    api.post('/documents/scan').then(res => res.data),
+  
+  rebuildCollection: (): Promise<{success: boolean, message: string}> =>
+    api.post('/documents/rebuild').then(res => res.data),
+  
+  searchDocuments: (query: string, limit: number = 10, filterSelected: boolean = true): Promise<{success: boolean, data: any, count: number}> =>
+    api.get('/documents/search', { params: { query, limit, filter_selected: filterSelected } }).then(res => res.data),
+};

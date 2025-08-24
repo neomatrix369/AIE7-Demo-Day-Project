@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -35,6 +35,12 @@ from config.settings import (
     CHUNK_OVERLAP
 )
 from datetime import datetime
+
+# Add new imports for document management
+from enhanced_document_processor import EnhancedDocumentProcessor
+
+# Initialize enhanced document processor
+enhanced_doc_processor = EnhancedDocumentProcessor()
 
 # Load environment variables from root .env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -1029,6 +1035,265 @@ async def rebuild_corpus():
             "documents_loaded": 0,
             "processor_ready": False
         }
+
+@app.get("/api/documents/status")
+async def get_document_status():
+    """Get comprehensive document status and selection information."""
+    try:
+        status = enhanced_doc_processor.get_document_status()
+        logger.info("📊 Retrieved document status")
+        return {"success": True, "data": status}
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to get document status",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to retrieve document status"
+        )
+
+@app.post("/api/documents/select/{filename}")
+async def select_document(filename: str):
+    """Select a document for ingestion."""
+    try:
+        success = enhanced_doc_processor.select_document(filename)
+        if success:
+            logger.info(f"✅ Document selected: {filename}")
+            return {"success": True, "message": f"Document '{filename}' selected successfully"}
+        else:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context=f"Failed to select document {filename}",
+                error_type=ErrorType.VALIDATION_ERROR, user_message=f"Failed to select document '{filename}'"
+            )
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context=f"Failed to select document {filename}",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to select document"
+        )
+
+
+@app.post("/api/documents/deselect/{filename}")
+async def deselect_document(filename: str):
+    """Deselect a document (retain vectors but exclude from search)."""
+    try:
+        success = enhanced_doc_processor.deselect_document(filename)
+        if success:
+            logger.info(f"✅ Document deselected: {filename}")
+            return {"success": True, "message": f"Document '{filename}' deselected successfully (vectors retained)"}
+        else:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context=f"Failed to deselect document {filename}",
+                error_type=ErrorType.VALIDATION_ERROR, user_message=f"Failed to deselect document '{filename}'"
+            )
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context=f"Failed to deselect document {filename}",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to deselect document"
+        )
+
+@app.post("/api/documents/ingest/{filename}")
+async def ingest_document(filename: str):
+    """Ingest a specific document into the vector store."""
+    try:
+        success = enhanced_doc_processor.ingest_document(filename)
+        if success:
+            logger.info(f"✅ Document ingested: {filename}")
+            return {"success": True, "message": f"Document '{filename}' ingested successfully"}
+        else:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context=f"Failed to ingest document {filename}",
+                error_type=ErrorType.VALIDATION_ERROR, user_message=f"Failed to ingest document '{filename}'"
+            )
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context=f"Failed to ingest document {filename}",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to ingest document"
+        )
+
+@app.post("/api/documents/ingest-pending")
+async def ingest_pending_documents():
+    """Ingest all documents that are selected but not yet ingested."""
+    try:
+        # Trigger ingestion of pending documents
+        enhanced_doc_processor._ingest_pending_documents()
+        logger.info("✅ Pending documents ingestion completed")
+        return {"success": True, "message": "Pending documents ingestion completed"}
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to ingest pending documents",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to ingest pending documents"
+        )
+
+@app.post("/api/documents/reingest-changed")
+async def reingest_changed_documents():
+    """Re-ingest documents that have changed since last ingestion."""
+    try:
+        success = enhanced_doc_processor.reingest_changed_documents()
+        if success:
+            logger.info("✅ Changed documents re-ingestion completed")
+            return {"success": True, "message": "Changed documents re-ingestion completed"}
+        else:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context="Failed to re-ingest changed documents",
+                error_type=ErrorType.VALIDATION_ERROR, user_message="Failed to re-ingest changed documents"
+            )
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to re-ingest changed documents",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to re-ingest changed documents"
+        )
+
+@app.post("/api/documents/scan")
+async def load_documents():
+    """Scan data folder and add new documents to the tracked list."""
+    try:
+        result = enhanced_doc_processor.scan_and_update_documents()
+        logger.info("✅ Document load completed")
+        return {"success": True, "data": result, "message": f"Document load completed: {result.get('new_documents_added', 0)} new documents added"}
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to load documents",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to load documents"
+        )
+
+@app.post("/api/documents/rebuild")
+async def rebuild_collection():
+    """Force rebuild the entire collection (use with caution)."""
+    try:
+        success = enhanced_doc_processor.force_rebuild_collection()
+        if success:
+            logger.info("✅ Collection rebuild completed")
+            return {"success": True, "message": "Collection rebuild completed successfully"}
+        else:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context="Failed to rebuild collection",
+                error_type=ErrorType.VALIDATION_ERROR, user_message="Failed to rebuild collection"
+            )
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to rebuild collection",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to rebuild collection"
+        )
+
+@app.get("/api/documents/search")
+async def search_documents(query: str, limit: int = 10, filter_selected: bool = True):
+    """Search documents with optional selection filter."""
+    try:
+        results = enhanced_doc_processor.search_documents(query, limit, filter_selected)
+        logger.info(f"🔍 Document search completed: {len(results)} results")
+        return {"success": True, "data": results, "count": len(results)}
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to search documents",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to search documents"
+        )
+
+@app.post("/api/documents/upload")
+async def upload_document(file: UploadFile = File(...)):
+    """Upload a document from the browser to the backend data folder."""
+    try:
+        # Validate file type
+        allowed_extensions = ['.pdf', '.csv', '.txt', '.json']
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        
+        if file_extension not in allowed_extensions:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context=f"Invalid file type: {file_extension}",
+                error_type=ErrorType.VALIDATION_ERROR, 
+                user_message=f"Invalid file type. Allowed types: {', '.join(allowed_extensions)}"
+            )
+        
+        # Create data folder if it doesn't exist
+        os.makedirs(data_folder, exist_ok=True)
+        
+        # Save file to data folder
+        file_path = os.path.join(data_folder, file.filename)
+        
+        # Check if file already exists
+        if os.path.exists(file_path):
+            return ErrorResponseService.log_and_return_error(
+                error=None, context=f"File already exists: {file.filename}",
+                error_type=ErrorType.VALIDATION_ERROR, 
+                user_message=f"File '{file.filename}' already exists in the data folder"
+            )
+        
+        # Save the uploaded file
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # Add the document to tracking (but don't auto-select it)
+        success = enhanced_doc_processor.selection_manager.add_document_to_tracking(file.filename)
+        
+        if success:
+            logger.info(f"✅ Document uploaded and added to tracking: {file.filename}")
+            return {
+                "success": True, 
+                "message": f"Document '{file.filename}' uploaded successfully and added to tracking",
+                "filename": file.filename,
+                "size_bytes": len(content)
+            }
+        else:
+            # File was saved but couldn't be added to tracking
+            logger.warning(f"⚠️ Document uploaded but failed to add to tracking: {file.filename}")
+            return {
+                "success": True, 
+                "message": f"Document '{file.filename}' uploaded successfully but failed to add to tracking",
+                "filename": file.filename,
+                "size_bytes": len(content)
+            }
+            
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context=f"Failed to upload document {file.filename if file else 'unknown'}",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to upload document"
+        )
+
+@app.post("/api/documents/delete/{filename}")
+async def delete_document(filename: str):
+    """Delete a document from the backend data folder and tracking."""
+    try:
+        # Check if document exists in tracking
+        if not enhanced_doc_processor.selection_manager.document_exists_in_tracking(filename):
+            return ErrorResponseService.log_and_return_error(
+                error=None, context=f"Document not found in tracking: {filename}",
+                error_type=ErrorType.VALIDATION_ERROR, 
+                user_message=f"Document '{filename}' not found in tracking"
+            )
+        
+        # Check if document is selected (prevent deletion of selected documents)
+        if enhanced_doc_processor.selection_manager.is_document_selected(filename):
+            return ErrorResponseService.log_and_return_error(
+                error=None, context=f"Cannot delete selected document: {filename}",
+                error_type=ErrorType.VALIDATION_ERROR, 
+                user_message=f"Cannot delete selected document '{filename}'. Please deselect it first."
+            )
+        
+        # Delete file from data folder
+        file_path = os.path.join(data_folder, filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"✅ File deleted from data folder: {filename}")
+        
+        # Remove document from tracking
+        success = enhanced_doc_processor.selection_manager.remove_document_from_tracking(filename)
+        
+        if success:
+            logger.info(f"✅ Document removed from tracking: {filename}")
+            return {
+                "success": True, 
+                "message": f"Document '{filename}' deleted successfully"
+            }
+        else:
+            # File was deleted but couldn't be removed from tracking
+            logger.warning(f"⚠️ File deleted but failed to remove from tracking: {filename}")
+            return {
+                "success": True, 
+                "message": f"Document '{filename}' deleted but failed to remove from tracking"
+            }
+            
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context=f"Failed to delete document {filename}",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to delete document"
+        )
 
 if __name__ == "__main__":
     import uvicorn

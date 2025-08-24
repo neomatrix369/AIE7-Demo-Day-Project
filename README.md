@@ -55,13 +55,16 @@ npm install && npm run dev
 ## Key Features
 
 - **🎯 6-Screen Wizard**: Dashboard → Questions → Experiment → Results → Gap Analysis → Heatmap
+- **⚙️ Advanced Experiments**: Comprehensive experiment tracking with timing data, metadata, and chronological ordering
+- **📊 Quality Metrics Focus**: Centralized quality score system replacing business impact with consistent 0-10 scale thresholds
+- **🔄 Dynamic Comparisons**: Real-time comparison comments and enhanced experiment analytics
 - **📊 Advanced Gap Analysis**: Domain-agnostic intelligent content gap detection with practical improvement strategies
 - **💡 Smart Recommendations**: Non-ML rule-based engine with priority scoring and impact assessment
 - **🗺️ Interactive Visualizations**: D3.js hexagonal heatmaps with multi-perspective analytics (Documents→Chunks, Roles→Chunks) and smart collision detection
 - **📈 Real-time Analytics**: Coverage statistics, unretrieved chunk detection, performance insights
 - **🗃️ Vector Storage**: Persistent Qdrant database with similarity search and real-time connectivity checks
 - **📡 Live Updates**: WebSocket streaming for experiment progress with comprehensive error handling
-- **🎯 Quality Scoring**: Normalized 0-10 scale with consistent thresholds and color coding
+- **⏱️ Experiment Timing**: Real-time timing display and comprehensive reproducibility metadata
 - **💬 Custom Tooltips**: Consistent balloon tooltips with smart positioning and cursor indicators
 - **⚡ Performance Optimized**: Advanced caching, D3.js rendering optimization, and state management
 - **🔧 Database Integration**: Real-time chunk counting and connectivity status with fallback handling

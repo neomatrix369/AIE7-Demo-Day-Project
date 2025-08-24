@@ -17,6 +17,7 @@ export class BrowserStorage implements StorageAdapter {
       const metadata = this.getMetadata();
       const experimentFile: ExperimentFile = {
         filename,
+        name: filename.replace(/^experiment_/, '').replace(/\.json$/, '').replace(/_/g, ' '),
         timestamp: data.timestamp,
         total_questions: data.total_questions,
         sources: data.sources,

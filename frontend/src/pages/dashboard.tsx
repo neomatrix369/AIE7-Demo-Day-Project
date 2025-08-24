@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
 import { corpusApi } from '../services/api';
@@ -12,44 +12,35 @@ import ErrorDisplay from '../components/ui/ErrorDisplay';
 import BalloonTooltip from '../components/ui/BalloonTooltip';
 import ExperimentStatusIndicator from '../components/ui/ExperimentStatusIndicator';
 import VectorDbStatusIndicator from '../components/ui/VectorDbStatusIndicator';
+import DocumentManagement from '../components/DocumentManagement';
 
 const DataLoadingDashboard: React.FC = () => {
   const { data: corpusStatus, loading, error, execute } = useApiCall<CorpusStatus>();
   const router = useRouter();
   const { goTo } = usePageNavigation('Dashboard');
+  const [documentStatusChanged, setDocumentStatusChanged] = useState(false);
 
   useEffect(() => {
-    const fetchCorpusStatus = async () => {
-      logInfo('Starting corpus status check', { 
-        component: 'Dashboard',
-        action: 'CORPUS_LOAD_START'
-      });
-      
-      const data = await execute(
-        () => corpusApi.getStatus(),
-        { 
-          component: 'Dashboard', 
-          action: 'CORPUS_LOAD', 
-          userMessage: 'Failed to load corpus status' 
-        }
-      );
-      
-      if (data) {
-        logSuccess(`Corpus loaded: ${data.document_count} documents, ${data.chunk_count} chunks`, {
-          component: 'Dashboard',
-          action: 'CORPUS_LOAD_SUCCESS',
-          data: {
-            documents: data.document_count,
-            chunks: data.chunk_count,
-            embedding_model: data.embedding_model,
-            corpus_loaded: data.corpus_loaded
-          }
-        });
-      }
-    };
-
-    fetchCorpusStatus();
+    execute(
+      corpusApi.getStatus,
+      { component: 'Dashboard', action: 'FETCH_CORPUS_STATUS' }
+    );
   }, [execute]);
+
+  // Refresh corpus status when document status changes
+  useEffect(() => {
+    if (documentStatusChanged) {
+      execute(
+        corpusApi.getStatus,
+        { component: 'Dashboard', action: 'REFRESH_CORPUS_STATUS' }
+      );
+      setDocumentStatusChanged(false);
+    }
+  }, [documentStatusChanged, execute]);
+
+  const handleDocumentStatusChange = () => {
+    setDocumentStatusChanged(true);
+  };
 
   const handleProceedToQuestions = () => {
     goTo('/questions', 'Questions', { action: 'NAVIGATE_TO_QUESTIONS' });
@@ -85,6 +76,7 @@ const DataLoadingDashboard: React.FC = () => {
       <NavigationHeader currentPage="dashboard" />
       <VectorDbStatusIndicator position="top-left" />
       <ExperimentStatusIndicator />
+      <DocumentManagement onStatusChange={handleDocumentStatusChange} />
       <div className="card">
         <h2>🔍 RagCheck - Ready to Analyze</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>

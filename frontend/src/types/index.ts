@@ -175,3 +175,51 @@ export interface MetricRowProps {
   impact: 'HIGH' | 'MEDIUM' | 'LOW';
   isLast?: boolean;
 }
+
+export interface DocumentInfo {
+  filename: string;
+  full_path: string;
+  file_type: string;
+  size_bytes: number;
+  modified: string;
+  hash: string;
+  is_selected: boolean;
+  is_ingested: boolean;
+  ingested_at: string;
+  chunk_count: number;
+  has_changed: boolean;
+}
+
+export interface DocumentSelectionSummary {
+  total_documents: number;
+  selected_documents: number;
+  deselected_documents: number;
+  ingested_documents: number;
+  needing_ingestion: number;
+  needing_reingestion: number;
+  last_updated: string;
+}
+
+export interface QdrantStatistics {
+  total_chunks: number;
+  selected_chunks: number;
+  deselected_chunks: number;
+  document_sources: Record<string, { total: number; selected: number }>;
+  collection_name: string;
+}
+
+export interface DocumentStatus {
+  selection_summary: DocumentSelectionSummary;
+  qdrant_statistics: QdrantStatistics;
+  documents: DocumentInfo[];
+  last_updated: string;
+}
+
+export interface SearchResult {
+  id: string;
+  score: number;
+  content: string;
+  metadata: any;
+  document_source: string;
+  chunk_id: string;
+}

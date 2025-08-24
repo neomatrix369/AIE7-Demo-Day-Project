@@ -1,13 +1,14 @@
 # Architecture Overview
 
 ## Application Structure
-This is **RagCheck** - a **5-screen wizard application** for RAG quality assessment that compares LLM-generated vs RAGAS-generated questions against a corpus:
+This is **RagCheck** - a **6-screen wizard application** for RAG quality assessment that compares LLM-generated vs RAGAS-generated questions against a corpus:
 
 1. **Screen 1 (Dashboard)**: Corpus overview with metadata and health metrics
 2. **Screen 2 (Questions)**: Side-by-side comparison of question groups 
 3. **Screen 3 (Experiment)**: Interactive experiment configuration with real-time WebSocket streaming
 4. **Screen 4 (Results)**: 3-level analysis dashboard with sorting/filtering, collapsible sections, and quick actions
-5. **Screen 5 (Heatmap)**: Interactive data visualization with multiple perspectives, coverage analytics, and smart insights
+5. **Screen 5 (Gap Analysis)**: Domain-agnostic content gap detection with practical improvement strategies and role-specific recommendations
+6. **Screen 6 (Heatmap)**: Interactive data visualization with multiple perspectives, coverage analytics, and smart insights
 
 ## Backend (FastAPI)
 - **Modular Architecture**: Organized using manager pattern for separation of concerns
@@ -24,7 +25,7 @@ This is **RagCheck** - a **5-screen wizard application** for RAG quality assessm
   - `SearchManager`: Vector similarity search operations
 
 ## Frontend (Next.js)
-- **Page Router**: Uses Next.js pages directory structure with 5-screen wizard flow
+- **Page Router**: Uses Next.js pages directory structure with 6-screen wizard flow
 - **State Management**: React hooks with local state (no external state library)
 - **Real-time Features**: WebSocket connection for experiment streaming
 - **API Layer**: Axios-based service layer in `src/services/api.ts` with logging interceptors

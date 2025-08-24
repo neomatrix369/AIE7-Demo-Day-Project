@@ -15,7 +15,7 @@ export interface ExperimentData {
 
 export interface StorageAdapter {
   saveExperiment(data: ExperimentData): Promise<{ success: boolean; filename?: string; message: string }>;
-  loadExperiment(filename: string): Promise<{ success: boolean; message: string; count?: number }>;
+  loadExperiment(filename: string): Promise<{ success: boolean; message: string; count?: number; data?: any }>;
   listExperiments(): Promise<{ success: boolean; experiments: ExperimentFile[] }>;
   deleteExperiment(filename: string): Promise<{ success: boolean; message: string }>;
   clearResults(): Promise<{ success: boolean; message: string }>;

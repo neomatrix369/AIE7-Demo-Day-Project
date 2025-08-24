@@ -72,6 +72,7 @@ export interface AnalysisResults {
 
 export interface ExperimentFile {
   filename: string;
+  name: string;
   timestamp: string;
   total_questions: number;
   sources: string[];
@@ -149,4 +150,28 @@ export interface GapAnalysis {
     belowGoodCount: number;
     belowGoodPercentage: number;
   };
+}
+
+export interface ComparisonData {
+  experimentA: {
+    id: string; name: string; date: string; time: string; qualityScore: number; status: string; questionCount: number;
+  };
+  experimentB: {
+    id: string; name: string; date: string; time: string; qualityScore: number; status: string; questionCount: number;
+  };
+  metrics: {
+    overallQuality: { before: number; after: number; }; successRate: { before: number; after: number; }; highQualityAnswers: { before: number; after: number; }; corpusHealth: { before: string; after: string; }; weakCoverage: { before: number; after: number; }; poorQuestions: { before: number; after: number; }; chunkCoverage: { before: number; after: number; };
+  };
+  context: {
+    questionsProcessed: number; totalDocuments: number; totalChunks: number; embeddingModel: string; totalSize: string; avgDocLength: string; chunkSize: number; chunkOverlap: number; chunkingStrategy: string; similarityThreshold: number; topKRetrieval: number; retrievalMethod: string; embeddingDimension: number; vectorDbType: string; vectorDbVersion: string;
+  };
+}
+
+export interface MetricRowProps {
+  label: string;
+  before: number | string;
+  after: number | string;
+  improvement?: string;
+  impact: 'HIGH' | 'MEDIUM' | 'LOW';
+  isLast?: boolean;
 }

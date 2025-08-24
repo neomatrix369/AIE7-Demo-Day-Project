@@ -572,6 +572,39 @@ async def load_experiment(filename: str):
             user_message="Failed to load experiment"
         )
 
+@app.get("/api/experiments/data/{filename}")
+async def get_experiment_data(filename: str):
+    """Get full experiment data for comparison purposes."""
+    try:
+        # Load the experiment file directly
+        import os
+        import json
+        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        filepath = os.path.join(experiments_folder, filename)
+        
+        if not os.path.exists(filepath):
+            return ErrorResponseService.not_found_error(
+                resource="Experiment file",
+                identifier=filename
+            )
+        
+        with open(filepath, 'r') as f:
+            experiment_data = json.load(f)
+        
+        logger.info(f"📂 Retrieved full experiment data for {filename}")
+        return {
+            "success": True,
+            "message": f"Retrieved experiment data for {filename}",
+            "data": experiment_data
+        }
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e,
+            context=f"Failed to get experiment data for {filename}",
+            error_type=ErrorType.INTERNAL_ERROR,
+            user_message="Failed to retrieve experiment data"
+        )
+
 @app.delete("/api/experiments/delete")
 async def delete_experiment(filename: str):
     """Delete a specific experiment file."""

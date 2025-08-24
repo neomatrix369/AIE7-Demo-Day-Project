@@ -9,6 +9,7 @@ import NavigationHeader from '../components/NavigationHeader';
 import QualityScoreLegend from '../components/QualityScoreLegend';
 import { createStorageAdapter } from '../services/storage';
 import ExperimentStatusIndicator from '../components/ui/ExperimentStatusIndicator';
+import { useRouter } from 'next/router';
 
 const ExperimentManagement: React.FC = () => {
   // UI state management 
@@ -16,7 +17,11 @@ const ExperimentManagement: React.FC = () => {
   const [loadingExperiment, setLoadingExperiment] = useState(false);
   const [hintBalloon, setHintBalloon] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
+  // Comparison selection state
+  const [selectedForComparison, setSelectedForComparison] = useState<Set<string>>(new Set());
+  
   const { goTo } = usePageNavigation('Experiments');
+  const router = useRouter();
 
   // Stable data loader function
   const dataLoader = useCallback(async () => {
@@ -133,12 +138,83 @@ const ExperimentManagement: React.FC = () => {
   };
 
   const handleViewResults = () => {
-    if (!selectedExperiment) {
-      alert('Please select an experiment first');
-      return;
+    if (selectedExperiment) {
+      goTo('/results', LABEL_RESULTS, {
+        action: 'NAVIGATE_TO_RESULTS_FROM_EXPERIMENTS',
+        data: { selected_experiment: selectedExperiment }
+      });
     }
-    
-    goTo('/results', LABEL_RESULTS, { action: 'NAVIGATE_TO_RESULTS', data: { selected_experiment: selectedExperiment } });
+  };
+
+  // Comparison handlers
+  const handleComparisonToggle = (filename: string) => {
+    setSelectedForComparison(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(filename)) {
+        newSet.delete(filename);
+      } else {
+        // Limit to 2 selections
+        if (newSet.size < 2) {
+          newSet.add(filename);
+        } else {
+          // Replace the oldest selection
+          const firstItem = Array.from(newSet)[0];
+          newSet.delete(firstItem);
+          newSet.add(filename);
+        }
+      }
+      return newSet;
+    });
+  };
+
+  const handleCompareExperiments = () => {
+    const selectedArray = Array.from(selectedForComparison);
+    if (selectedArray.length === 2 && experiments) {
+      // Find the experiment objects to get their timestamps
+      const experimentA = experiments.find(exp => exp.filename === selectedArray[0]);
+      const experimentB = experiments.find(exp => exp.filename === selectedArray[1]);
+      
+      if (experimentA && experimentB) {
+        // Order chronologically: older first (experimentA), newer second (experimentB)
+        const timestampA = new Date(experimentA.timestamp).getTime();
+        const timestampB = new Date(experimentB.timestamp).getTime();
+        
+        const olderExperiment = timestampA <= timestampB ? experimentA : experimentB;
+        const newerExperiment = timestampA <= timestampB ? experimentB : experimentA;
+        
+        logInfo('Comparing experiments (chronologically ordered)', {
+          component: 'Experiments',
+          action: 'COMPARE_EXPERIMENTS',
+          data: { 
+            experimentA: olderExperiment.filename, 
+            experimentB: newerExperiment.filename,
+            timestampA: olderExperiment.timestamp,
+            timestampB: newerExperiment.timestamp
+          }
+        });
+        
+        // Navigate to compare page with chronologically ordered experiments
+        const compareUrl = `/compare?experimentA=${encodeURIComponent(olderExperiment.filename)}&experimentB=${encodeURIComponent(newerExperiment.filename)}`;
+        router.push(compareUrl);
+      } else {
+        // Fallback to original order if experiments not found
+        logInfo('Comparing experiments (fallback order)', {
+          component: 'Experiments',
+          action: 'COMPARE_EXPERIMENTS_FALLBACK',
+          data: { 
+            experimentA: selectedArray[0], 
+            experimentB: selectedArray[1] 
+          }
+        });
+        
+        const compareUrl = `/compare?experimentA=${encodeURIComponent(selectedArray[0])}&experimentB=${encodeURIComponent(selectedArray[1])}`;
+        router.push(compareUrl);
+      }
+    }
+  };
+
+  const handleClearComparison = () => {
+    setSelectedForComparison(new Set());
   };
 
   const handleBackToDashboard = () => {
@@ -274,6 +350,69 @@ const ExperimentManagement: React.FC = () => {
           </button>
         </div>
 
+        {/* Comparison Controls */}
+        {experiments && experiments.length >= 2 && (
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            padding: '16px',
+            borderRadius: '8px',
+            border: '1px solid #dee2e6',
+            marginBottom: '20px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontWeight: 'bold', color: '#333' }}>
+                  ⚖️ Compare Experiments:
+                </span>
+                <span style={{ fontSize: '14px', color: '#666' }}>
+                  Select 2 experiments to compare ({selectedForComparison.size}/2 selected)
+                </span>
+              </div>
+              {selectedForComparison.size > 0 && (
+                <button
+                  onClick={handleClearComparison}
+                  className="button button-secondary"
+                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                >
+                  Clear Selection
+                </button>
+              )}
+            </div>
+            
+            {selectedForComparison.size === 2 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: '#d4edda',
+                padding: '12px',
+                borderRadius: '6px',
+                border: '1px solid #c3e6cb'
+              }}>
+                <div style={{ fontSize: '14px', color: '#155724' }}>
+                  <strong>Ready to compare:</strong> {Array.from(selectedForComparison).join(' vs ')}
+                </div>
+                <button
+                  onClick={handleCompareExperiments}
+                  className="button"
+                  style={{
+                    backgroundColor: '#28a745',
+                    padding: '8px 16px',
+                    fontSize: '14px'
+                  }}
+                >
+                  ⚖️ Compare Selected
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {experiments.length > 0 && (
           <QualityScoreLegend 
             format="compact" 
@@ -313,14 +452,44 @@ const ExperimentManagement: React.FC = () => {
                 style={{ 
                   marginBottom: '15px',
                   border: selectedExperiment === experiment.filename ? '2px solid #007bff' : '1px solid #ddd',
-                  backgroundColor: selectedExperiment === experiment.filename ? '#f0f8ff' : 'white'
+                  backgroundColor: selectedExperiment === experiment.filename ? '#f0f8ff' : 'white',
+                  position: 'relative'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                {/* Comparison Checkbox */}
+                {experiments.length >= 2 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '12px',
+                    zIndex: 1
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedForComparison.has(experiment.filename)}
+                      onChange={() => handleComparisonToggle(experiment.filename)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+                )}
+                
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start',
+                  marginLeft: experiments.length >= 2 ? '40px' : '0'
+                }}>
                   <div style={{ flex: 1 }}>
                     <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>
-                      📊 {experiment.filename}
+                      📊 {experiment.name}
                     </h4>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
+                      {experiment.filename}
+                    </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', fontSize: '14px' }}>
                       <div>
                         <strong>📅 Date:</strong> {formatTimestamp(experiment.timestamp)}

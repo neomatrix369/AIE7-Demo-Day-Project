@@ -11,7 +11,18 @@ export class FileSystemStorage implements StorageAdapter {
     };
   }
 
-  async loadExperiment(filename: string): Promise<{ success: boolean; message: string; count?: number }> {
+  async loadExperiment(filename: string): Promise<{ success: boolean; message: string; count?: number; data?: any }> {
+    // For comparison purposes, we need the full data
+    const response = await experimentsApi.getData(filename);
+    if (response.success && response.data) {
+      return {
+        success: true,
+        message: response.message,
+        count: response.data.metadata?.total_questions || 0,
+        data: response.data
+      };
+    }
+    // Fallback to the original load method
     return experimentsApi.load(filename);
   }
 

@@ -75,6 +75,11 @@ class ExperimentService:
                         ext = file.split('.')[-1]
                         document_types[ext] = document_types.get(ext, 0) + 1
             
+            # Get additional corpus metadata if available
+            corpus_metadata = corpus_stats.get("corpus_metadata", {})
+            total_size_mb = corpus_metadata.get("total_size_mb", 0.0)
+            avg_doc_length = corpus_metadata.get("avg_doc_length", 0)
+            
             return {
                 "name": COLLECTION_NAMES['DEFAULT_COLLECTION'],
                 "total_documents": corpus_stats.get("document_count", 0),
@@ -86,7 +91,10 @@ class ExperimentService:
                 "document_types": document_types,
                 "preprocessing": "standard_text_cleaning",
                 "min_chunk_length": 50,  # Default minimum chunk length
-                "corpus_hash": self._get_corpus_hash()
+                "corpus_hash": self._get_corpus_hash(),
+                "total_size_mb": total_size_mb,
+                "avg_document_length": avg_doc_length,
+                "file_size_bytes": int(total_size_mb * 1024 * 1024) if total_size_mb > 0 else 0
             }
         except Exception as e:
             logger.warning(f"Could not get corpus info: {e}")
@@ -101,7 +109,10 @@ class ExperimentService:
                 "document_types": {},
                 "preprocessing": "standard_text_cleaning",
                 "min_chunk_length": 50,
-                "corpus_hash": self._get_corpus_hash()
+                "corpus_hash": self._get_corpus_hash(),
+                "total_size_mb": 0.0,
+                "avg_document_length": 0,
+                "file_size_bytes": 0
             }
             
     def _get_embedding_info(self) -> Dict[str, Any]:
@@ -527,6 +538,7 @@ class ExperimentService:
                             
                             experiment_files.append({
                                 "filename": filename,
+                                "name": data.get("name", filename.replace('.json', '')),
                                 "timestamp": metadata.get("timestamp", ""),
                                 "total_questions": metadata.get("total_questions", 0),
                                 "sources": metadata.get("sources", []),
@@ -542,6 +554,7 @@ class ExperimentService:
                             
                             experiment_files.append({
                                 "filename": filename,
+                                "name": filename.replace('.json', ''),
                                 "timestamp": datetime.fromtimestamp(os.path.getmtime(filepath)).isoformat(),
                                 "total_questions": len(data) if isinstance(data, list) else 0,
                                 "sources": list(set(r.get("source", "") for r in data)) if isinstance(data, list) else [],

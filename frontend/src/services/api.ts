@@ -154,6 +154,7 @@ export const resultsApi = {
 export const experimentsApi = {
   list: (): Promise<{success: boolean, experiments: Array<{
     filename: string;
+    name: string;
     timestamp: string;
     total_questions: number;
     sources: string[];
@@ -176,6 +177,9 @@ export const experimentsApi = {
   
   load: (filename: string): Promise<{success: boolean, message: string, count?: number}> =>
     api.post('/experiments/load', null, { params: { filename } }).then(res => res.data),
+  
+  getData: (filename: string): Promise<{success: boolean, message: string, data?: any}> =>
+    api.get(`/experiments/data/${filename}`).then(res => res.data),
   
   delete: (filename: string): Promise<{success: boolean, message: string}> =>
     api.delete('/experiments/delete', { params: { filename } }).then(res => res.data),

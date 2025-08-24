@@ -44,7 +44,7 @@ export class BrowserStorage implements StorageAdapter {
     }
   }
 
-  async loadExperiment(filename: string): Promise<{ success: boolean; message: string; count?: number }> {
+  async loadExperiment(filename: string): Promise<{ success: boolean; message: string; count?: number; data?: any }> {
     try {
       const storageKey = STORAGE_PREFIX + filename;
       const dataStr = localStorage.getItem(storageKey);
@@ -65,7 +65,8 @@ export class BrowserStorage implements StorageAdapter {
       return {
         success: true,
         message: `Loaded experiment ${filename} from browser storage`,
-        count: data.total_questions
+        count: data.total_questions,
+        data: data
       };
     } catch (error) {
       return {

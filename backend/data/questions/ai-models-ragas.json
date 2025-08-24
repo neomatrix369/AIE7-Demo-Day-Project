@@ -1,0 +1,50 @@
+[
+  {
+    "role-id": "technical-evaluator",
+    "role": "Technical Evaluator",
+    "description": "Evaluator testing technical specifications and claims",
+    "emoji": "🔍",
+    "questions": [
+      { "text": "According to the documentation, what specific hardware configuration is required to run GPT-OSS-120B at optimal performance, including GPU memory, VRAM bandwidth, and interconnect requirements?", "focus": "Technical Requirements" },
+      { "text": "The Grok 4 model card mentions 'advanced reasoning and tool-use capabilities' - what are the exact tool-calling protocols and API specifications for integrating external functions?", "focus": "API Specifications" },
+      { "text": "How does DeepSeek-V3.1's hybrid thinking/non-thinking mode switching mechanism work at the inference level, and what are the latency implications?", "focus": "Implementation Details" },
+      { "text": "What are the precise tokenization differences between GPT-5 and Claude Opus 4, and how do these affect effective context window utilization?", "focus": "Tokenization" }
+    ]
+  },
+  {
+    "role-id": "benchmark-analyst",
+    "role": "Benchmark Analyst",
+    "description": "Analyst verifying benchmark claims and methodologies",
+    "emoji": "📏",
+    "questions": [
+      { "text": "The documentation states GPT-5 achieves 89.4 on GPQA - what specific version of the GPQA benchmark was used, what were the evaluation parameters, and how does this compare to human expert performance?", "focus": "Benchmark Methodology" },
+      { "text": "For models reporting HLE scores, what is the exact evaluation protocol, including prompt formatting, temperature settings, and sampling methodology used to achieve the reported scores?", "focus": "Evaluation Protocol" },
+      { "text": "How are the multimodal capabilities of Gemini 2.5 Pro evaluated across different modalities, and what are the specific benchmark scores for vision, audio, and video understanding tasks?", "focus": "Multimodal Benchmarks" },
+      { "text": "What statistical significance testing was performed on the benchmark results, and what are the confidence intervals for the reported performance metrics?", "focus": "Statistical Validity" }
+    ]
+  },
+  {
+    "role-id": "compliance-officer",
+    "role": "Compliance Officer",
+    "description": "Officer checking licensing and compliance details",
+    "emoji": "📋",
+    "questions": [
+      { "text": "The GPT-OSS models are listed as Apache 2.0 licensed - are there any additional usage restrictions, attribution requirements, or commercial use limitations mentioned in the full license text?", "focus": "License Terms" },
+      { "text": "What specific data privacy guarantees are provided for API-based models like GPT-5 and Claude, particularly regarding data retention, processing locations, and GDPR compliance?", "focus": "Privacy Compliance" },
+      { "text": "For open-source models like Qwen3 and DeepSeek, what are the exact terms regarding model weight redistribution, derivative works, and commercial deployment?", "focus": "Distribution Rights" },
+      { "text": "What export control regulations apply to these AI models, and are there any geographic restrictions on their use or deployment?", "focus": "Export Controls" }
+    ]
+  },
+  {
+    "role-id": "security-auditor",
+    "role": "Security Auditor",
+    "description": "Auditor examining security and safety measures",
+    "emoji": "🔒",
+    "questions": [
+      { "text": "What specific adversarial robustness testing has been performed on GPT-5, including jailbreak resistance, prompt injection defenses, and output filtering mechanisms?", "focus": "Security Testing" },
+      { "text": "The Claude 3.7 Sonnet documentation mentions 'strong safety measures' - what are the exact constitutional AI principles implemented and how are they enforced during inference?", "focus": "Safety Mechanisms" },
+      { "text": "For models with tool-calling capabilities, what sandboxing and security boundaries are implemented to prevent malicious code execution or unauthorized system access?", "focus": "Sandboxing" },
+      { "text": "What vulnerability disclosure processes are in place for each model provider, and what are the documented response times for critical security issues?", "focus": "Vulnerability Management" }
+    ]
+  }
+]

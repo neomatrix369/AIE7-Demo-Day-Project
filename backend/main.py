@@ -72,7 +72,7 @@ except Exception as e:
     logger.info("📝 Falling back to mock data mode")
 
 # Configure CORS for both local and Vercel deployments
-cors_origins = ["http://localhost:3000"]
+cors_origins = ["http://localhost:3000", "http://localhost:3003"]
 
 # Add production frontend URLs from environment
 frontend_url = os.getenv("FRONTEND_URL")
@@ -175,6 +175,11 @@ LLM_QUESTIONS = load_questions_from_file(
 # Load RAGAS questions from the JSON file
 RAGAS_QUESTIONS = load_questions_from_file(
     os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ragas-generated.json')
+)
+
+# Load AI Model questions from the JSON file
+AI_MODEL_QUESTIONS = load_questions_from_file(
+    os.path.join(os.path.dirname(__file__), data_folder, 'questions', 'ai-models.json')
 )
 
 from config.settings import CHUNK_STRATEGY, RETRIEVAL_METHOD, CHUNK_SIZE, CHUNK_OVERLAP
@@ -324,6 +329,10 @@ async def get_llm_questions():
 @app.get("/api/questions/ragas")
 async def get_ragas_questions():
     return RAGAS_QUESTIONS["questions"]
+
+@app.get("/api/questions/ai-models")
+async def get_ai_model_questions():
+    return AI_MODEL_QUESTIONS["questions"]
 
 @app.post("/api/experiment/run")
 async def run_experiment(config: ExperimentConfig):

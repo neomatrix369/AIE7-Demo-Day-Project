@@ -1,0 +1,96 @@
+{
+  "timestamp": 677179.839979625,
+  "total_sources": 11,
+  "successful": 7,
+  "failed": 4,
+  "results": [
+    {
+      "name": "GPT-5 System Card",
+      "model": "GPT-5",
+      "provider": "OpenAI",
+      "type": "pdf",
+      "status": "success",
+      "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/gpt_5_gpt_5_system_card.pdf"
+    },
+    {
+      "name": "Grok 4 Model Card",
+      "model": "Grok 4",
+      "provider": "xAI",
+      "type": "pdf",
+      "status": "success",
+      "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/grok_4_grok_4_model_card.pdf"
+    },
+    {
+      "name": "GPT-OSS Model Card",
+      "model": "GPT-OSS-120B/20B",
+      "provider": "OpenAI",
+      "type": "pdf",
+      "status": "success",
+      "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/gpt_oss_120b20b_gpt_oss_model_card.pdf"
+    },
+    {
+      "name": "o3-preview Documentation",
+      "model": "o3-preview",
+      "provider": "OpenAI",
+      "type": "webpage",
+      "status": "failed",
+      "path": null
+    },
+    {
+      "name": "Gemini 2.5 Pro Documentation",
+      "model": "Gemini 2.5 Pro 06-05",
+      "provider": "Google",
+      "type": "webpage",
+      "status": "failed",
+      "path": null
+    },
+    {
+      "name": "Claude 3.7 Sonnet System Card",
+      "model": "Claude 3.7 Sonnet",
+      "provider": "Anthropic",
+      "type": "webpage",
+      "status": "failed",
+      "path": null
+    },
+    {
+      "name": "Claude Opus 4 System Card",
+      "model": "Claude Opus 4",
+      "provider": "Anthropic",
+      "type": "webpage",
+      "status": "failed",
+      "path": null
+    },
+    {
+      "name": "DeepSeek-V3.1 Model Card",
+      "model": "DeepSeek-V3.1-Base",
+      "provider": "DeepSeek",
+      "type": "huggingface",
+      "status": "success",
+      "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/deepseek_v31_base_deepseek_v31_model_card.pdf"
+    },
+    {
+      "name": "Qwen3-235B Model Card",
+      "model": "Qwen3-235B-A22B",
+      "provider": "Alibaba",
+      "type": "huggingface",
+      "status": "success",
+      "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/qwen3_235b_a22b_qwen3_235b_model_card.pdf"
+    },
+    {
+      "name": "GPT-OSS ArXiv Paper",
+      "model": "GPT-OSS",
+      "provider": "OpenAI",
+      "type": "arxiv",
+      "status": "success",
+      "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/gpt_oss_gpt_oss_arxiv_paper.pdf"
+    },
+    {
+      "name": "GPT-OSS Evaluation Paper",
+      "model": "GPT-OSS",
+      "provider": "Third-party",
+      "type": "arxiv",
+      "status": "success",
+      "path": "/Users/tdeshane/Mani/AIE7-Demo-Day-Project/backend/data/model_cards/gpt_oss_gpt_oss_evaluation_paper.pdf"
+    }
+  ]
+}

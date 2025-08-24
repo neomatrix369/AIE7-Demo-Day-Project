@@ -77,13 +77,21 @@ try:
         
         # Initialize vector store if needed
         try:
-            combined_docs = data_manager.load_all_documents()
-            if combined_docs:
-                qdrant_manager.initialize_collection()
-                search_manager.get_vector_store()  # Test connection
+            # Check if vector store is already populated before loading documents
+            collection_info = qdrant_manager.client.get_collection(qdrant_manager.collection_name)
+            if collection_info.points_count > 0:
+                logger.info(f"📦 Vector store already populated with {collection_info.points_count} points, skipping document reload")
+                search_manager.get_vector_store()  # Test connection only
                 logger.info(LOG_MESSAGES['VECTOR_STORE_SUCCESS'])
             else:
-                logger.warning(LOG_MESSAGES['NO_DOCUMENTS_FOUND'])
+                logger.info("📥 Vector store empty, loading documents...")
+                combined_docs = data_manager.load_all_documents()
+                if combined_docs:
+                    qdrant_manager.initialize_collection()
+                    search_manager.get_vector_store()  # Test connection
+                    logger.info(LOG_MESSAGES['VECTOR_STORE_SUCCESS'])
+                else:
+                    logger.warning(LOG_MESSAGES['NO_DOCUMENTS_FOUND'])
         except Exception as e:
             logger.error(f"❌ {ERROR_MESSAGES['VECTOR_STORE_INIT_FAILED']}: {str(e)}")
             logger.info(LOG_MESSAGES['VECTOR_STORE_FALLBACK'])

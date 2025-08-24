@@ -36,7 +36,16 @@ class SimpleDocumentProcessor:
     def get_corpus_stats(self) -> Dict[str, Any]:
         """
         Generate and return corpus statistics.
+        Optimized to avoid unnecessary document reloading when vector store is already populated.
         """
+        # First check if we have cached stats and vector store has data
+        if (self.corpus_stats_manager._corpus_stats_cache is not None and 
+            self._documents_loaded and 
+            self._has_vector_store_data()):
+            logger.info("📋 Returning cached corpus statistics (vector store already populated)")
+            return self.corpus_stats_manager._corpus_stats_cache
+        
+        # Only load documents if we need to compute stats or initialize vector store
         csv_docs = self.data_manager.load_csv_data()
         pdf_docs = self.data_manager.load_pdf_data()
         combined_docs = csv_docs + pdf_docs
@@ -46,6 +55,17 @@ class SimpleDocumentProcessor:
             self._documents_loaded = True
 
         return self.corpus_stats_manager.get_corpus_stats(csv_docs, pdf_docs, combined_docs, self.qdrant_manager)
+    
+    def _has_vector_store_data(self) -> bool:
+        """Check if the vector store has data without expensive operations."""
+        try:
+            collection_info = self.qdrant_manager.client.get_collection(self.qdrant_manager.collection_name)
+            points_count = collection_info.points_count
+            logger.debug(f"📊 Vector store has {points_count} points")
+            return points_count > 0
+        except Exception as e:
+            logger.debug(f"Could not check vector store: {e}")
+            return False
 
     def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """

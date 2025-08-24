@@ -15,4 +15,8 @@ export const DEFAULT_BUTTON_VARIANT_SECONDARY = 'button button-secondary';
 // Feature flags
 export const SHOW_RULE_BASED_BADGE = true;
 
-
+// Text utilities
+export const convertMarkdownBold = (text: string): string => {
+  // Convert **text** to <strong>text</strong>
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+};

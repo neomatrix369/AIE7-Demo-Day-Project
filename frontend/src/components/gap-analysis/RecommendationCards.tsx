@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import BalloonTooltip from '../ui/BalloonTooltip';
 import { RecommendationCard } from '../../types';
+import { convertMarkdownBold } from '../../utils/constants';
 
 interface RecommendationCardsProps {
   recommendations: RecommendationCard[];
@@ -297,8 +298,8 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
                                 <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#1a365d' }}>
                                   Primary Strategy:
                                 </div>
-                                <div style={{ marginBottom: '12px', padding: '8px', background: '#e6f3ff', borderRadius: '4px', borderLeft: '3px solid #007bff' }}>
-                                  {rec.suggestedContent}
+                                <div style={{ marginBottom: '12px', padding: '8px', background: '#e6f3ff', borderRadius: '4px', borderLeft: '3px solid #007bff' }} 
+                                     dangerouslySetInnerHTML={{ __html: convertMarkdownBold(rec.suggestedContent) }}>
                                 </div>
                                 
                                 {rec.improvementStrategies && rec.improvementStrategies.length > 1 && (
@@ -315,8 +316,8 @@ const RecommendationCards: React.FC<RecommendationCardsProps> = ({ recommendatio
                                           borderLeft: '2px solid #6c757d',
                                           fontSize: '0.85rem',
                                           lineHeight: '1.4'
-                                        }}>
-                                          {strategy}
+                                        }}
+                                        dangerouslySetInnerHTML={{ __html: convertMarkdownBold(strategy) }}>
                                         </div>
                                       ))}
                                     </div>

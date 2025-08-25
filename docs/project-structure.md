@@ -35,7 +35,7 @@
 │   │   ├── gap-analysis/      # Gap analysis and recommendations
 │   │   │   ├── GapAnalysisDashboard.tsx    # Main gap analysis container
 │   │   │   ├── GapAnalysisOverview.tsx     # Statistics cards with indicators
-│   │   │   ├── WeakCoverageAreas.tsx       # Topic visualization
+│   │   │   ├── DevelopingCoverageAreas.tsx # Developing coverage areas visualization
 │   │   │   └── RecommendationCards.tsx     # Prioritized recommendations
 │   │   ├── ui/                # Reusable UI components
 │   │   │   ├── BalloonTooltip.tsx     # Smart tooltip component

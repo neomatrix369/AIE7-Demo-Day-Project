@@ -53,7 +53,7 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 - **Gap Analysis Components** (`src/components/gap-analysis/`)
   - `GapAnalysisDashboard.tsx`: Main container with comprehensive gap insights and real-time data loading
   - `GapAnalysisOverview.tsx`: Interactive statistics cards with visual severity indicators
-  - `WeakCoverageAreas.tsx`: Topic-based gap visualization with expandable details and developing coverage area classification
+  - `DevelopingCoverageAreas.tsx`: Topic-based gap visualization with expandable details and developing coverage area classification
   - `RecommendationCards.tsx`: Prioritized actionable recommendations with implementation workflow
 
 ## File Structure
@@ -69,7 +69,7 @@ src/
 │   ├── gap-analysis/     # Gap analysis and recommendations components
 │   │   ├── GapAnalysisDashboard.tsx    # Main gap analysis container
 │   │   ├── GapAnalysisOverview.tsx     # Statistics cards with visual indicators
-│   │   ├── WeakCoverageAreas.tsx       # Topic-based developing coverage visualization
+│   │   ├── DevelopingCoverageAreas.tsx # Topic-based developing coverage visualization
 │   │   └── RecommendationCards.tsx     # Actionable recommendation cards
 │   ├── ui/               # Reusable UI components
 │   │   └── BalloonTooltip.tsx     # Custom balloon tooltips with smart positioning
@@ -160,7 +160,7 @@ node --version   # Should show 18+ or 22+
 
 ### 4. Results (Screen 4)
 - **3-Level Analysis**: Overall corpus health → Group performance (LLM vs RAGAS) → Individual question analysis
-- **Interactive Features**: Real-time sorting, filtering by status (good/weak/poor), question detail expansion
+- **Interactive Features**: Real-time sorting, filtering by status (good/developing/poor), question detail expansion
 - **Visual Elements**: Similarity score bars, health indicators, status badges, distribution charts
 - **Custom Tooltips**: BalloonTooltip components for chunk IDs (with copy functionality) and document content
 - **Enhanced Data Display**: Chunk ID columns with truncated display and full UUID tooltips

@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import BalloonTooltip from '../ui/BalloonTooltip';
 import { ContentGap } from '../../types';
 
-interface WeakCoverageAreasProps {
-  weakAreas: ContentGap[];
+interface DevelopingCoverageAreasProps {
+  developingAreas: ContentGap[];
 }
 
-const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
+const DevelopingCoverageAreas: React.FC<DevelopingCoverageAreasProps> = ({ developingAreas }) => {
   const [expandedArea, setExpandedArea] = useState<string | null>(null);
 
   const getRoleIcon = (roleName: string) => {
@@ -40,9 +40,9 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
     return { status: 'POOR', color: '#dc3545' };
   };
 
-  if (weakAreas.length === 0) {
+  if (developingAreas.length === 0) {
     return (
-      <div className="no-weak-areas" style={{
+      <div className="no-developing-areas" style={{
         textAlign: 'center',
         padding: '40px 20px',
         background: 'linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%)',
@@ -59,7 +59,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
   }
 
   return (
-    <div className="weak-coverage-areas">
+    <div className="developing-coverage-areas">
       <div style={{
         display: 'grid',
         gridTemplateColumns: '3fr 1fr 1fr 0.8fr',
@@ -99,7 +99,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
         </div>
       </div>
 
-      {weakAreas.map((area) => {
+      {developingAreas.map((area) => {
         const qualityStatus = getQualityStatusFromScore(area.avgScore);
         const isExpanded = expandedArea === area.topic;
 
@@ -238,4 +238,4 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
   );
 };
 
-export default WeakCoverageAreas;
+export default DevelopingCoverageAreas;

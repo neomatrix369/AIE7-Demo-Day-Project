@@ -10,7 +10,7 @@ The Gap Analysis Dashboard is a comprehensive feature that provides intelligent 
 
 ### 📊 Gap Analysis Dashboard
 - **Interactive Overview Cards**: Real-time statistics showing gaps, critical issues, and improvement potential
-- **Topic-based Gap Detection**: Identifies weak coverage areas with expandable details
+- **Topic-based Gap Detection**: Identifies developing coverage areas with expandable details
 - **Visual Severity Indicators**: Color-coded priority levels and impact assessment
 - **Uncovered Topics Display**: Visual tags showing missing content areas
 
@@ -39,7 +39,7 @@ The Gap Analysis Dashboard is a comprehensive feature that provides intelligent 
 ### Frontend Components
 - **`GapAnalysisDashboard`**: Main container with data loading
 - **`GapAnalysisOverview`**: Statistics cards with visual indicators
-- **`WeakCoverageAreas`**: Topic visualization with expandable details
+- **`DevelopingCoverageAreas`**: Topic visualization with expandable details for developing coverage areas
 - **`RecommendationCards`**: Interactive recommendation display
 
 ### Integration
@@ -64,7 +64,7 @@ The Gap Analysis Dashboard is a comprehensive feature that provides intelligent 
 1. **Run Standard Experiment** → Complete experiment execution
 2. **Expand Gap Analysis** → Click "Gap Analysis & Recommendations" section
 3. **Review Overview** → See gap statistics and severity indicators
-4. **Explore Weak Areas** → Click topics to see affected queries and gap types
+4. **Explore Developing Areas** → Click topics to see affected queries and gap types
 5. **Review Recommendations** → Prioritized cards with specific improvement suggestions
 6. **Take Action** → Mark recommendations as implemented or dismiss
 
@@ -77,7 +77,7 @@ The Gap Analysis Dashboard is a comprehensive feature that provides intelligent 
 **Frontend:**
 - `frontend/src/components/gap-analysis/GapAnalysisDashboard.tsx`
 - `frontend/src/components/gap-analysis/GapAnalysisOverview.tsx`
-- `frontend/src/components/gap-analysis/WeakCoverageAreas.tsx`
+- `frontend/src/components/gap-analysis/DevelopingCoverageAreas.tsx`
 - `frontend/src/components/gap-analysis/RecommendationCards.tsx`
 
 ### Modified Files

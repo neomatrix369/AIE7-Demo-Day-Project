@@ -78,7 +78,7 @@ The system expects experiment results with these fields:
   "avg_quality_score": 6.5
 }
 ```
-→ Gap: "Category 'Nurse' shows weak performance: 12 questions averaging 6.5/10"
+→ Gap: "Category 'Nurse' shows developing performance: 12 questions averaging 6.5/10"
 
 ## 🚀 Benefits of Generic Design
 
@@ -89,7 +89,7 @@ The system expects experiment results with these fields:
 
 ### 2. **Consistent Quality Metrics**
 - Standardized 0-10 quality scale
-- Universal thresholds for good/weak/poor performance
+- Universal thresholds for good/developing/poor performance
 - Comparable results across different domains
 
 ### 3. **Flexible Categorization**

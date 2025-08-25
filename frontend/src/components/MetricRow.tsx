@@ -4,7 +4,7 @@ import { formatImprovement } from '../utils/comparisonCalculations';
 
 interface ExtendedMetricRowProps extends MetricRowProps {
   backgroundColor?: string;
-  lowerIsBetter?: boolean; // Flag to indicate if lower values are better (e.g., poor questions, weak coverage)
+  lowerIsBetter?: boolean; // Flag to indicate if lower values are better (e.g., poor questions, developing coverage)
 }
 
 const MetricRow: React.FC<ExtendedMetricRowProps> = ({ 
@@ -47,7 +47,7 @@ const MetricRow: React.FC<ExtendedMetricRowProps> = ({
   const calculatedImprovement = isNumeric ? formatImprovement(before as number, after as number) : improvement;
   
   // Determine if the metric is improving or getting worse
-  // For metrics where lower is better (like poor questions, weak coverage), invert the logic
+  // For metrics where lower is better (like poor questions, developing coverage), invert the logic
   const isImproving = isNumeric ? 
     (lowerIsBetter ? (after as number) < (before as number) : (after as number) > (before as number)) : 
     true;

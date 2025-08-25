@@ -6,7 +6,7 @@ import usePageData from '../../hooks/usePageData';
 import { resultsApi } from '../../services/api';
 import { GapAnalysis } from '../../types';
 import GapAnalysisOverview from './GapAnalysisOverview';
-import WeakCoverageAreas from './WeakCoverageAreas';
+import DevelopingCoverageAreas from './DevelopingCoverageAreas';
 import RecommendationCards from './RecommendationCards';
 
 const GapAnalysisDashboard: React.FC = () => {
@@ -222,7 +222,7 @@ const GapAnalysisDashboard: React.FC = () => {
               </BalloonTooltip>
             </h3>
           </div>
-          <WeakCoverageAreas weakAreas={gapData.developingCoverageAreas} />
+          <DevelopingCoverageAreas developingAreas={gapData.developingCoverageAreas} />
         </div>
       )}
 

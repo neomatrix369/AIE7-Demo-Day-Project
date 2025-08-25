@@ -86,7 +86,7 @@ npm install && npm run dev
 - **Gap Analysis Components** (`frontend/src/components/gap-analysis/*`)
   - `GapAnalysisDashboard.tsx`: Main container with comprehensive gap insights
   - `GapAnalysisOverview.tsx`: Interactive statistics cards with visual indicators
-  - `WeakCoverageAreas.tsx`: Topic-based gap visualization with expandable details for developing coverage areas
+  - `DevelopingCoverageAreas.tsx`: Topic-based gap visualization with expandable details for developing coverage areas
   - `RecommendationCards.tsx`: Prioritized actionable recommendations with implementation tracking
 
 ## Components

@@ -532,6 +532,9 @@ const ExperimentManagement: React.FC = () => {
                           if (stats.included.txt.length > 0) {
                             parts.push(`📝 TXT: ${stats.included.txt.length}`);
                           }
+                          if (stats.included.md.length > 0) {
+                            parts.push(`📝 MD: ${stats.included.md.length}`);
+                          }
                           if (stats.included.json.length > 0) {
                             parts.push(`🔧 JSON: ${stats.included.json.length}`);
                           }
@@ -669,6 +672,9 @@ const ExperimentManagement: React.FC = () => {
                               }
                               if (stats.txt.length > 0) {
                                 parts.push(`📝 TXT: ${stats.txt.length}`);
+                              }
+                              if (stats.md.length > 0) {
+                                parts.push(`📝 MD: ${stats.md.length}`);
                               }
                               if (stats.json.length > 0) {
                                 parts.push(`🔧 JSON: ${stats.json.length}`);

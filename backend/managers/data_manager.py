@@ -2,8 +2,10 @@
 import os
 import logging
 import gc
+import json
 from typing import List, Dict, Any
 from pathlib import Path
+from datetime import datetime
 from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from managers.chunking_manager import ChunkingStrategyManager
@@ -192,7 +194,7 @@ class DataManager:
         # Common field names that might contain the main content
         primary_content_fields = [
             'content', 'text', 'description', 'body', 'message', 'narrative', 
-            'summary', 'details', 'comment', 'review', 'feedback'
+            'summary', 'details', 'comment', 'review', 'feedback', 'response'
         ]
         
         # Secondary fields that add context
@@ -204,9 +206,11 @@ class DataManager:
         primary_content = None
         for field in primary_content_fields:
             for key, value in metadata.items():
-                if field.lower() in key.lower() and value and str(value).strip():
-                    primary_content = str(value).strip()
-                    break
+                if field.lower() in key.lower() and value is not None:
+                    value_str = str(value).strip()
+                    if value_str:
+                        primary_content = value_str
+                        break
             if primary_content:
                 break
         
@@ -221,9 +225,11 @@ class DataManager:
         context_parts = []
         for field in context_fields:
             for key, value in metadata.items():
-                if field.lower() in key.lower() and value and str(value).strip():
-                    context_parts.append(f"{key}: {str(value).strip()}")
-                    break
+                if field.lower() in key.lower() and value is not None:
+                    value_str = str(value).strip()
+                    if value_str:
+                        context_parts.append(f"{key}: {value_str}")
+                        break
         
         # Combine content
         if context_parts:
@@ -232,23 +238,200 @@ class DataManager:
         if primary_content:
             content_parts.append(f"Content: {primary_content}")
         
+        # Ensure all parts are strings before joining
+        content_parts = [str(part) for part in content_parts if part is not None]
         return "\n".join(content_parts) if content_parts else ""
+
+    def discover_all_csv_files(self) -> List[Dict[str, Any]]:
+        """
+        Automatically discover CSV files and load only selected ones.
+        """
+        if not os.path.exists(self.data_folder):
+            logger.warning(f"⚠️ Data folder not found: {self.data_folder}")
+            return []
+        
+        csv_files = []
+        for filename in os.listdir(self.data_folder):
+            if filename.lower().endswith('.csv'):
+                csv_files.append(filename)
+        
+        logger.info(f"📊 Found {len(csv_files)} CSV files: {csv_files}")
+        
+        # Auto-add new files to document selection if they don't exist
+        self._ensure_files_in_selection(csv_files)
+        
+        # Only load selected CSV files
+        selected_files = self._get_selected_files(csv_files)
+        logger.info(f"📋 Loading {len(selected_files)} selected CSV files: {selected_files}")
+        
+        all_csv_docs = []
+        for filename in selected_files:
+            try:
+                docs = self.load_csv_data(filename)
+                all_csv_docs.extend(docs)
+                logger.info(f"✅ Loaded {len(docs)} documents from {filename}")
+            except Exception as e:
+                logger.error(f"❌ Error loading {filename}: {str(e)}")
+        
+        logger.info(f"✅ Total CSV documents loaded: {len(all_csv_docs)}")
+        return all_csv_docs
+
+    def _get_selected_files(self, filenames: List[str]) -> List[str]:
+        """Filter files to only return those marked as selected in document_selection.json."""
+        selection_file = os.path.join(self.data_folder, "document_selection.json")
+        
+        if not os.path.exists(selection_file):
+            logger.info("📋 No document_selection.json found, loading all files")
+            return filenames
+            
+        try:
+            with open(selection_file, 'r', encoding='utf-8') as f:
+                selection_config = json.load(f)
+            
+            documents = selection_config.get('documents', {})
+            selected_files = []
+            
+            for filename in filenames:
+                if filename in documents and documents[filename].get('is_selected', False):
+                    selected_files.append(filename)
+                    logger.debug(f"✅ {filename} is selected")
+                else:
+                    logger.debug(f"⏸️ {filename} is not selected, skipping")
+            
+            return selected_files
+                
+        except Exception as e:
+            logger.error(f"❌ Error reading document selection: {str(e)}")
+            return filenames  # Fallback to loading all files
+
+    def _ensure_files_in_selection(self, filenames: List[str]) -> None:
+        """Ensure discovered files are added to document_selection.json if missing."""
+        selection_file = os.path.join(self.data_folder, "document_selection.json")
+        
+        if not os.path.exists(selection_file):
+            logger.info("📋 No document_selection.json found, files will be loaded directly")
+            return
+            
+        try:
+            with open(selection_file, 'r', encoding='utf-8') as f:
+                selection_config = json.load(f)
+            
+            documents = selection_config.get('documents', {})
+            updated = False
+            
+            for filename in filenames:
+                if filename not in documents:
+                    logger.info(f"📄 Auto-adding {filename} to document selection (not ingested, shows Ingest/Delete buttons)")
+                    documents[filename] = {
+                        "is_selected": False,
+                        "is_ingested": False,
+                        "ingested_at": "",
+                        "hash": "",
+                        "size_bytes": 0,
+                        "modified": "",
+                        "chunk_count": 0,
+                        "auto_discovered": True,
+                        "discovery_source": "filesystem"
+                    }
+                    updated = True
+            
+            if updated:
+                selection_config['last_updated'] = f"{datetime.now().isoformat()}"
+                with open(selection_file, 'w', encoding='utf-8') as f:
+                    json.dump(selection_config, f, indent=2)
+                logger.info("✅ Updated document_selection.json with new files")
+                
+        except Exception as e:
+            logger.error(f"❌ Error updating document selection: {str(e)}")
+
+    def load_json_files(self) -> List[Dict[str, Any]]:
+        """
+        Load JSON files from data folder, excluding config files, only selected ones.
+        """
+        if not os.path.exists(self.data_folder):
+            logger.warning(f"⚠️ Data folder not found: {self.data_folder}")
+            return []
+        
+        json_files = []
+        for filename in os.listdir(self.data_folder):
+            if (filename.lower().endswith('.json') and 
+                not filename.lower().startswith('config') and
+                filename != 'document_selection.json'):
+                json_files.append(filename)
+        
+        logger.info(f"📄 Found {len(json_files)} JSON files: {json_files}")
+        
+        # Auto-add to selection if needed
+        self._ensure_files_in_selection(json_files)
+        
+        # Only load selected JSON files
+        selected_files = self._get_selected_files(json_files)
+        logger.info(f"📋 Loading {len(selected_files)} selected JSON files: {selected_files}")
+        
+        json_docs = []
+        for filename in selected_files:
+            try:
+                filepath = os.path.join(self.data_folder, filename)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    import json
+                    data = json.load(f)
+                
+                # Create document from JSON
+                doc_dict = {
+                    'page_content': json.dumps(data, indent=2),
+                    'metadata': {
+                        'source': filepath,
+                        'filename': filename,
+                        'type': 'json'
+                    }
+                }
+                json_docs.append(doc_dict)
+                logger.info(f"✅ Loaded JSON file: {filename}")
+            except Exception as e:
+                logger.error(f"❌ Error loading JSON {filename}: {str(e)}")
+        
+        logger.info(f"✅ Total JSON documents loaded: {len(json_docs)}")
+        return json_docs
 
     def load_pdf_data(self) -> List[Dict[str, Any]]:
         """
-        Load PDF file metadata (without actual content processing).
+        Load PDF documents, but only selected ones.
         """
         pdf_folder = self.data_folder
         if not os.path.exists(pdf_folder):
             logger.warning(f"⚠️ Folder for PDF file(s) not found: {pdf_folder}")
             return []
-        logger.info(f"📄 Loading PDF documents from: {pdf_folder}")
-        loader = DirectoryLoader(pdf_folder, glob="*.pdf", loader_cls=PyMuPDFLoader)
-        pdf_files = list(Path(pdf_folder).glob("*.pdf"))
-        docs = loader.load()
+            
+        # Get all PDF files
+        pdf_files = [f.name for f in Path(pdf_folder).glob("*.pdf")]
+        logger.info(f"📄 Found {len(pdf_files)} PDF files: {pdf_files}")
+        
+        # Auto-add to selection if needed
+        self._ensure_files_in_selection(pdf_files)
+        
+        # Only load selected PDF files
+        selected_files = self._get_selected_files(pdf_files)
+        logger.info(f"📋 Loading {len(selected_files)} selected PDF files: {selected_files}")
+        
+        if not selected_files:
+            logger.info("⏸️ No PDF files selected for loading")
+            return []
+        
+        # Load only selected files
+        all_docs = []
+        for filename in selected_files:
+            try:
+                file_path = os.path.join(pdf_folder, filename)
+                loader = PyMuPDFLoader(file_path)
+                docs = loader.load()
+                all_docs.extend(docs)
+                logger.info(f"✅ Loaded {len(docs)} pages from {filename}")
+            except Exception as e:
+                logger.error(f"❌ Error loading PDF {filename}: {str(e)}")
+        
         gc.collect()
-        logger.info(f"✅ Loaded {len(docs)} from {len(pdf_files)} PDF files")
-        return docs
+        logger.info(f"✅ Total PDF documents loaded: {len(all_docs)}")
+        return all_docs
 
     def split_documents(self, documents):
         """
@@ -313,24 +496,28 @@ class DataManager:
 
     def load_all_documents(self) -> List[Dict[str, Any]]:
         """
-        Load all documents from CSV and PDF sources.
+        Load all documents from CSV, JSON, and PDF sources automatically.
         
         Returns:
             List of all loaded documents
         """
         try:
-            logger.info("📚 Loading all documents...")
+            logger.info("📚 Auto-discovering and loading all documents...")
             
-            # Load CSV data
-            csv_docs = self.load_csv_data()
-            logger.info(f"📊 Loaded {len(csv_docs)} CSV documents")
+            # Auto-discover all CSV files
+            csv_docs = self.discover_all_csv_files()
+            logger.info(f"📊 Total CSV documents: {len(csv_docs)}")
+            
+            # Load JSON files
+            json_docs = self.load_json_files()
+            logger.info(f"📄 Total JSON documents: {len(json_docs)}")
             
             # Load PDF data
             pdf_docs = self.load_pdf_data()
-            logger.info(f"📄 Loaded {len(pdf_docs)} PDF documents")
+            logger.info(f"📄 Total PDF documents: {len(pdf_docs)}")
             
             # Combine all documents
-            all_docs = csv_docs + pdf_docs
+            all_docs = csv_docs + json_docs + pdf_docs
             logger.info(f"✅ Total documents loaded: {len(all_docs)}")
             
             return all_docs

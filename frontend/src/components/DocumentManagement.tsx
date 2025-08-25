@@ -343,7 +343,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
 
   const getStatusColor = (isSelected: boolean, isIngested: boolean) => {
     if (!isSelected) return '#dc3545'; // Red for deselected
-    if (!isIngested) return '#ffc107'; // Yellow for selected but not ingested
+    if (!isIngested) return '#fd7e14'; // Orange for selected but not ingested (better contrast)
     return '#28a745'; // Green for selected and ingested
   };
 
@@ -514,27 +514,6 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
                   }}
                 >
                   {actionLoading === 'upload' ? '🔄 Uploading...' : '📁 Load Documents'}
-                </button>
-              )}
-              {documentStatus?.selection_summary?.needing_ingestion > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleIngestPending();
-                  }}
-                  disabled={actionLoading === 'ingest-pending'}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    cursor: actionLoading === 'ingest-pending' ? 'not-allowed' : 'pointer',
-                    opacity: actionLoading === 'ingest-pending' ? 0.6 : 1
-                  }}
-                >
-                  {actionLoading === 'ingest-pending' ? '🔄 Ingesting...' : `📥 Ingest Pending (${documentStatus.selection_summary.needing_ingestion})`}
                 </button>
               )}
               {documentStatus?.selection_summary?.needing_reingestion > 0 && (
@@ -719,46 +698,72 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
                     </div>
                     
                     <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
-                      {doc.is_selected ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeselectDocument(doc.filename);
-                          }}
-                          disabled={actionLoading === `deselect-${doc.filename}`}
-                          style={{
-                            padding: '4px 8px',
-                            backgroundColor: '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '3px',
-                            fontSize: '11px',
-                            cursor: actionLoading === `deselect-${doc.filename}` ? 'not-allowed' : 'pointer',
-                            opacity: actionLoading === `deselect-${doc.filename}` ? 0.6 : 1
-                          }}
-                        >
-                          {actionLoading === `deselect-${doc.filename}` ? '🔄 Deselecting' : '❌ Deselect'}
-                        </button>
+                      {doc.is_ingested ? (
+                        // Ingested files: Show Select/Deselect toggle
+                        <>
+                          {doc.is_selected ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeselectDocument(doc.filename);
+                              }}
+                              disabled={actionLoading === `deselect-${doc.filename}`}
+                              style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '3px',
+                                fontSize: '11px',
+                                cursor: actionLoading === `deselect-${doc.filename}` ? 'not-allowed' : 'pointer',
+                                opacity: actionLoading === `deselect-${doc.filename}` ? 0.6 : 1
+                              }}
+                            >
+                              {actionLoading === `deselect-${doc.filename}` ? '🔄 Deselecting' : '❌ Deselect'}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectDocument(doc.filename);
+                              }}
+                              disabled={actionLoading === `select-${doc.filename}`}
+                              style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '3px',
+                                fontSize: '11px',
+                                cursor: actionLoading === `select-${doc.filename}` ? 'not-allowed' : 'pointer',
+                                opacity: actionLoading === `select-${doc.filename}` ? 0.6 : 1
+                              }}
+                            >
+                              {actionLoading === `select-${doc.filename}` ? '🔄 Selecting' : '✅ Select'}
+                            </button>
+                          )}
+                        </>
                       ) : (
+                        // Not ingested files: Always show Ingest and Delete buttons
                         <>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSelectDocument(doc.filename);
+                              handleIngestDocument(doc.filename);
                             }}
-                            disabled={actionLoading === `select-${doc.filename}`}
+                            disabled={actionLoading === `ingest-${doc.filename}`}
                             style={{
                               padding: '4px 8px',
-                              backgroundColor: '#28a745',
+                              backgroundColor: '#007bff',
                               color: 'white',
                               border: 'none',
                               borderRadius: '3px',
                               fontSize: '11px',
-                              cursor: actionLoading === `select-${doc.filename}` ? 'not-allowed' : 'pointer',
-                              opacity: actionLoading === `select-${doc.filename}` ? 0.6 : 1
+                              cursor: actionLoading === `ingest-${doc.filename}` ? 'not-allowed' : 'pointer',
+                              opacity: actionLoading === `ingest-${doc.filename}` ? 0.6 : 1
                             }}
                           >
-                            {actionLoading === `select-${doc.filename}` ? '🔄 Selecting & Ingesting' : '✅ Select & Ingest'}
+                            {actionLoading === `ingest-${doc.filename}` ? '🔄 Ingesting' : '📥 Ingest'}
                           </button>
                           <button
                             onClick={(e) => {
@@ -780,28 +785,6 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
                             {actionLoading === `delete-${doc.filename}` ? '🔄 Deleting' : '🗑️ Delete'}
                           </button>
                         </>
-                      )}
-                      
-                      {doc.is_selected && !doc.is_ingested && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleIngestDocument(doc.filename);
-                          }}
-                          disabled={actionLoading === `ingest-${doc.filename}`}
-                          style={{
-                            padding: '4px 8px',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '3px',
-                            fontSize: '11px',
-                            cursor: actionLoading === `ingest-${doc.filename}` ? 'not-allowed' : 'pointer',
-                            opacity: actionLoading === `ingest-${doc.filename}` ? 0.6 : 1
-                          }}
-                        >
-                          {actionLoading === `ingest-${doc.filename}` ? '🔄 Ingesting' : '📥 Ingest'}
-                        </button>
                       )}
                     </div>
                   </div>

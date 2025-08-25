@@ -46,9 +46,11 @@ class SimpleDocumentProcessor:
             return self.corpus_stats_manager._corpus_stats_cache
         
         # Only load documents if we need to compute stats or initialize vector store
-        csv_docs = self.data_manager.load_csv_data()
-        pdf_docs = self.data_manager.load_pdf_data()
-        combined_docs = csv_docs + pdf_docs
+        combined_docs = self.data_manager.load_all_documents()
+        
+        # Separate by type for stats
+        csv_docs = [doc for doc in combined_docs if doc.metadata.get('source', '').endswith('.csv')]
+        pdf_docs = [doc for doc in combined_docs if doc.metadata.get('source', '').endswith('.pdf')]
 
         if not self._documents_loaded:
             self.vector_store_manager.initialize_vector_store_if_needed(combined_docs)

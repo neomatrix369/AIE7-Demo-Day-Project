@@ -33,28 +33,42 @@ export const useComparisonData = () => {
         storageAdapter.loadExperiment(experimentB)
       ]);
       
-      // Get chunk coverage data from backend API for both experiments
-      let expAChunkCoverage = 0;
-      let expBChunkCoverage = 0;
+      // Get backend analysis data for both experiments for reliable calculations
+      let expAAnalysis = null;
+      let expBAnalysis = null;
+      let expAGapAnalysis = null;
+      let expBGapAnalysis = null;
       
       try {
-        // Load experiment A and get its chunk coverage
+        // Load experiment A and get its analysis data
         await fetch(`/api/experiments/load?filename=${experimentA}`, { method: 'POST' });
-        const analysisAResponse = await fetch('/api/results/analysis');
+        const [analysisAResponse, gapAnalysisAResponse] = await Promise.all([
+          fetch('/api/results/analysis'),
+          fetch('/api/v1/analysis/gaps')
+        ]);
+        
         if (analysisAResponse.ok) {
-          const analysisA = await analysisAResponse.json();
-          expAChunkCoverage = analysisA.overall?.chunk_coverage?.coverage_percentage || 0;
+          expAAnalysis = await analysisAResponse.json();
+        }
+        if (gapAnalysisAResponse.ok) {
+          expAGapAnalysis = await gapAnalysisAResponse.json();
         }
         
-        // Load experiment B and get its chunk coverage
+        // Load experiment B and get its analysis data
         await fetch(`/api/experiments/load?filename=${experimentB}`, { method: 'POST' });
-        const analysisBResponse = await fetch('/api/results/analysis');
+        const [analysisBResponse, gapAnalysisBResponse] = await Promise.all([
+          fetch('/api/results/analysis'),
+          fetch('/api/v1/analysis/gaps')
+        ]);
+        
         if (analysisBResponse.ok) {
-          const analysisB = await analysisBResponse.json();
-          expBChunkCoverage = analysisB.overall?.chunk_coverage?.coverage_percentage || 0;
+          expBAnalysis = await analysisBResponse.json();
+        }
+        if (gapAnalysisBResponse.ok) {
+          expBGapAnalysis = await gapAnalysisBResponse.json();
         }
       } catch (error) {
-        console.warn('Failed to get chunk coverage from backend API:', error);
+        console.warn('Failed to get backend analysis data:', error);
       }
       
       if (expAResponse.success && expBResponse.success) {
@@ -113,8 +127,8 @@ export const useComparisonData = () => {
               after: countPoorQuestions(expB) 
             },
             chunkCoverage: { 
-              before: expAChunkCoverage || calculateChunkCoverage(expA), 
-              after: expBChunkCoverage || calculateChunkCoverage(expB) 
+              before: expAAnalysis?.overall?.chunk_coverage?.coverage_percentage || calculateChunkCoverage(expA), 
+              after: expBAnalysis?.overall?.chunk_coverage?.coverage_percentage || calculateChunkCoverage(expB) 
             }
           },
           context: {
@@ -241,27 +255,44 @@ const calculateSuccessRate = (experiment: any): number => {
 };
 
 const countHighQualityAnswers = (experiment: any): number => {
-  // Try to get from quality score metrics first
-  if (experiment.results?.quality_score_metrics?.quality_threshold_analysis?.above_7) {
-    return experiment.results.quality_score_metrics.quality_threshold_analysis.above_7;
+  // Try to get from backend analysis API first (most reliable)
+  if (experiment.results?.overall?.success_rate !== undefined) {
+    const successRate = experiment.results.overall.success_rate;
+    const totalQuestions = experiment.metadata?.total_questions || experiment.question_results?.length || 0;
+    return Math.round((successRate / 100) * totalQuestions);
   }
   
-  // Calculate from question results if quality_score_metrics not available
+  // Try to get from performance metrics (backend calculated)
+  if (experiment.results?.performance?.success_rate_percent !== undefined) {
+    const successRate = experiment.results.performance.success_rate_percent;
+    const totalQuestions = experiment.metadata?.total_questions || experiment.question_results?.length || 0;
+    return Math.round((successRate / 100) * totalQuestions);
+  }
+  
+  // Fallback to frontend calculation only if no backend data available
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
     return experiment.question_results.filter((q: any) => {
-      // Use quality_score if available, otherwise convert avg_similarity to quality score
       const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
-      return qualityScore >= 7.0;  // Consider questions with quality score >= 7.0 as high quality
+      return qualityScore >= 7.0;
     }).length;
   }
   return 0;
 };
 
-const countWeakCoverage = (experiment: any): number => {
-  // Calculate weak coverage based on questions with low quality scores
+const countWeakCoverage = (experiment: any, gapAnalysisData?: any): number => {
+  // Try to get from backend gap analysis API first (most reliable)
+  if (gapAnalysisData?.gapSummary?.weakQuestionsCount !== undefined) {
+    return gapAnalysisData.gapSummary.weakQuestionsCount;
+  }
+  
+  // Try to get from experiment results if available
+  if (experiment.results?.gap_analysis?.weak_questions_count !== undefined) {
+    return experiment.results.gap_analysis.weak_questions_count;
+  }
+  
+  // Fallback to frontend calculation
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
     return experiment.question_results.filter((q: any) => {
-      // Use quality_score if available, otherwise convert avg_similarity to quality score
       const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
       return qualityScore < 5.0;  // Consider questions with quality score < 5.0 as weak coverage
     }).length;
@@ -269,15 +300,25 @@ const countWeakCoverage = (experiment: any): number => {
   return 0;
 };
 
-const countPoorQuestions = (experiment: any): number => {
+const countPoorQuestions = (experiment: any, gapAnalysisData?: any): number => {
+  // Try to get from backend gap analysis API first (most reliable)
+  if (gapAnalysisData?.gapSummary?.poorQuestionsCount !== undefined) {
+    return gapAnalysisData.gapSummary.poorQuestionsCount;
+  }
+  
+  // Try to get from experiment results if available
+  if (experiment.results?.gap_analysis?.poor_questions_count !== undefined) {
+    return experiment.results.gap_analysis.poor_questions_count;
+  }
+  
+  // Try to get from quality score metrics (if available)
   if (experiment.results?.quality_score_metrics?.quality_score_distribution?.poor) {
     return experiment.results.quality_score_metrics.quality_score_distribution.poor;
   }
   
-  // Calculate from question results if quality_score_metrics not available
+  // Fallback to frontend calculation
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
     return experiment.question_results.filter((q: any) => {
-      // Use quality_score if available, otherwise convert avg_similarity to quality score
       const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
       return qualityScore < 5.0;  // Consider questions with quality score < 5.0 as poor
     }).length;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ComparisonData } from '../types';
-import { getOverallImprovement, getStatusColor, formatDate, formatTime } from '../utils/comparisonCalculations';
+import { getOverallImprovement, formatDate, formatTime } from '../utils/comparisonCalculations';
+import { getStatusColorScheme } from '../utils/statusColors';
 
 interface ComparisonHeaderProps {
   data: ComparisonData;
@@ -8,6 +9,33 @@ interface ComparisonHeaderProps {
 
 const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
   const overallImprovement = getOverallImprovement(data);
+  
+  // Get background color based on theme
+  const getBadgeBackgroundColor = (theme: 'positive' | 'negative' | 'neutral') => {
+    switch (theme) {
+      case 'positive':
+        return 'rgba(40, 167, 69, 0.25)'; // Green with transparency
+      case 'negative':
+        return 'rgba(220, 53, 69, 0.25)'; // Red with transparency
+      case 'neutral':
+        return 'rgba(255, 255, 255, 0.25)'; // White with transparency
+      default:
+        return 'rgba(255, 255, 255, 0.25)';
+    }
+  };
+  
+  const getBadgeBorderColor = (theme: 'positive' | 'negative' | 'neutral') => {
+    switch (theme) {
+      case 'positive':
+        return 'rgba(40, 167, 69, 0.4)'; // Green border
+      case 'negative':
+        return 'rgba(220, 53, 69, 0.4)'; // Red border
+      case 'neutral':
+        return 'rgba(255, 255, 255, 0.3)'; // White border
+      default:
+        return 'rgba(255, 255, 255, 0.3)';
+    }
+  };
 
   return (
     <div style={{
@@ -41,27 +69,29 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
         marginBottom: '24px'
       }}>
         <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.25)',
+          backgroundColor: getBadgeBackgroundColor(overallImprovement.theme),
           padding: '20px 32px',
           borderRadius: '16px',
           display: 'inline-block',
-          border: '2px solid rgba(255, 255, 255, 0.3)',
+          border: `2px solid ${getBadgeBorderColor(overallImprovement.theme)}`,
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
         }}>
           <div style={{
-            fontSize: '42px',
+            fontSize: '24px',
             fontWeight: 'bold',
             marginBottom: '6px',
-            textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            lineHeight: '1.3',
+            whiteSpace: 'pre-line'
           }}>
-            +{overallImprovement}%
+            {overallImprovement.text}
           </div>
           <div style={{
-            fontSize: '18px',
+            fontSize: '16px',
             opacity: 0.95,
             fontWeight: '500'
           }}>
-            Overall Improvement
+            {overallImprovement.narrative}
           </div>
         </div>
       </div>
@@ -75,13 +105,14 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
         marginBottom: '28px'
       }}>
         <div style={{
-          backgroundColor: getStatusColor(data.experimentA.status),
+          backgroundColor: getStatusColorScheme(data.experimentA.status).primary,
+          color: getStatusColorScheme(data.experimentA.status).text,
           padding: '12px 20px',
           borderRadius: '10px',
           fontSize: '16px',
           fontWeight: 'bold',
           boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
-          border: '2px solid rgba(255, 255, 255, 0.2)'
+          border: `2px solid ${getStatusColorScheme(data.experimentA.status).secondary}`
         }}>
           {data.experimentA.status}
         </div>
@@ -92,13 +123,14 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
         }}>🎯</span>
         
         <div style={{
-          backgroundColor: getStatusColor(data.experimentB.status),
+          backgroundColor: getStatusColorScheme(data.experimentB.status).primary,
+          color: getStatusColorScheme(data.experimentB.status).text,
           padding: '12px 20px',
           borderRadius: '10px',
           fontSize: '16px',
           fontWeight: 'bold',
           boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)',
-          border: '2px solid rgba(255, 255, 255, 0.2)'
+          border: `2px solid ${getStatusColorScheme(data.experimentB.status).secondary}`
         }}>
           {data.experimentB.status}
         </div>
@@ -196,8 +228,9 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
           {data.experimentA.questionCount} Questions Each
         </span>
         
-        {/* Dynamic quality boost tag */}
-        {overallImprovement > 10 && (
+        {/* Quality improvement tag - show if there's any improvement */}
+        {(data.metrics.overallQuality.after > data.metrics.overallQuality.before || 
+          data.metrics.successRate.after > data.metrics.successRate.before) && (
           <span style={{
             backgroundColor: 'rgba(255, 255, 255, 0.2)',
             padding: '6px 12px',
@@ -205,20 +238,20 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
             fontSize: '12px',
             fontWeight: '500'
           }}>
-            {overallImprovement > 50 ? 'Major Quality Boost' : 
-             overallImprovement > 25 ? 'Significant Quality Boost' : 
-             'Quality Improvement'}
+            Quality Improvement
           </span>
         )}
         
         {/* Dynamic corpus health tag */}
         {data.metrics.corpusHealth.before !== data.metrics.corpusHealth.after && (
           <span style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: getStatusColorScheme(data.metrics.corpusHealth.after).light,
+            color: getStatusColorScheme(data.metrics.corpusHealth.after).dark,
             padding: '6px 12px',
             borderRadius: '16px',
             fontSize: '12px',
-            fontWeight: '500'
+            fontWeight: '500',
+            border: `1px solid ${getStatusColorScheme(data.metrics.corpusHealth.after).primary}`
           }}>
             {data.metrics.corpusHealth.after === 'EXCELLENT' ? 'Excellent Corpus Health' :
              data.metrics.corpusHealth.after === 'GOOD' ? 'Good Corpus Health' :

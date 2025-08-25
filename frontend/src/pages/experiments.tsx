@@ -306,6 +306,92 @@ const ExperimentManagement: React.FC = () => {
         </div>
       )}
 
+      {/* Floating Compare Button - appears in center of screen when 2 experiments selected */}
+      {selectedForComparison.size === 2 && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: '#d4edda',
+          padding: '24px',
+          borderRadius: '12px',
+          border: '3px solid #28a745',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          zIndex: 1001,
+          textAlign: 'center',
+          minWidth: '400px',
+          backdropFilter: 'blur(10px)',
+          animation: 'fadeInScale 0.3s ease-out'
+        }}>
+          <div style={{ fontSize: '20px', color: '#155724', fontWeight: '600', marginBottom: '16px' }}>
+            ✅ Ready to Compare
+          </div>
+          <div style={{ fontSize: '16px', color: '#155724', marginBottom: '20px' }}>
+            {Array.from(selectedForComparison).join(' vs ')}
+          </div>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              onClick={handleCompareExperiments}
+              className="button"
+              style={{
+                backgroundColor: '#28a745',
+                padding: '16px 32px',
+                fontSize: '18px',
+                fontWeight: '600',
+                borderRadius: '8px',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.3)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+              }}
+            >
+              ⚖️ Compare Now →
+            </button>
+            <button
+              onClick={handleClearComparison}
+              className="button"
+              style={{
+                backgroundColor: '#6c757d',
+                padding: '16px 24px',
+                fontSize: '16px',
+                fontWeight: '500',
+                borderRadius: '8px',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop overlay when compare button is shown */}
+      {selectedForComparison.size === 2 && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          animation: 'fadeIn 0.3s ease-out'
+        }} />
+      )}
+
       <div className="card">
         <h2>📁 Experiment Management</h2>
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
@@ -354,11 +440,12 @@ const ExperimentManagement: React.FC = () => {
         {/* Comparison Controls */}
         {experiments && experiments.length >= 2 && (
           <div style={{
-            backgroundColor: '#f8f9fa',
+            backgroundColor: selectedForComparison.size > 0 ? '#e8f5e8' : '#f8f9fa',
             padding: '16px',
             borderRadius: '8px',
-            border: '1px solid #dee2e6',
-            marginBottom: '20px'
+            border: selectedForComparison.size > 0 ? '2px solid #28a745' : '1px solid #dee2e6',
+            marginBottom: '20px',
+            transition: 'all 0.3s ease'
           }}>
             <div style={{
               display: 'flex',
@@ -367,50 +454,40 @@ const ExperimentManagement: React.FC = () => {
               marginBottom: '12px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontWeight: 'bold', color: '#333' }}>
+                <span style={{ fontWeight: 'bold', color: '#333', fontSize: '16px' }}>
                   ⚖️ Compare Experiments:
                 </span>
-                <span style={{ fontSize: '14px', color: '#666' }}>
-                  Select 2 experiments to compare ({selectedForComparison.size}/2 selected)
+                <span style={{ 
+                  fontSize: '14px', 
+                  color: selectedForComparison.size > 0 ? '#155724' : '#666',
+                  fontWeight: selectedForComparison.size > 0 ? '600' : 'normal'
+                }}>
+                  {selectedForComparison.size === 0 && 'Select 2 experiments to compare'}
+                  {selectedForComparison.size === 1 && `1 experiment selected - select 1 more`}
+                  {selectedForComparison.size === 2 && `✅ Ready to compare!`}
+                  {selectedForComparison.size > 2 && `Too many selected - deselect some`}
                 </span>
               </div>
               {selectedForComparison.size > 0 && (
                 <button
                   onClick={handleClearComparison}
                   className="button button-secondary"
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  style={{ 
+                    padding: '8px 16px', 
+                    fontSize: '14px',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
                 >
                   Clear Selection
                 </button>
               )}
             </div>
             
-            {selectedForComparison.size === 2 && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: '#d4edda',
-                padding: '12px',
-                borderRadius: '6px',
-                border: '1px solid #c3e6cb'
-              }}>
-                <div style={{ fontSize: '14px', color: '#155724' }}>
-                  <strong>Ready to compare:</strong> {Array.from(selectedForComparison).join(' vs ')}
-                </div>
-                <button
-                  onClick={handleCompareExperiments}
-                  className="button"
-                  style={{
-                    backgroundColor: '#28a745',
-                    padding: '8px 16px',
-                    fontSize: '14px'
-                  }}
-                >
-                  ⚖️ Compare Selected
-                </button>
-              </div>
-            )}
+
           </div>
         )}
 
@@ -652,6 +729,8 @@ const ExperimentManagement: React.FC = () => {
                 </div>
               </div>
             ))}
+            
+
           </div>
         )}
 

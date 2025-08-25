@@ -1,4 +1,5 @@
 import { ComparisonData } from '../types';
+import { getStatusColor } from './statusColors';
 
 export const calculateImprovement = (before: number, after: number): number => {
   if (before === 0) return after > 0 ? 100 : 0;
@@ -11,21 +12,8 @@ export const formatImprovement = (before: number, after: number): string => {
   return `${sign}${improvement}%`;
 };
 
-export const getStatusColor = (status: string): string => {
-  switch (status.toLowerCase()) {
-    case 'excellent':
-      return '#28a745';
-    case 'good':
-      return '#17a2b8';
-    case 'needs work':
-    case 'needs_work':
-      return '#ffc107';
-    case 'poor':
-      return '#dc3545';
-    default:
-      return '#6c757d';
-  }
-};
+// Re-export the status color function for backward compatibility
+export { getStatusColor };
 
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -44,15 +32,34 @@ export const formatTime = (timeString: string): string => {
   });
 };
 
-export const getOverallImprovement = (data: ComparisonData): number => {
-  const qualityImprovement = calculateImprovement(
-    data.metrics.overallQuality.before,
-    data.metrics.overallQuality.after
-  );
-  const successImprovement = calculateImprovement(
-    data.metrics.successRate.before,
-    data.metrics.successRate.after
-  );
+export const getOverallImprovement = (data: ComparisonData): { text: string; theme: 'positive' | 'negative' | 'neutral'; narrative: string } => {
+  const qualityChange = data.metrics.overallQuality.after - data.metrics.overallQuality.before;
+  const successChange = data.metrics.successRate.after - data.metrics.successRate.before;
   
-  return Math.round((qualityImprovement + successImprovement) / 2);
+  const text = `Quality: ${qualityChange >= 0 ? '+' : ''}${qualityChange.toFixed(1)}\nSuccess Rate: ${successChange >= 0 ? '+' : ''}${successChange.toFixed(1)}%`;
+  
+  // Determine theme and narrative based on overall performance
+  if (qualityChange > 0 || successChange > 0) {
+    let narrative = 'Performance Improvement';
+    if (qualityChange > 0 && successChange > 0) {
+      narrative = 'Overall Improvement';
+    } else if (qualityChange > 0) {
+      narrative = 'Quality Improvement';
+    } else if (successChange > 0) {
+      narrative = 'Success Rate Improvement';
+    }
+    return { text, theme: 'positive', narrative };
+  } else if (qualityChange < 0 || successChange < 0) {
+    let narrative = 'Performance Decline';
+    if (qualityChange < 0 && successChange < 0) {
+      narrative = 'Overall Decline';
+    } else if (qualityChange < 0) {
+      narrative = 'Quality Decline';
+    } else if (successChange < 0) {
+      narrative = 'Success Rate Decline';
+    }
+    return { text, theme: 'negative', narrative };
+  } else {
+    return { text, theme: 'neutral', narrative: 'No Performance Change' };
+  }
 };

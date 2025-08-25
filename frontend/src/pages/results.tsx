@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
 import usePageData from '../hooks/usePageData';
-import { LABEL_DASHBOARD, LABEL_HEATMAP, CORPUS_HEALTH_INFO } from '../utils/constants';
+import { LABEL_DASHBOARD, LABEL_HEATMAP } from '../utils/constants';
 import { resultsApi, experimentsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logInfo, logSuccess, logError } from '../utils/logger';
@@ -76,7 +76,7 @@ const AnalysisResults: React.FC = () => {
         total_questions: data.overall.total_questions,
         avg_quality_score: data.overall.avg_quality_score,
         success_rate: data.overall.success_rate,
-        corpus_health: data.overall.corpus_health,
+
         llm_avg_quality_score: data.per_group.llm?.avg_quality_score ?? 0,
         ragas_avg_quality_score: data.per_group.ragas?.avg_quality_score ?? 0
       })
@@ -101,13 +101,7 @@ const AnalysisResults: React.FC = () => {
   const getStatusColor = (qualityScore: number) => getStatusColorShared(qualityScore);
   const getStatusText = (qualityScore: number) => getStatusShared(qualityScore).toUpperCase();
 
-  const getHealthColor = (health: string) => {
-    switch (health) {
-      case 'excellent': return 'health-excellent';
-      case 'good': return 'health-good';
-      default: return 'health-needs-work';
-    }
-  };
+
 
   const getQualityScoreBarClass = (qualityScore: number) => {
     if (qualityScore >= 7.0) return 'quality-score-good';
@@ -354,39 +348,7 @@ const AnalysisResults: React.FC = () => {
                 </div>
               </div>
 
-              {/* Corpus Health Card */}
-              <div style={{ backgroundColor: '#e6f7ff', border: '2px solid #0c7cd5', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#064785', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🏥 Corpus Health</span>
-                  <BalloonTooltip 
-                    content={`Overall corpus health assessment based on average quality scores. ${CORPUS_HEALTH_INFO.map(h => `${h.label} (${h.range}) - ${h.description.toLowerCase()}`).join(', ')}.`}
-                    maxWidth={380} 
-                    cursor="help"
-                  >
-                    <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
-                  </BalloonTooltip>
-                </h4>
-                <div style={{ backgroundColor: 'white', borderRadius: '4px', padding: '8px' }}>
-                  <span className={`health-indicator ${getHealthColor(results.overall.corpus_health)}`} style={{ fontSize: '0.9rem' }}>
-                    {results.overall.corpus_health.replace('_', ' ')}
-                  </span>
-                  <div style={{ color: '#666', marginTop: '6px', fontSize: '0.8rem' }}>System Status</div>
-                </div>
-                
-                {/* Corpus Health Legend */}
-                <div style={{ marginTop: '8px', fontSize: '0.75rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-                    {CORPUS_HEALTH_INFO.map((health) => (
-                      <div key={health.status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className={`health-indicator ${health.cssClass}`} style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
-                          {health.label}
-                        </span>
-                        <span style={{ color: '#666' }}>{health.range}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+
             </div>
 
             {/* Key Insight Section */}
@@ -714,7 +676,7 @@ const AnalysisResults: React.FC = () => {
                 className="button button-secondary"
                 onClick={() => goTo('/', LABEL_DASHBOARD, { 
                   action: 'NAVIGATE_TO_DASHBOARD_FROM_RESULTS_ADVANCED', 
-                  data: { corpus_health: results.overall.corpus_health } 
+           
                 })}
                 style={{ 
                   fontSize: '14px', 

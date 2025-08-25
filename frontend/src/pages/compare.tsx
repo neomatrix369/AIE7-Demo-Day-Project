@@ -10,9 +10,8 @@ import { logNavigation } from '../utils/logger';
 
 // Helper function for status conversion
 const getStatusFromQualityScore = (score: number): string => {
-  if (score >= 8.0) return 'EXCELLENT';
-  if (score >= 6.0) return 'GOOD';
-  if (score >= 4.0) return 'NEEDS WORK';
+  if (score >= 7.0) return 'GOOD';
+  if (score >= 5.0) return 'WEAK';
   return 'POOR';
 };
 
@@ -23,27 +22,45 @@ const generateQualityScoreComment = (before: number, after: number): string => {
   const statusAfter = getStatusFromQualityScore(after);
   
   if (improvement === 0) {
-    return `${statusBefore} → ${statusAfter} • No change in quality score`;
+    return statusBefore === statusAfter ? 
+      `${statusBefore} • No change in quality score` : 
+      `${statusBefore} → ${statusAfter} • No change in quality score`;
   } else if (improvement < 0) {
     const decline = Math.abs(improvement);
     if (decline < 10) {
-      return `${statusBefore} → ${statusAfter} • Minor quality decline`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Minor quality decline` : 
+        `${statusBefore} → ${statusAfter} • Minor quality decline`;
     } else if (decline < 25) {
-      return `${statusBefore} → ${statusAfter} • Moderate quality decline`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Moderate quality decline` : 
+        `${statusBefore} → ${statusAfter} • Moderate quality decline`;
     } else if (decline < 50) {
-      return `${statusBefore} → ${statusAfter} • Significant quality decline`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Significant quality decline` : 
+        `${statusBefore} → ${statusAfter} • Significant quality decline`;
     } else {
-      return `${statusBefore} → ${statusAfter} • Major quality decline`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Major quality decline` : 
+        `${statusBefore} → ${statusAfter} • Major quality decline`;
     }
   } else {
     if (improvement < 10) {
-      return `${statusBefore} → ${statusAfter} • Minor quality improvement`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Minor quality improvement` : 
+        `${statusBefore} → ${statusAfter} • Minor quality improvement`;
     } else if (improvement < 25) {
-      return `${statusBefore} → ${statusAfter} • Moderate quality boost`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Moderate quality boost` : 
+        `${statusBefore} → ${statusAfter} • Moderate quality boost`;
     } else if (improvement < 50) {
-      return `${statusBefore} → ${statusAfter} • Significant quality improvement`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Significant quality improvement` : 
+        `${statusBefore} → ${statusAfter} • Significant quality improvement`;
     } else {
-      return `${statusBefore} → ${statusAfter} • Major quality boost`;
+      return statusBefore === statusAfter ? 
+        `${statusBefore} • Major quality boost` : 
+        `${statusBefore} → ${statusAfter} • Major quality boost`;
     }
   }
 };
@@ -108,21 +125,7 @@ const generateHighQualityAnswersComment = (before: number, after: number): strin
   }
 };
 
-const generateCorpusHealthComment = (before: string, after: string): string => {
-  if (before === after) {
-    return `No change in corpus health status`;
-  }
-  
-  const statusRank = { 'POOR': 1, 'NEEDS WORK': 2, 'GOOD': 3, 'EXCELLENT': 4 };
-  const beforeRank = statusRank[before as keyof typeof statusRank] || 1;
-  const afterRank = statusRank[after as keyof typeof statusRank] || 1;
-  
-  if (afterRank > beforeRank) {
-    return `Corpus health improved from ${before} to ${after}`;
-  } else {
-    return `Corpus health declined from ${before} to ${after}`;
-  }
-};
+
 
 // Helper function to calculate impact level based on improvement
 const calculateImpactLevel = (before: number, after: number, metricType: 'percentage' | 'count' | 'score' = 'percentage'): 'HIGH' | 'MEDIUM' | 'LOW' => {
@@ -459,15 +462,7 @@ const ComparePage: React.FC = () => {
               improvement={generateHighQualityAnswersComment(data.metrics.highQualityAnswers.before, data.metrics.highQualityAnswers.after)}
             />
             
-            <MetricRow
-              label="Corpus Health"
-              before={data.metrics.corpusHealth.before}
-              after={data.metrics.corpusHealth.after}
-              impact="LOW"
-              backgroundColor="#f8fff8"
-              improvement={generateCorpusHealthComment(data.metrics.corpusHealth.before, data.metrics.corpusHealth.after)}
-              isLast={true}
-            />
+
           </div>
         </div>
 

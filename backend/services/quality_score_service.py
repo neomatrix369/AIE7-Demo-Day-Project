@@ -17,7 +17,7 @@ Following the Four Rules of Simple Design:
 """
 
 from typing import List, Dict, Any, Literal
-from config.settings import QUALITY_THRESHOLDS, CORPUS_HEALTH_THRESHOLDS
+from config.settings import QUALITY_THRESHOLDS
 
 QualityStatus = Literal['good', 'weak', 'poor']
 
@@ -91,23 +91,7 @@ class QualityScoreService:
         good_scores = [s for s in quality_scores if s >= QUALITY_THRESHOLDS['GOOD']]
         return len(good_scores) / len(quality_scores)
     
-    @staticmethod
-    def get_corpus_health(avg_quality_score: float) -> str:
-        """
-        Determine corpus health based on average quality score.
-        
-        Args:
-            avg_quality_score: Average quality score
-            
-        Returns:
-            Health status: 'excellent', 'good', or 'needs_work'
-        """
-        if avg_quality_score >= CORPUS_HEALTH_THRESHOLDS['EXCELLENT']:
-            return "excellent"
-        elif avg_quality_score >= CORPUS_HEALTH_THRESHOLDS['GOOD']:
-            return "good"
-        else:
-            return "needs_work"
+
     
     @staticmethod
     def calculate_distribution_stats(quality_scores: List[float]) -> Dict[str, int]:

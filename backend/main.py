@@ -423,7 +423,7 @@ async def get_analysis_results():
                 "avg_quality_score": 0.0,
                 "success_rate": 0.0,
                 "total_questions": 0,
-                "corpus_health": "no_data",
+
                 "key_insight": "No experiment loaded. Please load an experiment from the Experiments page."
             },
             "per_group": {

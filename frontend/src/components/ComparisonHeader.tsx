@@ -242,23 +242,7 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
           </span>
         )}
         
-        {/* Dynamic corpus health tag */}
-        {data.metrics.corpusHealth.before !== data.metrics.corpusHealth.after && (
-          <span style={{
-            backgroundColor: getStatusColorScheme(data.metrics.corpusHealth.after).light,
-            color: getStatusColorScheme(data.metrics.corpusHealth.after).dark,
-            padding: '6px 12px',
-            borderRadius: '16px',
-            fontSize: '12px',
-            fontWeight: '500',
-            border: `1px solid ${getStatusColorScheme(data.metrics.corpusHealth.after).primary}`
-          }}>
-            {data.metrics.corpusHealth.after === 'EXCELLENT' ? 'Excellent Corpus Health' :
-             data.metrics.corpusHealth.after === 'GOOD' ? 'Good Corpus Health' :
-             data.metrics.corpusHealth.after === 'NEEDS WORK' ? 'Corpus Needs Work' :
-             'Corpus Health Changed'}
-          </span>
-        )}
+
         
         {/* Dynamic success rate tag */}
         {data.metrics.successRate.after > data.metrics.successRate.before && 

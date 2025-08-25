@@ -34,11 +34,7 @@ QUALITY_THRESHOLDS = {
     'POOR': 0.0     # Below minimum threshold
 }
 
-CORPUS_HEALTH_THRESHOLDS = {
-    'EXCELLENT': 8.0,  # Excellent corpus health
-    'GOOD': 6.0,       # Good corpus health
-    'NEEDS_WORK': 0.0  # Needs improvement
-}
+
 
 # =============================================================================
 # GAP ANALYSIS THRESHOLDS

@@ -200,7 +200,7 @@ const DataLoadingDashboard: React.FC = () => {
         </div>
 
         <div className="card" style={{ backgroundColor: '#e8f4fd', marginBottom: '30px' }}>
-          <h3>📈 Corpus Health Preview</h3>
+          <h3>📈 Document Distribution Preview</h3>
           <div className="two-column">
             <div>
               <h4>Document Distribution</h4>

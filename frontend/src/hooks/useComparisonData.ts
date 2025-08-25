@@ -114,10 +114,7 @@ export const useComparisonData = () => {
               before: countHighQualityAnswers(expA), 
               after: countHighQualityAnswers(expB) 
             },
-            corpusHealth: { 
-              before: getStatusFromQualityScore(expA.metadata?.avg_quality_score || 0), 
-              after: getStatusFromQualityScore(expB.metadata?.avg_quality_score || 0) 
-            },
+
             weakCoverage: { 
               before: countWeakCoverage(expA), 
               after: countWeakCoverage(expB) 
@@ -225,9 +222,8 @@ export const useComparisonData = () => {
 
 // Helper functions to transform experiment data
 const getStatusFromQualityScore = (score: number): string => {
-  if (score >= 8.0) return 'EXCELLENT';
-  if (score >= 6.0) return 'GOOD';
-  if (score >= 4.0) return 'NEEDS WORK';
+  if (score >= 7.0) return 'GOOD';
+  if (score >= 5.0) return 'WEAK';
   return 'POOR';
 };
 

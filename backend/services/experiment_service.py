@@ -721,7 +721,7 @@ class ExperimentService:
         all_quality_scores = [q["quality_score"] for q in per_question_results]
         success_rate = QualityScoreService.calculate_success_rate(all_quality_scores)
         
-        corpus_health = QualityScoreService.get_corpus_health(avg_quality_score)
+
         
         # Calculate chunk coverage statistics
         chunk_coverage = self._calculate_chunk_coverage(per_question_results)
@@ -730,7 +730,7 @@ class ExperimentService:
             "avg_quality_score": avg_quality_score,
             "success_rate": round(success_rate, 2),
             "total_questions": len(per_question_results),
-            "corpus_health": corpus_health,
+
             "key_insight": f"{round((1-success_rate)*100)}% of questions scored below {QualityScoreService.get_quality_thresholds()['GOOD']} threshold",
             "chunk_coverage": chunk_coverage
         }

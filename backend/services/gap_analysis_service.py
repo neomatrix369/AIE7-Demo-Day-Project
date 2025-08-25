@@ -110,8 +110,8 @@ class GapAnalysisService:
             if data['scores']:
                 avg_score = sum(data['scores']) / len(data['scores'])
                 query_count = len(data['scores'])
-                # Only include roles with poor average performance (< 6.0) and multiple questions
-                if avg_score < GAP_ANALYSIS_THRESHOLDS['MINIMUM_ACCEPTABLE'] and query_count >= 2:
+                # Include roles with poor average performance (< 6.0) - allow single questions for better coverage
+                if avg_score < GAP_ANALYSIS_THRESHOLDS['MINIMUM_ACCEPTABLE']:
                     # Calculate success rate for this role (questions >= 7.0)
                     good_questions = len([s for s in data['scores'] if s >= 7.0])
                     success_rate = (good_questions / query_count) * 100 if query_count > 0 else 0
@@ -150,9 +150,9 @@ class GapAnalysisService:
             if rec:
                 recommendations.append(rec)
         
-        # Generate specific recommendations for very low scoring queries
-        critical_queries = [q for q in low_score_queries if q.get('avg_quality_score', 0) < GAP_ANALYSIS_THRESHOLDS['CRITICAL']]
-        for query in critical_queries[:3]:  # Limit to top 3 most critical
+        # Generate specific recommendations for low scoring queries (not just critical)
+        poor_queries = [q for q in low_score_queries if q.get('avg_quality_score', 0) < GAP_ANALYSIS_THRESHOLDS['WEAK']]
+        for query in poor_queries[:3]:  # Limit to top 3 most problematic
             rec = self._create_query_recommendation(query)
             if rec:
                 recommendations.append(rec)
@@ -209,20 +209,30 @@ class GapAnalysisService:
         }
     
     def _create_query_recommendation(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create a specific recommendation for a critical query - generic implementation"""
+        """Create a specific recommendation for a low-scoring query - generic implementation"""
         question = query.get('question', '')
         score = query.get('avg_quality_score', 0)
         
         # Extract key terms from the question for content suggestion
         key_terms = self._extract_key_terms(question)
         
+        # Determine priority based on score
+        if score < GAP_ANALYSIS_THRESHOLDS['CRITICAL']:
+            priority_level = 'High'
+            priority_score = GAP_ANALYSIS_PRIORITY_SCORES['CRITICAL']
+            gap_description = f"Critical query failure: '{question[:60]}...' (score: {score})"
+        else:
+            priority_level = 'Medium'
+            priority_score = GAP_ANALYSIS_PRIORITY_SCORES['MEDIUM']
+            gap_description = f"Poor performing query: '{question[:60]}...' (score: {score})"
+        
         return {
             'id': str(uuid.uuid4())[:8],
-            'gapDescription': f"Critical query failure: '{question[:60]}...' (score: {score})",
+            'gapDescription': gap_description,
             'suggestedContent': f"Add specific content addressing: {', '.join(key_terms)}",
             'expectedImprovement': min(GAP_ANALYSIS_THRESHOLDS['MAX_SCORE'], score + GAP_ANALYSIS_PERCENTAGES['CRITICAL_IMPROVEMENT']),  # Significant improvement for critical fixes
-            'priorityLevel': 'High',
-            'priorityScore': GAP_ANALYSIS_PRIORITY_SCORES['CRITICAL'],  # Critical queries get highest priority
+            'priorityLevel': priority_level,
+            'priorityScore': priority_score,
             'affectedQueries': [question],
             'implementationEffort': 'Medium',
             'impact': 'High',

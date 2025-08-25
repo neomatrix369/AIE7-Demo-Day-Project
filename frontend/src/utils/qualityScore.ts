@@ -10,15 +10,14 @@ export function getStatus(score: number): QualityStatus {
 
 export function getStatusColor(score: number): string {
   const status = getStatus(score);
-  // Map quality status to corpus health status for consistent colors
+  // Map quality status to colors
   const statusMap: Record<QualityStatus, string> = {
-    'good': 'EXCELLENT',    // Good quality = Excellent status
-    'weak': 'NEEDS WORK',   // Weak quality = Needs Work status  
-    'poor': 'POOR'          // Poor quality = Poor status
+    'good': '#28a745',    // Green for good
+    'weak': '#ffc107',    // Yellow for weak
+    'poor': '#dc3545'     // Red for poor
   };
   
-  const corpusStatus = statusMap[status];
-  return getCorpusStatusColor(corpusStatus);
+  return statusMap[status];
 }
 
 export function formatScore(score: number | undefined, digits: number = 1): string {

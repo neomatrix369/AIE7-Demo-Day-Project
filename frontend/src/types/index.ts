@@ -68,7 +68,7 @@ export interface AnalysisResults {
     avg_quality_score: number;
     success_rate: number;
     total_questions: number;
-    corpus_health: string;
+
     key_insight: string;
     chunk_coverage?: {
       total_chunks: number;
@@ -190,7 +190,7 @@ export interface ComparisonData {
     id: string; name: string; date: string; time: string; qualityScore: number; status: string; questionCount: number;
   };
   metrics: {
-    overallQuality: { before: number; after: number; }; successRate: { before: number; after: number; }; highQualityAnswers: { before: number; after: number; }; corpusHealth: { before: string; after: string; }; weakCoverage: { before: number; after: number; }; poorQuestions: { before: number; after: number; }; chunkCoverage: { before: number; after: number; };
+    overallQuality: { before: number; after: number; }; successRate: { before: number; after: number; }; highQualityAnswers: { before: number; after: number; }; weakCoverage: { before: number; after: number; }; poorQuestions: { before: number; after: number; }; chunkCoverage: { before: number; after: number; };
   };
   context: {
     questionsProcessed: { before: number; after: number; };

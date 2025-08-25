@@ -36,7 +36,7 @@ payload = {
     # Document identification
     "document_source": document_source,
     "document_type": file_extension,
-    "chunk_id": f"{document_source}_{i}",
+    "chunk_id": f"{i:05d}_{document_source}",
     
     # Selection and status
     "is_selected": is_selected,

@@ -110,4 +110,20 @@ export class FileSystemStorage implements StorageAdapter {
       };
     }
   }
+
+  async clearDocumentConfig(): Promise<{ success: boolean; message: string }> {
+    try {
+      // In local development, document configuration is managed by the backend
+      // We can't clear it from here, but we can return success
+      return {
+        success: true,
+        message: 'Document configuration managed by backend file system'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to clear document configuration: ${error}`
+      };
+    }
+  }
 }

@@ -67,7 +67,8 @@ GAP_ANALYSIS_PRIORITY_SCORES = {
 VECTOR_DB_CONFIG = {
     'VECTOR_SIZE': 1536,  # OpenAI text-embedding-3-small dimensions
     'TIMEOUT_SECONDS': 30,  # Connection timeout
-    'HEALTH_CHECK_THRESHOLD': 0.8  # 80% of expected documents for health check
+    'HEALTH_CHECK_THRESHOLD': 0.8,  # 80% of expected documents for health check
+    'INGESTION_TIMEOUT_SECONDS': 300  # 5 minutes timeout for ingestion operations
 }
 
 # =============================================================================

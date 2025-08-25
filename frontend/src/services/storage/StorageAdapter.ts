@@ -47,4 +47,5 @@ export interface StorageAdapter {
   // Document configuration management methods
   saveDocumentConfig(config: DocumentConfig): Promise<{ success: boolean; message: string }>;
   loadDocumentConfig(): Promise<{ success: boolean; config?: DocumentConfig; message: string }>;
+  clearDocumentConfig(): Promise<{ success: boolean; message: string }>;
 }

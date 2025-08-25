@@ -63,6 +63,9 @@ documents_loaded = False
 experiment_results = []
 current_loaded_experiment = None  # Track which experiment is currently loaded
 
+# Progress tracking for long-running operations
+ingestion_progress = {}
+
 # Don't automatically load experiment on startup - let users explicitly load what they want
 # experiment_results = experiment_service.load_experiment_results()
 
@@ -1152,23 +1155,137 @@ async def deselect_document(filename: str):
             error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to deselect document"
         )
 
+@app.websocket("/ws/progress")
+async def progress_websocket(websocket: WebSocket):
+    """WebSocket endpoint for real-time progress updates."""
+    await websocket.accept()
+    try:
+        while True:
+            # Only send progress if there's active progress data and it's not empty
+            if ingestion_progress and len(ingestion_progress) > 0:
+                active_progress = {
+                    filename: progress for filename, progress in ingestion_progress.items()
+                    if progress.get('stage') not in ['complete', 'error']
+                }
+                
+                if active_progress:
+                    await websocket.send_json({
+                        "type": "progress_update",
+                        "data": active_progress
+                    })
+            
+            await asyncio.sleep(2)  # Update every 2 seconds instead of 1 to reduce frequency
+    except Exception as e:
+        logger.error(f"❌ WebSocket error: {e}")
+    finally:
+        await websocket.close()
+
+def update_ingestion_progress(progress_data: dict):
+    """Update ingestion progress for WebSocket clients."""
+    global ingestion_progress
+    filename = progress_data.get('filename', 'unknown')
+    
+    # Update progress
+    ingestion_progress[filename] = progress_data
+    logger.info(f"📊 Progress update: {progress_data.get('message', 'Unknown')}")
+    
+    # Clean up completed progress after a delay
+    if progress_data.get('stage') in ['complete', 'error']:
+        def cleanup_progress():
+            global ingestion_progress
+            if filename in ingestion_progress:
+                del ingestion_progress[filename]
+                logger.info(f"🧹 Cleaned up progress for {filename}")
+        
+        # Schedule cleanup after 30 seconds (longer delay for polling)
+        import threading
+        timer = threading.Timer(30.0, cleanup_progress)
+        timer.daemon = True
+        timer.start()
+
 @app.post("/api/documents/ingest/{filename}")
 async def ingest_document(filename: str):
-    """Ingest a specific document into the vector store."""
+    """Ingest a specific document into the vector store with progress tracking."""
     try:
-        success = unified_doc_processor.ingest_document(filename)
-        if success:
-            logger.info(f"✅ Document ingested: {filename}")
-            return {"success": True, "message": f"Document '{filename}' ingested successfully"}
-        else:
-            return ErrorResponseService.log_and_return_error(
-                error=None, context=f"Failed to ingest document {filename}",
-                error_type=ErrorType.VALIDATION_ERROR, user_message=f"Failed to ingest document '{filename}'"
-            )
+        # Initialize progress tracking
+        update_ingestion_progress({
+            "filename": filename,
+            "stage": "starting",
+            "percentage": 0,
+            "message": f"Starting ingestion for {filename}",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # Start ingestion asynchronously with progress tracking
+        def progress_callback(progress_data):
+            update_ingestion_progress({
+                "filename": filename,
+                **progress_data,
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        # Run ingestion in a thread to avoid blocking
+        import threading
+        def run_ingestion():
+            try:
+                success = unified_doc_processor.ingest_document(filename, progress_callback)
+                if success:
+                    update_ingestion_progress({
+                        "filename": filename,
+                        "stage": "complete",
+                        "percentage": 100,
+                        "message": f"Successfully ingested {filename}",
+                        "timestamp": datetime.now().isoformat()
+                    })
+                else:
+                    update_ingestion_progress({
+                        "filename": filename,
+                        "stage": "error",
+                        "percentage": 0,
+                        "message": f"Failed to ingest {filename}",
+                        "timestamp": datetime.now().isoformat()
+                    })
+            except Exception as e:
+                update_ingestion_progress({
+                    "filename": filename,
+                    "stage": "error",
+                    "percentage": 0,
+                    "message": f"Error during ingestion: {str(e)}",
+                    "timestamp": datetime.now().isoformat()
+                })
+        
+        # Start the ingestion thread
+        thread = threading.Thread(target=run_ingestion)
+        thread.daemon = True
+        thread.start()
+        
+        # Return immediate response
+        logger.info(f"🔄 Started ingestion process for: {filename}")
+        return {
+            "success": True, 
+            "message": f"Ingestion started for '{filename}'. Monitor progress via WebSocket.",
+            "progress_websocket": "/ws/progress"
+        }
+        
     except Exception as e:
         return ErrorResponseService.log_and_return_error(
-            error=e, context=f"Failed to ingest document {filename}",
-            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to ingest document"
+            error=e, context=f"Failed to start ingestion for {filename}",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to start ingestion"
+        )
+
+@app.get("/api/documents/ingestion-progress")
+async def get_ingestion_progress():
+    """Get current ingestion progress status."""
+    try:
+        return {
+            "success": True,
+            "data": ingestion_progress,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to get ingestion progress",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to get ingestion progress"
         )
 
 @app.post("/api/documents/ingest-pending")
@@ -1399,6 +1516,24 @@ async def delete_document(filename: str):
 
 # Note: Document config APIs removed - now handled by unified storage adapter system
 
+@app.post("/api/documents/clear-cache")
+async def clear_document_cache():
+    """Clear document cache and force reload from configuration."""
+    try:
+        # Force reload of document selection configuration
+        unified_doc_processor.selection_manager.selection_config = unified_doc_processor.selection_manager._load_selection_config()
+        
+        logger.info("🗑️ Document cache cleared and configuration reloaded")
+        return {
+            "success": True,
+            "message": "Document cache cleared and configuration reloaded"
+        }
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to clear document cache",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to clear document cache"
+        )
+
 @app.get("/api/environment")
 async def get_environment_info():
     """Get environment information for client-side adaptation."""
@@ -1423,6 +1558,21 @@ async def get_environment_info():
             error=e, context="Failed to get environment info",
             error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to retrieve environment information"
         )
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup resources when the application shuts down."""
+    try:
+        logger.info("🔄 Shutting down application...")
+        
+        # Close Qdrant connections
+        if hasattr(unified_doc_processor, 'qdrant_manager') and unified_doc_processor.qdrant_manager:
+            unified_doc_processor.qdrant_manager.close_connection()
+            logger.info("🔌 Closed Qdrant connection")
+        
+        logger.info("✅ Application shutdown complete")
+    except Exception as e:
+        logger.error(f"❌ Error during shutdown: {e}")
 
 if __name__ == "__main__":
     import uvicorn

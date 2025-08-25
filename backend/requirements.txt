@@ -34,6 +34,7 @@ markdown>=3.8.0  # Required for markdown processing
 numpy>=1.26.0
 pandas>=2.1.0
 requests==2.31.0
+httpx>=0.25.0  # HTTP client with connection pooling
 tqdm==4.66.1
 typing-extensions>=4.8.0
 

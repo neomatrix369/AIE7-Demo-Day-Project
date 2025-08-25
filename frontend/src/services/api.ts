@@ -13,7 +13,16 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds timeout for slow corpus loading
+  timeout: 30000, // 30 seconds timeout for most operations
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Separate API instance with longer timeout for ingestion operations
+const ingestionApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 300000, // 5 minutes timeout for ingestion operations
   headers: {
     'Content-Type': 'application/json',
   },
@@ -69,6 +78,68 @@ api.interceptors.response.use(
     // Enhanced error context for debugging
     const errorContext = {
       component: 'HTTP Client',
+      data: {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        duration: duration + 'ms',
+        message: error.message
+      }
+    };
+    
+    logApiError(method, url, error, errorContext);
+    return Promise.reject(error);
+  }
+);
+
+// Add the same interceptors to ingestion API
+ingestionApi.interceptors.request.use(
+  (config) => {
+    const method = config.method?.toUpperCase() || 'GET';
+    const url = config.url || '';
+    
+    logApiRequest(method, url, {
+      component: 'HTTP Client (Ingestion)'
+    });
+    
+    // Add timestamp to track request duration
+    config.metadata = { startTime: Date.now() };
+    return config;
+  },
+  (error) => {
+    logApiError('REQUEST', 'unknown', error, {
+      component: 'HTTP Client (Ingestion)'
+    });
+    return Promise.reject(error);
+  }
+);
+
+ingestionApi.interceptors.response.use(
+  (response) => {
+    const method = response.config.method?.toUpperCase() || 'GET';
+    const url = response.config.url || '';
+    const status = response.status;
+    const startTime = response.config.metadata?.startTime || Date.now();
+    const duration = Date.now() - startTime;
+    
+    logApiResponse(method, url, status, duration, {
+      component: 'HTTP Client (Ingestion)',
+      data: { 
+        responseSize: JSON.stringify(response.data).length + ' bytes',
+        status: status
+      }
+    });
+    
+    return response;
+  },
+  (error) => {
+    const method = error.config?.method?.toUpperCase() || 'GET';
+    const url = error.config?.url || 'unknown';
+    const startTime = error.config?.metadata?.startTime || Date.now();
+    const duration = Date.now() - startTime;
+    
+    // Enhanced error context for debugging
+    const errorContext = {
+      component: 'HTTP Client (Ingestion)',
       data: {
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -214,13 +285,13 @@ export const documentsApi = {
     api.post(`/documents/deselect/${filename}`).then(res => res.data),
   
   ingestDocument: (filename: string): Promise<{success: boolean, message: string}> =>
-    api.post(`/documents/ingest/${filename}`).then(res => res.data),
+    ingestionApi.post(`/documents/ingest/${filename}`).then(res => res.data),
   
   ingestPending: (): Promise<{success: boolean, message: string}> =>
-    api.post('/documents/ingest-pending').then(res => res.data),
+    ingestionApi.post('/documents/ingest-pending').then(res => res.data),
   
   reingestChanged: (): Promise<{success: boolean, message: string}> =>
-    api.post('/documents/reingest-changed').then(res => res.data),
+    ingestionApi.post('/documents/reingest-changed').then(res => res.data),
   
   scanDocuments: (): Promise<{success: boolean, data: any, message: string}> =>
     api.post('/documents/scan').then(res => res.data),

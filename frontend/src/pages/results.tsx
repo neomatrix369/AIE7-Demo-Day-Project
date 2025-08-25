@@ -932,7 +932,7 @@ const AnalysisResults: React.FC = () => {
                               {question.retrieved_docs.map((doc, idx) => (
                                 <tr key={idx} style={{ borderBottom: idx < question.retrieved_docs.length - 1 ? '1px solid #dee2e6' : 'none' }}>
                                   <td style={{ padding: '8px', verticalAlign: 'middle' }}>
-                                    {doc.doc_id}
+                                    {doc.title || doc.doc_id}
                                   </td>
                                   <td style={{ padding: '8px', verticalAlign: 'middle' }}>
                                     {doc.content ? (

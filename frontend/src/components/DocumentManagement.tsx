@@ -9,14 +9,23 @@ interface DocumentManagementProps {
   onStatusChange?: () => void;
 }
 
+interface IngestionProgress {
+  filename: string;
+  stage: string;
+  percentage: number;
+  message: string;
+  timestamp: string;
+}
+
 const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange }) => {
   const [documentStatus, setDocumentStatus] = useState<DocumentStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true); // Collapsed by default
-  const [ingestionProgress, setIngestionProgress] = useState<{filename: string, progress: number, status: string} | null>(null);
+  const [ingestionProgress, setIngestionProgress] = useState<IngestionProgress | null>(null);
   const [documentConfig, setDocumentConfig] = useState<DocumentConfig | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get storage adapter (cloud-compatible)
@@ -118,52 +127,175 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
   // Use useRef to store stable function references and prevent infinite loops
   const loadDocumentStatusRef = useRef<() => Promise<void>>();
   
-  loadDocumentStatusRef.current = async () => {
+  const loadDocumentStatus = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Try to load from backend API first
+      // Debounce: don't refresh more than once every 5 seconds
+      const now = Date.now();
+      if (now - lastRefreshTime < 5000) {
+        setLoading(false);
+        return;
+      }
+      setLastRefreshTime(now);
+      
       const response = await documentsApi.getStatus();
       if (response.success) {
         setDocumentStatus(response.data);
-        
-        // In cloud environments, also sync with browser storage
+        // Sync with storage adapter for cloud deployments
         if (isVercelDeployment()) {
           await syncWithStorageAdapter(response.data);
         }
-        
-        logInfo('Document status loaded', { component: 'DocumentManagement' });
+        logInfo('Document status loaded successfully', { component: 'DocumentManagement' });
       } else {
-        // Fallback: try to load from storage adapter in cloud environments
-        if (isVercelDeployment()) {
-          await loadFromStorageAdapter();
-        } else {
-          throw new Error('Unable to load document status from the server. Please check your connection and try again.');
-        }
+        throw new Error('Failed to load document status');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load document status');
       logError(`Failed to load document status: ${err.message}`, { component: 'DocumentManagement' });
-      
-      // Final fallback: try storage adapter if available
-      if (isVercelDeployment()) {
-        try {
-          await loadFromStorageAdapter();
-        } catch (storageErr) {
-          logError(`Storage adapter fallback also failed: ${storageErr}`, { component: 'DocumentManagement' });
-        }
-      }
     } finally {
       setLoading(false);
     }
+  }, [lastRefreshTime, isVercelDeployment, syncWithStorageAdapter]);
+
+  // Progress display component
+  const ProgressDisplay = ({ progress }: { progress: IngestionProgress }) => {
+    const getStageColor = (stage: string) => {
+      switch (stage.toLowerCase()) {
+        case 'loading': return '#007bff';
+        case 'chunking': return '#17a2b8';
+        case 'embedding_start':
+        case 'embedding': return '#ffc107';
+        case 'database': return '#28a745';
+        case 'complete': return '#28a745';
+        case 'error': return '#dc3545';
+        default: return '#6c757d';
+      }
+    };
+
+    const getStageIcon = (stage: string) => {
+      switch (stage.toLowerCase()) {
+        case 'loading': return '📄';
+        case 'chunking': return '✂️';
+        case 'embedding_start':
+        case 'embedding': return '🧠';
+        case 'database': return '💾';
+        case 'complete': return '✅';
+        case 'error': return '❌';
+        default: return '⏳';
+      }
+    };
+
+    return (
+      <div style={{
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '8px',
+        padding: '15px',
+        marginBottom: '15px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+          <span style={{ fontSize: '20px', marginRight: '10px' }}>
+            {getStageIcon(progress.stage)}
+          </span>
+          <div>
+            <div style={{ fontWeight: 'bold', color: '#333' }}>
+              {progress.filename}
+            </div>
+            <div style={{ color: '#666', fontSize: '14px' }}>
+              {progress.message}
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{
+            width: '100%',
+            height: '8px',
+            backgroundColor: '#e9ecef',
+            borderRadius: '4px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${progress.percentage}%`,
+              height: '100%',
+              backgroundColor: getStageColor(progress.stage),
+              transition: 'width 0.3s ease-in-out',
+              borderRadius: '4px'
+            }} />
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ color: '#666', fontSize: '12px' }}>
+            {progress.percentage}% complete
+          </div>
+          <div style={{ color: '#999', fontSize: '12px' }}>
+            {new Date(progress.timestamp).toLocaleTimeString()}
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const loadDocumentStatus = useCallback(async () => {
-    if (loadDocumentStatusRef.current) {
-      await loadDocumentStatusRef.current();
-    }
-  }, []); // Empty dependency array prevents infinite loops
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout | null = null;
+    
+    const checkProgress = async () => {
+      try {
+        const response = await fetch('/api/documents/ingestion-progress');
+        const data = await response.json();
+        
+        if (data.success && data.data && Object.keys(data.data).length > 0) {
+          // Get the first active progress
+          const progressEntries = Object.entries(data.data);
+          const [filename, progressData] = progressEntries[0] as [string, any];
+          
+          if (progressData && progressData.stage) {
+            setIngestionProgress({
+              filename: progressData.filename || filename,
+              stage: progressData.stage,
+              percentage: progressData.percentage || 0,
+              message: progressData.message || 'Processing...',
+              timestamp: progressData.timestamp || new Date().toISOString()
+            });
+            
+            // Stop polling if complete or error
+            if (progressData.stage === 'complete' || progressData.stage === 'error') {
+              if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+              }
+              
+              setTimeout(() => {
+                setIngestionProgress(null);
+                if (progressData.stage === 'complete') {
+                  loadDocumentStatus();
+                }
+              }, 3000);
+            }
+          }
+        } else {
+          // No active progress, clear any existing progress
+          setIngestionProgress(null);
+        }
+      } catch (err) {
+        logError(`Failed to check progress: ${err}`, { component: 'DocumentManagement' });
+      }
+    };
+    
+    // Start polling when component mounts
+    progressInterval = setInterval(checkProgress, 2000);
+    
+    // Cleanup on unmount
+    return () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+    };
+  }, [loadDocumentStatus]);
 
   useEffect(() => {
     loadDocumentStatus();
@@ -210,31 +342,40 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
   const handleIngestDocument = async (filename: string) => {
     try {
       setActionLoading(`ingest-${filename}`);
-      setIngestionProgress({filename, progress: 0, status: 'Starting ingestion...'});
+      setError(null);
       
-      // Simulate progress steps for better UX
-      setIngestionProgress({filename, progress: 20, status: 'Loading document...'});
+      // Initialize progress display
+      setIngestionProgress({
+        filename, 
+        stage: 'Starting', 
+        percentage: 0, 
+        message: 'Starting ingestion process...', 
+        timestamp: new Date().toISOString()
+      });
       
       const response = await documentsApi.ingestDocument(filename);
       
-      setIngestionProgress({filename, progress: 80, status: 'Processing chunks...'});
-      
       if (response.success) {
-        setIngestionProgress({filename, progress: 100, status: 'Ingestion complete!'});
-        await loadDocumentStatus();
-        logSuccess(`Document ingested: ${filename}`, { component: 'DocumentManagement' });
-        onStatusChange?.();
+        // The backend now starts ingestion asynchronously
+        // Progress updates will come via WebSocket
+        logInfo(`Ingestion started for ${filename}. Monitoring progress...`, { component: 'DocumentManagement' });
         
-        // Clear progress after a brief delay
-        setTimeout(() => setIngestionProgress(null), 2000);
+        // Don't clear progress here - let WebSocket handle it
+        // The progress will be updated in real-time via WebSocket
       } else {
-        throw new Error(response.message || 'Failed to ingest document');
+        throw new Error(response.message || 'Failed to start ingestion');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to ingest document');
-      setIngestionProgress({filename, progress: 0, status: `Error: ${err.message}`});
-      logError(`Failed to ingest document ${filename}: ${err.message}`, { component: 'DocumentManagement' });
-      setTimeout(() => setIngestionProgress(null), 3000);
+      setError(err.message || 'Failed to start ingestion');
+      setIngestionProgress({
+        filename, 
+        stage: 'Error', 
+        percentage: 0, 
+        message: `Error: ${err.message}`, 
+        timestamp: new Date().toISOString()
+      });
+      logError(`Failed to start ingestion for ${filename}: ${err.message}`, { component: 'DocumentManagement' });
+      setTimeout(() => setIngestionProgress(null), 5000);
     } finally {
       setActionLoading(null);
     }
@@ -292,6 +433,26 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
     } catch (err: any) {
       setError(err.message || 'Failed to delete document');
       logError(`Failed to delete document ${filename}: ${err.message}`, { component: 'DocumentManagement' });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleClearCache = async () => {
+    try {
+      setActionLoading('clear-cache');
+      const response = await storageAdapter.clearDocumentConfig();
+      if (response.success) {
+        // Force reload from backend
+        await loadDocumentStatus();
+        logSuccess('Document cache cleared', { component: 'DocumentManagement' });
+        onStatusChange?.();
+      } else {
+        throw new Error(response.message || 'Failed to clear document cache');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to clear document cache');
+      logError(`Failed to clear document cache: ${err.message}`, { component: 'DocumentManagement' });
     } finally {
       setActionLoading(null);
     }
@@ -506,6 +667,11 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
         </div>
       </div>
 
+      {/* Progress Display */}
+      {ingestionProgress && (
+        <ProgressDisplay progress={ingestionProgress} />
+      )}
+
       {!isCollapsed && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '15px' }}>
@@ -552,6 +718,25 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
                   {actionLoading === 'reingest-changed' ? '🔄 Re-ingesting...' : `🔄 Re-ingest Changed (${documentStatus.selection_summary.needing_reingestion})`}
                 </button>
               )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClearCache();
+                }}
+                disabled={actionLoading === 'clear-cache'}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  cursor: actionLoading === 'clear-cache' ? 'not-allowed' : 'pointer',
+                  opacity: actionLoading === 'clear-cache' ? 0.6 : 1
+                }}
+              >
+                {actionLoading === 'clear-cache' ? '🔄 Clearing...' : '🗑️ Clear Cache'}
+              </button>
             </div>
           </div>
 
@@ -781,43 +966,6 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
                             {actionLoading === `ingest-${doc.filename}` ? '🔄 Ingesting...' : '📥 Ingest'}
                           </button>
                           
-                          {/* Ingestion Progress Indicator */}
-                          {ingestionProgress && ingestionProgress.filename === doc.filename && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: '0',
-                              right: '0',
-                              backgroundColor: 'white',
-                              border: '1px solid #007bff',
-                              borderRadius: '4px',
-                              padding: '8px',
-                              fontSize: '10px',
-                              zIndex: 1000,
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }}>
-                              <div style={{marginBottom: '4px', color: '#333'}}>
-                                {ingestionProgress.status}
-                              </div>
-                              <div style={{
-                                width: '100%',
-                                height: '4px',
-                                backgroundColor: '#f0f0f0',
-                                borderRadius: '2px',
-                                overflow: 'hidden'
-                              }}>
-                                <div style={{
-                                  width: `${ingestionProgress.progress}%`,
-                                  height: '100%',
-                                  backgroundColor: ingestionProgress.progress === 100 ? '#28a745' : '#007bff',
-                                  transition: 'width 0.3s ease-in-out'
-                                }} />
-                              </div>
-                              <div style={{marginTop: '2px', color: '#666'}}>
-                                {ingestionProgress.progress}%
-                              </div>
-                            </div>
-                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

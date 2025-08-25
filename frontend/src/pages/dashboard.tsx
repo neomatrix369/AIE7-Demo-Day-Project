@@ -74,15 +74,23 @@ const DataLoadingDashboard: React.FC = () => {
   // Handle backend error status
   if (corpusStatus.status === 'error' || corpusStatus.error_message) {
     return (
-      <ErrorDisplay 
-        error={{
-          message: corpusStatus.error_message || 'Unknown error',
-          type: 'CorpusError'
-        }}
-        title="Corpus Not Ready"
-        context={corpusStatus.corpus_metadata?.message || "The document corpus is not properly loaded. Please ensure documents are loaded and the database is connected."}
-        onRetry={() => window.location.reload()}
-      />
+      <div>
+        <NavigationHeader currentPage="dashboard" />
+        <VectorDbStatusIndicator position="top-left" />
+        <ExperimentStatusIndicator />
+        <DocumentManagement onStatusChange={handleDocumentStatusChange} />
+        <div className="card">
+          <ErrorDisplay 
+            error={{
+              message: corpusStatus.error_message || 'Unknown error',
+              type: 'CorpusError'
+            }}
+            title="Corpus Not Ready"
+            context={corpusStatus.corpus_metadata?.message || "The document corpus is not properly loaded. Please ingest documents using the Document Management section above."}
+            onRetry={() => window.location.reload()}
+          />
+        </div>
+      </div>
     );
   }
 
@@ -93,10 +101,10 @@ const DataLoadingDashboard: React.FC = () => {
       <ExperimentStatusIndicator />
       <DocumentManagement onStatusChange={handleDocumentStatusChange} />
       <div className="card">
-        <h2>🔍 RagCheck - Ready to Analyze</h2>
-        <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
-          Pre-loaded corpus ready for analysis
-        </p>
+          <h2>🔍 RagCheck - Ready to Analyze</h2>
+          <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
+            Pre-loaded corpus ready for analysis
+          </p>
         
         <div className="card" style={{ backgroundColor: '#f8f9fa', marginBottom: '20px' }}>
           <h3>🗂️ Corpus Overview</h3>

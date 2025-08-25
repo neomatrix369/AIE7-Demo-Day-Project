@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
+import uuid
+import time
+import threading
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, Filter, FieldCondition, MatchValue
 from qdrant_client.http.models import UpdateStatus, PointStruct
+from qdrant_client.http.exceptions import UnexpectedResponse
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -19,37 +23,71 @@ class EnhancedQdrantManager:
 
     def __init__(self, collection_name: str):
         self.collection_name = collection_name
-        self.client = self._get_qdrant_client()
+        self._client = None
+        self._client_lock = threading.Lock()
+        self._last_connection_time = 0
+        self._connection_timeout = 30  # seconds
+        self._max_connection_age = 300  # 5 minutes - recreate connection after this
         self._ensure_collection_exists()
 
     def _get_qdrant_client(self) -> QdrantClient:
-        """Create and return a Qdrant client instance."""
-        logger.info(f"🔗 Connecting to Qdrant server at {QDRANT_URL}")
-        client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30)
-        try:
-            collections = client.get_collections()
-            logger.info("✅ Successfully connected to Qdrant server")
-            logger.info(f"📊 Found {len(collections.collections)} existing collections")
-        except Exception as e:
-            logger.error(f"❌ Failed to connect to Qdrant server: {e}")
-            raise
-        return client
+        """Create and return a Qdrant client instance with connection management."""
+        with self._client_lock:
+            current_time = time.time()
+            
+            # Check if we need to create a new connection
+            if (self._client is None or 
+                current_time - self._last_connection_time > self._max_connection_age):
+                
+                # Close existing connection if it exists
+                if self._client is not None:
+                    try:
+                        self._client.close()
+                        logger.info("🔌 Closed existing Qdrant connection")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error closing Qdrant connection: {e}")
+                
+                # Create new connection with proper timeout
+                logger.info(f"🔗 Creating new Qdrant connection to {QDRANT_URL}")
+                
+                try:
+                    # Create Qdrant client with extended timeout for better connection management
+                    self._client = QdrantClient(
+                        url=QDRANT_URL, 
+                        api_key=QDRANT_API_KEY, 
+                        timeout=60  # Extended timeout to prevent hanging connections
+                    )
+                    
+                    # Test the connection
+                    collections = self._client.get_collections()
+                    self._last_connection_time = current_time
+                    
+                    logger.info("✅ Successfully connected to Qdrant server")
+                    logger.info(f"📊 Found {len(collections.collections)} existing collections")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to connect to Qdrant server: {e}")
+                    self._client = None
+                    raise
+            
+            return self._client
 
     def _ensure_collection_exists(self) -> bool:
         """Ensure the collection exists with proper payload schema."""
         try:
-            collections = self.client.get_collections()
+            client = self._get_qdrant_client()
+            collections = client.get_collections()
             collection_names = [c.name for c in collections.collections]
             
             if self.collection_name in collection_names:
-                collection_info = self.client.get_collection(self.collection_name)
+                collection_info = client.get_collection(self.collection_name)
                 logger.info(f"📦 Collection '{self.collection_name}' exists with {collection_info.points_count} points")
                 return True
             
             logger.info(f"📦 Creating new Qdrant collection '{self.collection_name}' with enhanced payload schema")
             
             # Create collection with enhanced payload schema
-            self.client.create_collection(
+            client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
                 # Add payload schema for document management
@@ -68,22 +106,24 @@ class EnhancedQdrantManager:
     def _create_payload_indexes(self):
         """Create payload indexes for efficient filtering."""
         try:
+            client = self._get_qdrant_client()
+            
             # Index for document source filtering
-            self.client.create_payload_index(
+            client.create_payload_index(
                 collection_name=self.collection_name,
                 field_name="document_source",
                 field_schema=models.PayloadFieldSchema.KEYWORD
             )
             
             # Index for selection status filtering
-            self.client.create_payload_index(
+            client.create_payload_index(
                 collection_name=self.collection_name,
                 field_name="is_selected",
                 field_schema=models.PayloadFieldSchema.BOOL
             )
             
             # Index for document type filtering
-            self.client.create_payload_index(
+            client.create_payload_index(
                 collection_name=self.collection_name,
                 field_name="document_type",
                 field_schema=models.PayloadFieldSchema.KEYWORD
@@ -92,6 +132,28 @@ class EnhancedQdrantManager:
             logger.info("✅ Created payload indexes for efficient filtering")
         except Exception as e:
             logger.warning(f"⚠️ Failed to create payload indexes: {e}")
+
+    def close_connection(self):
+        """Close the Qdrant connection and cleanup resources."""
+        with self._client_lock:
+            if self._client is not None:
+                try:
+                    self._client.close()
+                    logger.info("🔌 Closed Qdrant connection")
+                except Exception as e:
+                    logger.warning(f"⚠️ Error closing Qdrant connection: {e}")
+                finally:
+                    self._client = None
+                    self._last_connection_time = 0
+
+    def __del__(self):
+        """Cleanup when the manager is destroyed."""
+        self.close_connection()
+
+    @property
+    def client(self) -> QdrantClient:
+        """Get the Qdrant client instance with connection management."""
+        return self._get_qdrant_client()
 
     def add_documents_with_selection_status(self, documents: List[Dict[str, Any]], 
                                           document_source: str, 
@@ -120,7 +182,7 @@ class EnhancedQdrantManager:
                     # Document identification
                     "document_source": document_source,
                     "document_type": file_extension,
-                    "chunk_id": f"{document_source}_{i}",
+                    "chunk_id": f"{i:05d}_{document_source}",
                     
                     # Selection and status
                     "is_selected": is_selected,
@@ -158,7 +220,7 @@ class EnhancedQdrantManager:
             
             # Add points to collection
             if points:
-                self.client.upsert(
+                self._get_qdrant_client().upsert(
                     collection_name=self.collection_name,
                     points=points,
                     wait=True
@@ -176,7 +238,7 @@ class EnhancedQdrantManager:
         """Update selection status for all chunks from a specific document source."""
         try:
             # First, get all chunks to find the ones from this document source
-            response = self.client.scroll(
+            response = self._get_qdrant_client().scroll(
                 collection_name=self.collection_name,
                 limit=10000,
                 with_payload=True,
@@ -196,7 +258,7 @@ class EnhancedQdrantManager:
             
             # Update the chunks using their IDs
             # Use set_payload for updating existing points (no vector required)
-            self.client.set_payload(
+            self._get_qdrant_client().set_payload(
                 collection_name=self.collection_name,
                 points=chunk_ids_to_update,
                 payload={"is_selected": is_selected},
@@ -224,7 +286,7 @@ class EnhancedQdrantManager:
                 )
             
             # Get all points with the filter
-            response = self.client.scroll(
+            response = self._get_qdrant_client().scroll(
                 collection_name=self.collection_name,
                 scroll_filter=filter_condition,
                 limit=10000,  # Adjust based on your needs
@@ -254,10 +316,10 @@ class EnhancedQdrantManager:
         """Get statistics about documents in the collection."""
         try:
             # Get total count
-            total_count = self.client.get_collection(self.collection_name).points_count
+            total_count = self._get_qdrant_client().get_collection(self.collection_name).points_count
             
             # Get all document sources and count selected/deselected chunks
-            sources_response = self.client.scroll(
+            sources_response = self._get_qdrant_client().scroll(
                 collection_name=self.collection_name,
                 limit=10000,
                 with_payload=True,
@@ -315,7 +377,7 @@ class EnhancedQdrantManager:
                     ]
                 )
             
-            search_response = self.client.search(
+            search_response = self._get_qdrant_client().search(
                 collection_name=self.collection_name,
                 query_vector=query_vector,
                 query_filter=filter_condition,
@@ -355,7 +417,7 @@ class EnhancedQdrantManager:
             )
             
             # Delete points
-            self.client.delete(
+            self._get_qdrant_client().delete(
                 collection_name=self.collection_name,
                 points_selector=filter_condition,
                 wait=True
@@ -370,7 +432,7 @@ class EnhancedQdrantManager:
     def delete_collection_chunks(self) -> bool:
         """Delete all chunks from the collection."""
         try:
-            self.client.delete(
+            self._get_qdrant_client().delete(
                 collection_name=self.collection_name,
                 points_selector=models.Filter(
                     must=[
@@ -405,7 +467,7 @@ class EnhancedQdrantManager:
             )
             
             # Update points with new selection status
-            self.client.set_payload(
+            self._get_qdrant_client().set_payload(
                 collection_name=self.collection_name,
                 payload={"is_selected": is_selected},
                 points_selector=filter_condition,
@@ -423,7 +485,7 @@ class EnhancedQdrantManager:
     def get_collection_info(self) -> Dict[str, Any]:
         """Get comprehensive collection information."""
         try:
-            collection_info = self.client.get_collection(self.collection_name)
+            collection_info = self._get_qdrant_client().get_collection(self.collection_name)
             stats = self.get_document_statistics()
             
             return {
@@ -441,7 +503,7 @@ class EnhancedQdrantManager:
         """Get chunk counts for each document source."""
         try:
             # Get all points with payload to analyze document sources
-            response = self.client.scroll(
+            response = self._get_qdrant_client().scroll(
                 collection_name=self.collection_name,
                 limit=10000,
                 with_payload=True,

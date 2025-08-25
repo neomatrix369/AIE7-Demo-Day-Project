@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
+import uuid
 from typing import List, Dict, Any
 from datetime import datetime
 from pathlib import Path
@@ -276,10 +277,22 @@ class UnifiedDocumentProcessor:
             logger.error(f"❌ Failed to deselect document {filename}: {e}")
             return False
 
-    def ingest_document(self, filename: str) -> bool:
-        """Ingest a specific document into the vector store."""
+    def ingest_document(self, filename: str, progress_callback=None) -> bool:
+        """Ingest a specific document into the vector store with progress tracking."""
         try:
             logger.info(f"🔄 Starting ingestion for: {filename}")
+            
+            # Progress callback for loading stage
+            if progress_callback:
+                try:
+                    progress_callback({
+                        "stage": "loading",
+                        "filename": filename,
+                        "percentage": 0,
+                        "message": f"Loading document: {filename}"
+                    })
+                except Exception as e:
+                    logger.warning(f"⚠️ Progress callback failed: {e}")
             
             # Load and process the document
             documents = self._load_document(filename)
@@ -287,17 +300,53 @@ class UnifiedDocumentProcessor:
                 logger.error(f"❌ Failed to load document: {filename}")
                 return False
             
+            # Progress callback for chunking stage
+            if progress_callback:
+                try:
+                    progress_callback({
+                        "stage": "chunking",
+                        "filename": filename,
+                        "percentage": 10,
+                        "message": f"Splitting document into chunks: {filename}"
+                    })
+                except Exception as e:
+                    logger.warning(f"⚠️ Progress callback failed: {e}")
+            
             # Split into chunks
             chunks = self._split_documents(documents)
             if not chunks:
                 logger.error(f"❌ Failed to split document: {filename}")
                 return False
             
-            # Add embeddings
-            embedded_chunks = self._add_embeddings(chunks, filename)
+            # Progress callback for embedding stage
+            if progress_callback:
+                try:
+                    progress_callback({
+                        "stage": "embedding_start",
+                        "filename": filename,
+                        "percentage": 20,
+                        "message": f"Starting embedding generation for {len(chunks)} chunks: {filename}"
+                    })
+                except Exception as e:
+                    logger.warning(f"⚠️ Progress callback failed: {e}")
+            
+            # Add embeddings with progress tracking
+            embedded_chunks = self._add_embeddings(chunks, filename, progress_callback)
             if not embedded_chunks:
                 logger.error(f"❌ Failed to embed document: {filename}")
                 return False
+            
+            # Progress callback for database stage
+            if progress_callback:
+                try:
+                    progress_callback({
+                        "stage": "database",
+                        "filename": filename,
+                        "percentage": 90,
+                        "message": f"Adding {len(embedded_chunks)} chunks to database: {filename}"
+                    })
+                except Exception as e:
+                    logger.warning(f"⚠️ Progress callback failed: {e}")
             
             # Add to Qdrant with selection status
             is_selected = self.selection_manager.selection_config.get("documents", {}).get(filename, {}).get("is_selected", True)
@@ -308,6 +357,19 @@ class UnifiedDocumentProcessor:
             if success:
                 # Mark as ingested in selection config
                 self.selection_manager.mark_document_ingested(filename, len(embedded_chunks))
+                
+                # Final progress callback
+                if progress_callback:
+                    try:
+                        progress_callback({
+                            "stage": "complete",
+                            "filename": filename,
+                            "percentage": 100,
+                            "message": f"Successfully ingested {len(embedded_chunks)} chunks: {filename}"
+                        })
+                    except Exception as e:
+                        logger.warning(f"⚠️ Progress callback failed: {e}")
+                
                 logger.info(f"✅ Successfully ingested document: {filename} ({len(embedded_chunks)} chunks)")
                 return True
             else:
@@ -570,7 +632,7 @@ class UnifiedDocumentProcessor:
             if file_extension == 'csv':
                 return self.data_manager.load_csv_data(filename)
             elif file_extension == 'pdf':
-                return self.data_manager.load_pdf_data([filename])
+                return self.data_manager.load_pdf_data(filename)
             elif file_extension in ['txt', 'md', 'json']:
                 return self.data_manager.load_text_data([filename])
             else:
@@ -588,10 +650,14 @@ class UnifiedDocumentProcessor:
             logger.error(f"❌ Failed to split documents: {e}")
             return []
 
-    def _add_embeddings(self, chunks: List[Any], filename: str) -> List[Dict[str, Any]]:
-        """Add embeddings to chunks with comprehensive metadata."""
+    def _add_embeddings(self, chunks: List[Any], filename: str, progress_callback=None) -> List[Dict[str, Any]]:
+        """Add embeddings to chunks with comprehensive metadata and progress tracking."""
         try:
             embedded_chunks = []
+            total_chunks = len(chunks)
+            
+            logger.info(f"🔄 Starting embedding generation for {total_chunks} chunks from {filename}")
+            
             for i, chunk in enumerate(chunks):
                 try:
                     # All chunks are now LangChain Document objects
@@ -606,13 +672,13 @@ class UnifiedDocumentProcessor:
                     
                     # Create comprehensive embedded chunk with all necessary fields
                     embedded_chunk = {
-                        'id': f"{filename}_{i}",
+                        'id': f"{i:05d}_{filename}",
                         'embedding': embedding,
                         'page_content': content,  # Legacy field for compatibility
                         'metadata': {
                             **metadata,
                             'document_source': filename,
-                            'chunk_id': f"{filename}_{i}",
+                            'chunk_id': f"{i:05d}_{filename}",
                             'chunk_index': i,
                             'total_chunks': len(chunks),
                             'file_extension': filename.lower().split('.')[-1] if '.' in filename else 'unknown',
@@ -621,6 +687,26 @@ class UnifiedDocumentProcessor:
                         }
                     }
                     embedded_chunks.append(embedded_chunk)
+                    
+                    # Progress tracking - log every 50 chunks or at 25%, 50%, 75%
+                    progress_percent = (i + 1) / total_chunks * 100
+                    if (i + 1) % 50 == 0 or progress_percent in [25, 50, 75]:
+                        logger.info(f"📊 Embedding progress: {i + 1}/{total_chunks} chunks ({progress_percent:.1f}%) - {filename}")
+                        
+                        # Call progress callback if provided
+                        if progress_callback:
+                            try:
+                                progress_callback({
+                                    "stage": "embedding",
+                                    "filename": filename,
+                                    "current": i + 1,
+                                    "total": total_chunks,
+                                    "percentage": progress_percent,
+                                    "message": f"Generating embeddings: {i + 1}/{total_chunks} chunks"
+                                })
+                            except Exception as e:
+                                logger.warning(f"⚠️ Progress callback failed: {e}")
+                    
                 except Exception as e:
                     logger.error(f"❌ Failed to embed chunk {i} from {filename}: {e}")
                     continue

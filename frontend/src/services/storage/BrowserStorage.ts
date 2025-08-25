@@ -175,6 +175,21 @@ export class BrowserStorage implements StorageAdapter {
     }
   }
 
+  async clearDocumentConfig(): Promise<{ success: boolean; message: string }> {
+    try {
+      localStorage.removeItem(DOCUMENT_CONFIG_KEY);
+      return {
+        success: true,
+        message: 'Document configuration cleared from browser storage'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to clear document configuration: ${error}`
+      };
+    }
+  }
+
   private getMetadata(): Record<string, ExperimentFile> {
     try {
       const metadataStr = localStorage.getItem(METADATA_KEY);

@@ -410,16 +410,33 @@ class DataManager:
         logger.info(f"✅ Total JSON documents loaded: {len(json_docs)}")
         return json_docs
 
-    def load_pdf_data(self) -> List[Document]:
+    def load_pdf_data(self, filename: str = None) -> List[Document]:
         """
-        Load PDF documents, but only selected ones.
+        Load PDF documents. If filename is provided, load only that specific file.
+        Otherwise, load all selected PDF files.
         """
         pdf_folder = self.data_folder
         if not os.path.exists(pdf_folder):
             logger.warning(f"⚠️ Folder for PDF file(s) not found: {pdf_folder}")
             return []
             
-        # Get all PDF files from data folder and subdirectories
+        # If specific filename is provided, load only that file
+        if filename:
+            if not os.path.exists(os.path.join(pdf_folder, filename)):
+                logger.error(f"❌ PDF file not found: {filename}")
+                return []
+            
+            try:
+                file_path = os.path.join(pdf_folder, filename)
+                loader = PyMuPDFLoader(file_path)
+                docs = loader.load()
+                logger.info(f"✅ Loaded {len(docs)} pages from {filename}")
+                return docs
+            except Exception as e:
+                logger.error(f"❌ Error loading PDF {filename}: {str(e)}")
+                return []
+        
+        # Otherwise, get all PDF files from data folder and subdirectories
         pdf_files = []
         for root, dirs, files in os.walk(pdf_folder):
             for file in files:
@@ -446,15 +463,15 @@ class DataManager:
         
         # Load only selected files
         all_docs = []
-        for filename in selected_files:
+        for selected_filename in selected_files:
             try:
-                file_path = os.path.join(pdf_folder, filename)
+                file_path = os.path.join(pdf_folder, selected_filename)
                 loader = PyMuPDFLoader(file_path)
                 docs = loader.load()
                 all_docs.extend(docs)
-                logger.info(f"✅ Loaded {len(docs)} pages from {filename}")
+                logger.info(f"✅ Loaded {len(docs)} pages from {selected_filename}")
             except Exception as e:
-                logger.error(f"❌ Error loading PDF {filename}: {str(e)}")
+                logger.error(f"❌ Error loading PDF {selected_filename}: {str(e)}")
         
         gc.collect()
         logger.info(f"✅ Total PDF documents loaded: {len(all_docs)}")

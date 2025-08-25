@@ -30,7 +30,7 @@ CHUNK_OVERLAP = 100
 
 QUALITY_THRESHOLDS = {
     'GOOD': 7.0,    # High quality threshold
-    'WEAK': 5.0,    # Minimum acceptable threshold
+    'DEVELOPING': 5.0,    # Minimum acceptable threshold
     'POOR': 0.0     # Below minimum threshold
 }
 
@@ -43,7 +43,7 @@ QUALITY_THRESHOLDS = {
 GAP_ANALYSIS_THRESHOLDS = {
     'CRITICAL': 3.0,      # Critical performance issues
     'POOR': 4.0,          # Poor performance
-    'WEAK': 5.0,          # Weak performance
+    'DEVELOPING': 5.0,          # Developing performance
     'MINIMUM_ACCEPTABLE': 6.0,  # Minimum acceptable performance
     'MAX_SCORE': 10.0     # Maximum possible score
 }

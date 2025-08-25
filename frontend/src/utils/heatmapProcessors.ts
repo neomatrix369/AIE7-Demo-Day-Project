@@ -744,7 +744,7 @@ export function processQuestionsToChunksRefactored(
       questionText: question.questionText,
       source: question.source,
       qualityScore: avgSimilarity,
-      status: avgSimilarity >= 7.0 ? 'good' : avgSimilarity >= 5.0 ? 'weak' : 'poor',
+      status: avgSimilarity >= 7.0 ? 'good' : avgSimilarity >= 5.0 ? 'developing' : 'poor',
       avgSimilarity,
       chunkFrequency: question.chunks.length,
       retrievedChunks: question.chunks.map(chunk => ({

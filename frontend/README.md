@@ -53,7 +53,7 @@ Next.js frontend with comprehensive logging, real-time WebSocket communication, 
 - **Gap Analysis Components** (`src/components/gap-analysis/`)
   - `GapAnalysisDashboard.tsx`: Main container with comprehensive gap insights and real-time data loading
   - `GapAnalysisOverview.tsx`: Interactive statistics cards with visual severity indicators
-  - `WeakCoverageAreas.tsx`: Topic-based gap visualization with expandable details and gap type classification
+  - `WeakCoverageAreas.tsx`: Topic-based gap visualization with expandable details and developing coverage area classification
   - `RecommendationCards.tsx`: Prioritized actionable recommendations with implementation workflow
 
 ## File Structure
@@ -69,7 +69,7 @@ src/
 │   ├── gap-analysis/     # Gap analysis and recommendations components
 │   │   ├── GapAnalysisDashboard.tsx    # Main gap analysis container
 │   │   ├── GapAnalysisOverview.tsx     # Statistics cards with visual indicators
-│   │   ├── WeakCoverageAreas.tsx       # Topic-based gap visualization
+│   │   ├── WeakCoverageAreas.tsx       # Topic-based developing coverage visualization
 │   │   └── RecommendationCards.tsx     # Actionable recommendation cards
 │   ├── ui/               # Reusable UI components
 │   │   └── BalloonTooltip.tsx     # Custom balloon tooltips with smart positioning

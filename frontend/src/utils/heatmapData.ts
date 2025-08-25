@@ -18,7 +18,7 @@ export interface QuestionHeatmapData {
   questionText: string;
   source: string;
   qualityScore: number;
-  status: 'good' | 'weak' | 'poor';
+  status: 'good' | 'developing' | 'poor';
   retrievedChunks: Array<{
     chunkId: string;
     docId: string;
@@ -664,12 +664,12 @@ export function getHeatmapColor(value: number, isUnretrieved: boolean = false, i
   if (isQualityScore) {
     // Quality score scale (0-10) - use bright, visible colors
     if (value >= 7.0) return '#2e7d32'; // Bright green for good (≥7.0)
-    if (value >= 5.0) return '#ff8f00'; // Bright orange for weak (5.0-7.0) 
+    if (value >= 5.0) return '#ff8f00'; // Bright orange for developing (5.0-7.0) 
     return '#d32f2f'; // Bright red for poor (<5.0)
   } else {
     // Intensity scale (0-1) - use bright, visible colors
     if (value >= 0.7) return '#2e7d32'; // Bright green for good
-    if (value >= 0.5) return '#ff8f00'; // Bright orange for weak
+    if (value >= 0.5) return '#ff8f00'; // Bright orange for developing
     return '#d32f2f'; // Bright red for poor
   }
 }
@@ -705,7 +705,7 @@ export function optimizePositions(points: HeatmapPoint[], width: number, height:
  */
 export function filterPointsByQuality(
   points: HeatmapPoint[], 
-  threshold: 'all' | 'good' | 'weak' | 'poor'
+  threshold: 'all' | 'good' | 'developing' | 'poor'
 ): HeatmapPoint[] {
   if (threshold === 'all') return points;
   
@@ -715,17 +715,17 @@ export function filterPointsByQuality(
     } else if (point.data.type === 'chunk') {
       // For chunks, determine status based on avgSimilarity
       const similarity = point.data.avgSimilarity;
-      const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'weak' : 'poor';
+      const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'developing' : 'poor';
       return status === threshold;
     } else if (point.data.type === 'role') {
       // For roles, determine status based on avgSimilarity
       const score = point.data.avgSimilarity;
-      const status = score >= 7.0 ? 'good' : score >= 5.0 ? 'weak' : 'poor';
+      const status = score >= 7.0 ? 'good' : score >= 5.0 ? 'developing' : 'poor';
       return status === threshold;
     } else if (point.data.type === 'chunk-to-role') {
       // For chunk-to-role, determine status based on avgSimilarity
       const similarity = point.data.avgSimilarity;
-      const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'weak' : 'poor';
+      const status = similarity >= 7.0 ? 'good' : similarity >= 5.0 ? 'developing' : 'poor';
       return status === threshold;
     } else {
       // For unassociated clusters, always show them (they represent background)

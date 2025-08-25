@@ -44,10 +44,10 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData, ques
             fontWeight: 'bold', 
             color: '#e67e22'
           }}>
-            {gapSummary.weakQuestionsCount || gapSummary.weakCount || 0}
+            {gapSummary.developingQuestionsCount || gapSummary.developingCount || 0}
           </div>
           <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Weak Questions</span>
+            <span>Developing Questions</span>
             <BalloonTooltip
               content={
                 'Questions with quality score 5.0-6.9 (below GOOD threshold but above POOR). These need content improvements to reach good performance.'
@@ -59,16 +59,16 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData, ques
             </BalloonTooltip>
           </div>
           <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666', marginBottom: '8px' }}>
-            Score 5.0-6.9 ({gapSummary.weakQuestionsCount || gapSummary.weakCount || 0 > 0 ? Math.round(((gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) / gapSummary.totalQuestions) * 100) : 0}%)
+            Score 5.0-6.9 ({gapSummary.developingQuestionsCount || gapSummary.developingCount || 0 > 0 ? Math.round(((gapSummary.developingQuestionsCount || gapSummary.developingCount || 0) / gapSummary.totalQuestions) * 100) : 0}%)
           </div>
           <BalloonTooltip
-            content={`Download ${gapSummary.weakQuestionsCount || gapSummary.weakCount || 0} weak questions (score 5.0-6.9) as CSV file`}
+            content={`Download ${gapSummary.developingQuestionsCount || gapSummary.developingCount || 0} developing questions (score 5.0-6.9) as CSV file`}
             maxWidth={300}
             cursor="help"
           >
             <button
-              onClick={() => exportQuestionsByStatus(questions, 'weak')}
-              disabled={(gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) === 0}
+              onClick={() => exportQuestionsByStatus(questions, 'developing')}
+              disabled={(gapSummary.developingQuestionsCount || gapSummary.developingCount || 0) === 0}
               className="button button-secondary"
               style={{
                 fontSize: '0.75rem',
@@ -76,8 +76,8 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData, ques
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                opacity: (gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) === 0 ? 0.5 : 1,
-                cursor: (gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) === 0 ? 'not-allowed' : 'pointer',
+                opacity: (gapSummary.developingQuestionsCount || gapSummary.developingCount || 0) === 0 ? 0.5 : 1,
+                cursor: (gapSummary.developingQuestionsCount || gapSummary.developingCount || 0) === 0 ? 'not-allowed' : 'pointer',
                 backgroundColor: '#e67e22',
                 color: 'white',
                 border: '1px solid #e67e22',

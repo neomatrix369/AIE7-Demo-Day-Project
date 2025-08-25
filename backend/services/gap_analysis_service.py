@@ -51,16 +51,16 @@ class GapAnalysisService:
             normalized_results.append({**r, 'avg_quality_score': quality_score})
 
         # Filter low-performing queries (< 5.0 on 0-10 scale)
-        low_score_queries = [r for r in normalized_results if r.get('avg_quality_score', 0.0) < GAP_ANALYSIS_THRESHOLDS['WEAK']]
+        low_score_queries = [r for r in normalized_results if r.get('avg_quality_score', 0.0) < GAP_ANALYSIS_THRESHOLDS['DEVELOPING']]
         
         # Detect uncovered topics using dynamic analysis (no hardcoded patterns)
         uncovered_topics = self._detect_uncovered_topics(normalized_results)
         
-        # Identify weak coverage areas
-        weak_coverage_areas = self._identify_weak_coverage_areas(normalized_results)
+        # Identify developing coverage areas
+        developing_coverage_areas = self._identify_developing_coverage_areas(normalized_results)
         
         # Generate actionable recommendations
-        recommendations = self._generate_recommendations(low_score_queries, weak_coverage_areas)
+        recommendations = self._generate_recommendations(low_score_queries, developing_coverage_areas)
         
         # Calculate gap summary statistics
         gap_summary = self._calculate_gap_summary(normalized_results, low_score_queries, recommendations)
@@ -68,7 +68,7 @@ class GapAnalysisService:
         result = {
             'lowScoreQueries': low_score_queries,
             'uncoveredTopics': uncovered_topics,
-            'weakCoverageAreas': weak_coverage_areas,
+            'developingCoverageAreas': developing_coverage_areas,
             'recommendations': recommendations,
             'gapSummary': gap_summary
         }
@@ -93,7 +93,7 @@ class GapAnalysisService:
 
         return underperforming_roles
     
-    def _identify_weak_coverage_areas(self, experiment_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _identify_developing_coverage_areas(self, experiment_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Identify roles/categories with poor performance - generic implementation."""
         role_stats = defaultdict(lambda: {'scores': [], 'queries': []})
 
@@ -105,7 +105,7 @@ class GapAnalysisService:
             role_stats[role]['scores'].append(score)
             role_stats[role]['queries'].append(query)
 
-        weak_areas = []
+        developing_areas = []
         for role, data in role_stats.items():
             if data['scores']:
                 avg_score = sum(data['scores']) / len(data['scores'])
@@ -116,42 +116,42 @@ class GapAnalysisService:
                     good_questions = len([s for s in data['scores'] if s >= 7.0])
                     success_rate = (good_questions / query_count) * 100 if query_count > 0 else 0
                     
-                    weak_areas.append({
+                    developing_areas.append({
                         'topic': role,  # Using 'topic' field name for frontend compatibility 
                         'avgScore': round(avg_score, 1),
                         'queryCount': query_count,
                         'affectedQueries': data['queries'][:3],  # Show sample questions
                         'gapType': self._determine_performance_category(avg_score),
                         'successRate': round(success_rate, 1),
-                        'poorCount': len([s for s in data['scores'] if s < GAP_ANALYSIS_THRESHOLDS['WEAK']]),
+                        'poorCount': len([s for s in data['scores'] if s < GAP_ANALYSIS_THRESHOLDS['DEVELOPING']]),
                         'criticalCount': len([s for s in data['scores'] if s < GAP_ANALYSIS_THRESHOLDS['CRITICAL']])
                     })
 
-        weak_areas.sort(key=lambda x: x['avgScore'])  # Sort by worst performance first
-        return weak_areas
+        developing_areas.sort(key=lambda x: x['avgScore'])  # Sort by worst performance first
+        return developing_areas
     
     def _determine_performance_category(self, avg_score: float) -> str:
         """Determine performance category using generic thresholds"""
         if avg_score < GAP_ANALYSIS_THRESHOLDS['CRITICAL']:
             return 'critical'  # Critical performance issues
-        elif avg_score < GAP_ANALYSIS_THRESHOLDS['WEAK']:
+        elif avg_score < GAP_ANALYSIS_THRESHOLDS['DEVELOPING']:
             return 'poor'      # Poor performance 
         else:
-            return 'weak'      # Weak performance (but not poor)
+            return 'developing'      # Developing performance (but not poor)
     
     def _generate_recommendations(self, low_score_queries: List[Dict[str, Any]], 
-                                weak_areas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                                developing_areas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Generate actionable recommendations using rule-based approach - generic implementation"""
         recommendations = []
         
-        # Generate recommendations for weak coverage areas
-        for area in weak_areas:
+        # Generate recommendations for developing coverage areas
+        for area in developing_areas:
             rec = self._create_area_recommendation(area)
             if rec:
                 recommendations.append(rec)
         
         # Generate specific recommendations for low scoring queries (not just critical)
-        poor_queries = [q for q in low_score_queries if q.get('avg_quality_score', 0) < GAP_ANALYSIS_THRESHOLDS['WEAK']]
+        poor_queries = [q for q in low_score_queries if q.get('avg_quality_score', 0) < GAP_ANALYSIS_THRESHOLDS['DEVELOPING']]
         for query in poor_queries[:3]:  # Limit to top 3 most problematic
             rec = self._create_query_recommendation(query)
             if rec:
@@ -181,13 +181,13 @@ class GapAnalysisService:
             suggested_content = improvement_strategies['primary_strategy']
             category = 'content_improvement'  
             effort = 'Medium'
-        else:  # weak
+        else:  # developing
             suggested_content = improvement_strategies['primary_strategy']
             category = 'quality_boost'
             effort = 'Low' if query_count <= 3 else 'Medium'
         
         # Calculate impact and priority based on generic performance metrics
-        impact = 'High' if avg_score < GAP_ANALYSIS_THRESHOLDS['CRITICAL'] else ('Medium' if avg_score < GAP_ANALYSIS_THRESHOLDS['WEAK'] else 'Low')
+        impact = 'High' if avg_score < GAP_ANALYSIS_THRESHOLDS['CRITICAL'] else ('Medium' if avg_score < GAP_ANALYSIS_THRESHOLDS['DEVELOPING'] else 'Low')
         effort_score = {'Low': 1, 'Medium': 2, 'High': 3}[effort]
         impact_score = {'High': 3, 'Medium': 2, 'Low': 1}[impact]
         priority_score = impact_score * (1 / effort_score)
@@ -255,7 +255,7 @@ class GapAnalysisService:
                     f"🎯 **Best Practices Compilation**: Gather and document proven solutions from experienced {role}s in your organization",
                     f"🔄 **Process Documentation**: Document development workflows, deployment procedures, and debugging methodologies"
                 ],
-                'weak': [
+                'developing': [
                     f"📋 **Quick Reference Guides**: Create concise cheat sheets for {role} daily tasks and common commands",
                     f"💡 **Tips & Tricks Collection**: Compile practical tips from team members to improve {role} productivity",
                     f"📊 **Performance Optimization**: Document performance tuning techniques and optimization strategies"
@@ -272,7 +272,7 @@ class GapAnalysisService:
                     f"🎯 **Escalation Procedures**: Document clear escalation paths and resolution procedures for {role} complex problems",
                     f"📱 **Self-Service Tools**: Develop self-service resources to reduce {role} support ticket volume"
                 ],
-                'weak': [
+                'developing': [
                     f"📖 **Quick Start Guides**: Create easy-to-follow onboarding materials for {role} new users",
                     f"🔧 **Common Solutions**: Compile quick fixes for {role} frequently encountered issues",
                     f"📈 **Performance Metrics**: Document key performance indicators and optimization strategies"
@@ -289,7 +289,7 @@ class GapAnalysisService:
                     f"🔄 **Automation Documentation**: Document automation scripts and tools used by {role} for efficiency",
                     f"📈 **Performance Tuning**: Create guides for system optimization and performance monitoring"
                 ],
-                'weak': [
+                'developing': [
                     f"📖 **Quick Reference**: Develop quick reference cards for {role} common administrative tasks",
                     f"💡 **Best Practices**: Compile best practices for {role} system management and user administration",
                     f"🔧 **Troubleshooting**: Create troubleshooting guides for {role} common system issues"
@@ -306,7 +306,7 @@ class GapAnalysisService:
                     f"🎨 **UI/UX Documentation**: Create comprehensive guides for {role} interface navigation and feature usage",
                     f"📱 **Mobile Experience**: Develop mobile-specific documentation for {role} on-the-go users"
                 ],
-                'weak': [
+                'developing': [
                     f"📖 **Getting Started**: Create engaging onboarding materials for {role} new users",
                     f"💡 **Feature Highlights**: Develop guides highlighting key features and benefits for {role}",
                     f"🔧 **Quick Tips**: Compile quick tips and shortcuts for {role} power users"
@@ -326,7 +326,7 @@ class GapAnalysisService:
                 f"🎯 **Gap Filling**: Identify specific topics where {role} needs more information and create targeted content",
                 f"🔄 **Process Documentation**: Document {role} workflows and procedures that are currently undocumented"
             ],
-            'weak': [
+            'developing': [
                 f"📋 **Quick Wins**: Focus on low-effort improvements to existing {role} content quality and organization",
                 f"💡 **Best Practices**: Compile and document best practices for {role} from experienced team members",
                 f"🔧 **Tool Integration**: Improve how {role} accesses and searches for information"
@@ -382,7 +382,7 @@ class GapAnalysisService:
                 "📚 **External Documentation**: Research and incorporate relevant external documentation and resources for {role}",
                 "🔄 **Content Validation**: Use LLMs to generate content variations for {role} topics and validate accuracy with domain experts *(Note: All AI-generated content must be reviewed by domain experts before publication)*"
             ])
-        else:  # weak
+        else:  # developing
             strategies.extend([
                 "💡 **Quick Content Generation**: Use AI tools to quickly generate additional content for {role} based on existing high-performing topics *(Note: All AI-generated content must be reviewed by domain experts before publication)*",
                 "📖 **Resource Compilation**: Gather and organize existing internal resources and external references for {role}",
@@ -416,17 +416,17 @@ class GapAnalysisService:
         
         # Get quality score thresholds
         good_threshold = QualityScoreService.get_quality_thresholds()['GOOD']  # 7.0
-        weak_threshold = QualityScoreService.get_quality_thresholds()['WEAK']  # 5.0
+        developing_threshold = QualityScoreService.get_quality_thresholds()['DEVELOPING']  # 5.0
         
         # Calculate correct statistics
         good_count = len([r for r in all_results if r.get('avg_quality_score', 0) >= good_threshold])
-        weak_count = len([r for r in all_results if weak_threshold <= r.get('avg_quality_score', 0) < good_threshold])
-        poor_count = len([r for r in all_results if r.get('avg_quality_score', 0) < weak_threshold])
+        developing_count = len([r for r in all_results if developing_threshold <= r.get('avg_quality_score', 0) < good_threshold])
+        poor_count = len([r for r in all_results if r.get('avg_quality_score', 0) < developing_threshold])
         
         # Below GOOD threshold (aligns with Results page success rate complement)
-        below_good_count = weak_count + poor_count
+        below_good_count = developing_count + poor_count
         
-        # Total gaps are the poor performing queries (below weak threshold)
+        # Total gaps are the poor performing queries (below developing threshold)
         total_gaps = poor_count
         critical_gaps = len([q for q in low_score_queries if q.get('avg_quality_score', 0) < GAP_ANALYSIS_THRESHOLDS['CRITICAL']])
         
@@ -456,9 +456,9 @@ class GapAnalysisService:
             'belowGoodCount': below_good_count,
             'belowGoodPercentage': round((below_good_count / max(total_questions, 1)) * 100, 1),
             'goodCount': good_count,
-            'weakCount': weak_count,
+            'developingCount': developing_count,
             'poorCount': poor_count,
-            'weakQuestionsCount': weak_count,  # Questions with score 5.0-6.9
+            'developingQuestionsCount': developing_count,  # Questions with score 5.0-6.9
             'poorQuestionsCount': poor_count   # Questions with score <5.0
         }
     
@@ -467,7 +467,7 @@ class GapAnalysisService:
         return {
             'lowScoreQueries': [],
             'uncoveredTopics': [],
-            'weakCoverageAreas': [],
+            'developingCoverageAreas': [],
             'recommendations': [],
             'gapSummary': {
                 'totalGaps': 0,

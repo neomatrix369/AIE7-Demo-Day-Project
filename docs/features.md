@@ -11,7 +11,7 @@
 ## 🏗️ Technical Architecture
 - **🔍 Real Document Processing**: Loads CSV and PDF files using LangChain with intelligent chunking (750 chars, 100 overlap)
 - **🗃️ Persistent Vector Storage**: Qdrant database with cosine similarity search, automatic collection management, and health monitoring
-- **📏 Quality Score System**: Normalized 0-10 scale with consistent thresholds (GOOD ≥7.0, WEAK ≥5.0, POOR <5.0) and color-coded indicators
+- **📏 Quality Score System**: Normalized 0-10 scale with consistent thresholds (GOOD ≥7.0, DEVELOPING ≥5.0, POOR <5.0) and color-coded indicators
 - **🆔 Chunk Traceability**: Qdrant UUID capture for enhanced debugging and search result analysis with clickable chunk IDs
 - **🗺️ Interactive Visualization**: D3.js-powered hexagonal heatmaps with multiple perspectives (Chunks-to-Questions, Chunks-to-Roles), advanced analytics, and improved layout.
 - **📊 Coverage Analytics**: Comprehensive chunk utilization tracking with Unretrieved chunk detection and impactful stats on coverage and performance.

@@ -19,7 +19,7 @@ Following the Four Rules of Simple Design:
 from typing import List, Dict, Any, Literal
 from config.settings import QUALITY_THRESHOLDS
 
-QualityStatus = Literal['good', 'weak', 'poor']
+QualityStatus = Literal['good', 'developing', 'poor']
 
 
 class QualityScoreService:
@@ -65,12 +65,12 @@ class QualityScoreService:
             quality_score: Quality score between 0 and 10
             
         Returns:
-            Status string: 'good', 'weak', or 'poor'
+            Status string: 'good', 'developing', or 'poor'
         """
         if quality_score >= QUALITY_THRESHOLDS['GOOD']:
             return "good"
-        elif quality_score >= QUALITY_THRESHOLDS['WEAK']:
-            return "weak"
+        elif quality_score >= QUALITY_THRESHOLDS['DEVELOPING']:
+            return "developing"
         else:
             return "poor"
     
@@ -104,7 +104,7 @@ class QualityScoreService:
         Returns:
             Dictionary with counts for each quality status
         """
-        distribution = {"good": 0, "weak": 0, "poor": 0}
+        distribution = {"good": 0, "developing": 0, "poor": 0}
         
         for score in quality_scores:
             status = QualityScoreService.get_quality_status(score)
@@ -121,7 +121,7 @@ class QualityScoreService:
         
         Args:
             items: List of items with quality scores
-            quality_filter: Filter type ('all', 'good', 'weak', 'poor')
+            quality_filter: Filter type ('all', 'good', 'developing', 'poor')
             quality_field: Field name containing quality score
             
         Returns:

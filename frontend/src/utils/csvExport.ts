@@ -86,12 +86,12 @@ export function downloadCSV(csvContent: string, filename: string): void {
 /**
  * Filter questions by quality status
  */
-export function filterQuestionsByStatus(questions: any[], status: 'weak' | 'poor'): any[] {
+export function filterQuestionsByStatus(questions: any[], status: 'developing' | 'poor'): any[] {
   return questions.filter(question => {
     const qualityScore = question.quality_score || question.avg_quality_score || 0;
     
-    if (status === 'weak') {
-      // Weak: quality score 5.0-6.9
+    if (status === 'developing') {
+      // Developing: quality score 5.0-6.9
       return qualityScore >= 5.0 && qualityScore < 7.0;
     } else if (status === 'poor') {
       // Poor: quality score < 5.0
@@ -107,7 +107,7 @@ export function filterQuestionsByStatus(questions: any[], status: 'weak' | 'poor
  */
 export function exportQuestionsByStatus(
   questions: any[], 
-  status: 'weak' | 'poor', 
+  status: 'developing' | 'poor', 
   experimentName?: string
 ): void {
   const filteredQuestions = filterQuestionsByStatus(questions, status);

@@ -206,13 +206,13 @@ const GapAnalysisDashboard: React.FC = () => {
         <GapAnalysisOverview gapData={gapData} questions={analysisData?.per_question || []} />
       </div>
 
-      {/* Weak Coverage Areas */}
-      {gapData.weakCoverageAreas.length > 0 && (
+      {/* Developing Coverage Areas */}
+      {gapData.developingCoverageAreas.length > 0 && (
         <div className="gap-section">
           <div className="section-header">
             <span className="section-icon">🎯</span>
             <h3 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              Weak Coverage Areas ({gapData.weakCoverageAreas.length})
+              Developing Coverage Areas ({gapData.developingCoverageAreas.length})
               <BalloonTooltip
                 content={'Topic clusters with low average quality score and multiple affected queries.'}
                 maxWidth={340}
@@ -222,7 +222,7 @@ const GapAnalysisDashboard: React.FC = () => {
               </BalloonTooltip>
             </h3>
           </div>
-          <WeakCoverageAreas weakAreas={gapData.weakCoverageAreas} />
+          <WeakCoverageAreas weakAreas={gapData.developingCoverageAreas} />
         </div>
       )}
 

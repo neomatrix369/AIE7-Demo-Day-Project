@@ -115,9 +115,9 @@ export const useComparisonData = () => {
               after: countHighQualityAnswers(expB) 
             },
 
-            weakCoverage: { 
-              before: countWeakCoverage(expA), 
-              after: countWeakCoverage(expB) 
+            developingCoverage: { 
+              before: countDevelopingCoverage(expA), 
+              after: countDevelopingCoverage(expB) 
             },
             poorQuestions: { 
               before: countPoorQuestions(expA), 
@@ -223,7 +223,7 @@ export const useComparisonData = () => {
 // Helper functions to transform experiment data
 const getStatusFromQualityScore = (score: number): string => {
   if (score >= 7.0) return 'GOOD';
-  if (score >= 5.0) return 'WEAK';
+  if (score >= 5.0) return 'DEVELOPING';
   return 'POOR';
 };
 
@@ -275,22 +275,22 @@ const countHighQualityAnswers = (experiment: any): number => {
   return 0;
 };
 
-const countWeakCoverage = (experiment: any, gapAnalysisData?: any): number => {
+const countDevelopingCoverage = (experiment: any, gapAnalysisData?: any): number => {
   // Try to get from backend gap analysis API first (most reliable)
-  if (gapAnalysisData?.gapSummary?.weakQuestionsCount !== undefined) {
-    return gapAnalysisData.gapSummary.weakQuestionsCount;
+  if (gapAnalysisData?.gapSummary?.developingQuestionsCount !== undefined) {
+    return gapAnalysisData.gapSummary.developingQuestionsCount;
   }
   
   // Try to get from experiment results if available
-  if (experiment.results?.gap_analysis?.weak_questions_count !== undefined) {
-    return experiment.results.gap_analysis.weak_questions_count;
+  if (experiment.results?.gap_analysis?.developing_questions_count !== undefined) {
+    return experiment.results.gap_analysis.developing_questions_count;
   }
   
   // Fallback to frontend calculation
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
     return experiment.question_results.filter((q: any) => {
       const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
-      return qualityScore < 5.0;  // Consider questions with quality score < 5.0 as weak coverage
+      return qualityScore >= 5.0 && qualityScore < 7.0;  // Consider questions with quality score 5.0-6.9 as developing coverage
     }).length;
   }
   return 0;

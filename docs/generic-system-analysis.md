@@ -9,7 +9,7 @@ The gap analysis and recommendation system has been designed to be **completely 
 ### 1. **Quality Score Service** (`quality_score_service.py`)
 - **Completely domain-agnostic**
 - Works with any similarity scores (0-1) and converts to quality scores (0-10)
-- Generic thresholds: GOOD (≥7.0), WEAK (≥5.0), POOR (<5.0)
+- Generic thresholds: GOOD (≥7.0), DEVELOPING (≥5.0), POOR (<5.0)
 - No hardcoded domain-specific logic
 
 ### 2. **Core Gap Analysis Logic** (`gap_analysis_service.py`)

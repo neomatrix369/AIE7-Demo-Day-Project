@@ -17,7 +17,7 @@ const AnalysisResults: React.FC = () => {
   // UI state management (not moved to usePageData)
   const [sortField, setSortField] = useState<'quality_score' | 'source' | 'status'>('quality_score');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'good' | 'weak' | 'poor'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'good' | 'developing' | 'poor'>('all');
   const [searchText, setSearchText] = useState<string>('');
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [isRoleAnalysisExpanded, setIsRoleAnalysisExpanded] = useState(false);
@@ -105,7 +105,7 @@ const AnalysisResults: React.FC = () => {
 
   const getQualityScoreBarClass = (qualityScore: number) => {
     if (qualityScore >= 7.0) return 'quality-score-good';
-    if (qualityScore >= 5.0) return 'quality-score-weak';
+    if (qualityScore >= 5.0) return 'quality-score-developing';
     return 'quality-score-poor';
   };
 
@@ -770,7 +770,7 @@ const AnalysisResults: React.FC = () => {
               >
                 <option value="all">All</option>
                 <option value="good">Good</option>
-                <option value="weak">Weak</option>
+                <option value="developing">Developing</option>
                 <option value="poor">Poor</option>
               </select>
             </div>
@@ -979,7 +979,7 @@ const AnalysisResults: React.FC = () => {
                                   <td style={{ padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span style={{ 
                                       color: getQualityScoreBarClass(doc.similarity).includes('good') ? '#28a745' :
-                                            getQualityScoreBarClass(doc.similarity).includes('weak') ? '#e67e22' : '#dc3545',
+                                            getQualityScoreBarClass(doc.similarity).includes('developing') ? '#e67e22' : '#dc3545',
                                       fontWeight: 'bold',
                                       fontSize: '0.9rem'
                                     }}>

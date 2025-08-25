@@ -11,7 +11,7 @@ import { logNavigation } from '../utils/logger';
 // Helper function for status conversion
 const getStatusFromQualityScore = (score: number): string => {
   if (score >= 7.0) return 'GOOD';
-  if (score >= 5.0) return 'WEAK';
+  if (score >= 5.0) return 'DEVELOPING';
   return 'POOR';
 };
 
@@ -147,32 +147,32 @@ const calculateImpactLevel = (before: number, after: number, metricType: 'percen
   return 'LOW';
 };
 
-const generateWeakCoverageComment = (before: number, after: number): string => {
+const generateDevelopingCoverageComment = (before: number, after: number): string => {
   const reduction = ((before - after) / Math.max(before, 1)) * 100;
   const countChange = before - after;
   
   if (reduction === 0) {
-    return `${countChange >= 0 ? '+' : ''}${countChange} weak areas • No change in coverage`;
+    return `${countChange >= 0 ? '+' : ''}${countChange} developing areas • No change in coverage`;
   } else if (reduction < 0) {
     const increase = Math.abs(reduction);
     if (increase < 25) {
-      return `${countChange} more weak areas • Minor coverage decline`;
+      return `${countChange} more developing areas • Minor coverage decline`;
     } else if (increase < 50) {
-      return `${countChange} more weak areas • Moderate coverage decline`;
+      return `${countChange} more developing areas • Moderate coverage decline`;
     } else if (increase < 75) {
-      return `${countChange} more weak areas • Significant coverage decline`;
+      return `${countChange} more developing areas • Significant coverage decline`;
     } else {
-      return `${countChange} more weak areas • Major coverage decline`;
+      return `${countChange} more developing areas • Major coverage decline`;
     }
   } else {
     if (reduction < 25) {
-      return `${countChange} fewer weak areas • Minor coverage improvement`;
+      return `${countChange} fewer developing areas • Minor coverage improvement`;
     } else if (reduction < 50) {
-      return `${countChange} fewer weak areas • Moderate coverage improvement`;
+      return `${countChange} fewer developing areas • Moderate coverage improvement`;
     } else if (reduction < 75) {
-      return `${countChange} fewer weak areas • Significant coverage improvement`;
+      return `${countChange} fewer developing areas • Significant coverage improvement`;
     } else {
-      return `${countChange} fewer weak areas • Major coverage improvement`;
+      return `${countChange} fewer developing areas • Major coverage improvement`;
     }
   }
 };
@@ -492,12 +492,12 @@ const ComparePage: React.FC = () => {
             margin: '0 auto'
           }}>
             <MetricRow
-              label="Weak Coverage Areas"
-              before={data.metrics.weakCoverage.before}
-              after={data.metrics.weakCoverage.after}
-              impact={calculateImpactLevel(data.metrics.weakCoverage.before, data.metrics.weakCoverage.after, 'count')}
+              label="Developing Coverage Areas"
+              before={data.metrics.developingCoverage.before}
+              after={data.metrics.developingCoverage.after}
+              impact={calculateImpactLevel(data.metrics.developingCoverage.before, data.metrics.developingCoverage.after, 'count')}
               backgroundColor="#fffbf0"
-              improvement={generateWeakCoverageComment(data.metrics.weakCoverage.before, data.metrics.weakCoverage.after)}
+              improvement={generateDevelopingCoverageComment(data.metrics.developingCoverage.before, data.metrics.developingCoverage.after)}
               lowerIsBetter={true}
             />
             

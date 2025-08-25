@@ -21,7 +21,7 @@ import { computeGridPositions } from './positionUtils';
 interface ScatterHeatmapProps {
   questionResults: QuestionResult[];
   perspective: HeatmapPerspective;
-  qualityFilter: 'all' | 'good' | 'weak' | 'poor';
+  qualityFilter: 'all' | 'good' | 'developing' | 'poor';
   onPointClick?: (point: HeatmapPoint) => void;
   width?: number;
   height?: number;

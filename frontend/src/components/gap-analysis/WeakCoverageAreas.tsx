@@ -36,7 +36,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
 
   const getQualityStatusFromScore = (avgScore: number) => {
     if (avgScore >= 7.0) return { status: 'GOOD', color: '#28a745' };
-    if (avgScore >= 5.0) return { status: 'WEAK', color: '#ffc107' };
+    if (avgScore >= 5.0) return { status: 'DEVELOPING', color: '#ffc107' };
     return { status: 'POOR', color: '#dc3545' };
   };
 
@@ -50,7 +50,7 @@ const WeakCoverageAreas: React.FC<WeakCoverageAreasProps> = ({ weakAreas }) => {
         border: '2px dashed #28a745'
       }}>
         <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>✅</div>
-        <h3 style={{ color: '#28a745', marginBottom: '10px' }}>No Weak Question Roles</h3>
+        <h3 style={{ color: '#28a745', marginBottom: '10px' }}>No Developing Question Roles</h3>
         <p style={{ color: '#666', margin: 0 }}>
           All question role categories show good performance levels. Your corpus provides consistent coverage across different borrower types and topics.
         </p>

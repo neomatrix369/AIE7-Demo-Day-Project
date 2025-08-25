@@ -24,7 +24,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
     onConfigChange({ perspective });
   };
 
-  const handleQualityFilterChange = (qualityFilter: 'all' | 'good' | 'weak' | 'poor') => {
+  const handleQualityFilterChange = (qualityFilter: 'all' | 'good' | 'developing' | 'poor') => {
     onConfigChange({ qualityFilter });
   };
 
@@ -133,7 +133,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
           >
             <option value="all">All</option>
             <option value="good">Good</option>
-            <option value="weak">Weak</option>
+            <option value="developing">Developing</option>
             <option value="poor">Poor</option>
           </select>
         </div>

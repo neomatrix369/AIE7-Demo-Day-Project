@@ -48,7 +48,7 @@ This is **RagCheck** - a **6-screen wizard application** for RAG quality assessm
 - **Document Processing**: LangChain loaders for CSV (complaints.csv) and PDF files with intelligent filtering
 - **Embeddings**: OpenAI text-embedding-3-small (1536 dimensions, cosine similarity)
 - **Quality Score System**: 
-  - Normalized 0-10 scale with consistent thresholds: GOOD (≥7.0), WEAK (≥5.0), POOR (<5.0)
+  - Normalized 0-10 scale with consistent thresholds: GOOD (≥7.0), DEVELOPING (≥5.0), POOR (<5.0)
   - Color-coded indicators across all interfaces
   - Unified terminology replacing inconsistent similarity score references
 - **Chunk Traceability**: 

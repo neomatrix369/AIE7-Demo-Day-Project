@@ -22,16 +22,16 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
         display: 'flex', 
         alignItems: 'center', 
         flexWrap: 'wrap',
-        gap: '24px',
+        gap: '32px',
         ...style 
       }}>
         {titleText && <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{titleText}:</span>}
         <span style={{ color: getStatusColor(7.0), display: 'flex', alignItems: 'center', gap: '4px' }}>
           🟢 <strong>GOOD</strong> (≥7.0)
-        </span> | 
+        </span>
         <span style={{ color: getStatusColor(6.0), display: 'flex', alignItems: 'center', gap: '4px' }}>
-          🟡 <strong>WEAK</strong> (&#8805;5.0 &amp; &lt;7.0)
-        </span> | 
+          🟡 <strong>DEVELOPING</strong> (&#8805;5.0 &amp; &lt;7.0)
+        </span>
         <span style={{ color: getStatusColor(4.0), display: 'flex', alignItems: 'center', gap: '4px' }}>
           🔴 <strong>POOR</strong> (&lt;5.0)
         </span>
@@ -77,7 +77,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
               </td>
             </tr>
             <tr style={{ backgroundColor: '#fff' }}>
-              <td style={{ padding: '6px', fontWeight: 'bold' }}>🟡 WEAK</td>
+              <td style={{ padding: '6px', fontWeight: 'bold' }}>🟡 DEVELOPING</td>
               <td style={{ padding: '6px' }}>≥ 5.0 and &lt; 7.0</td>
               <td style={{ padding: '6px', textAlign: 'center' }}>
                 <span style={{ backgroundColor: getStatusColor(6.0), color: 'white', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem' }}>
@@ -131,7 +131,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
         gap: '4px',
         whiteSpace: 'nowrap'
       }}>
-        <span style={{ fontSize: '1.2em' }}>■</span> <strong>WEAK</strong> (≥ 5.0 and &lt; 7.0)
+        <span style={{ fontSize: '1.2em' }}>■</span> <strong>DEVELOPING</strong> (≥ 5.0 and &lt; 7.0)
       </span>
       <span style={{ 
         color: getStatusColor(4.0), 

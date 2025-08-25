@@ -53,7 +53,7 @@ export interface QuestionResult {
   source: string;
   role_name?: string;
   quality_score: number;
-  status: 'good' | 'weak' | 'poor';
+  status: 'good' | 'developing' | 'poor';
   retrieved_docs: Array<{
     doc_id: string;
     chunk_id?: string;
@@ -119,7 +119,7 @@ export type HeatmapPerspective = 'documents-to-chunks' | 'questions-to-chunks' |
 
 export interface HeatmapConfig {
   perspective: HeatmapPerspective;
-  qualityFilter: 'all' | 'good' | 'weak' | 'poor';
+  qualityFilter: 'all' | 'good' | 'developing' | 'poor';
   showTooltips: boolean;
   pointSize: 'small' | 'medium' | 'large';
   colorIntensity: number; // 0.5 - 1.5 multiplier
@@ -168,7 +168,7 @@ export interface RecommendationCard {
 export interface GapAnalysis {
   lowScoreQueries: QuestionResult[];
   uncoveredTopics: string[];
-  weakCoverageAreas: ContentGap[];
+  developingCoverageAreas: ContentGap[];
   recommendations: RecommendationCard[];
   gapSummary: {
     totalGaps: number;
@@ -180,9 +180,9 @@ export interface GapAnalysis {
     belowGoodCount: number;
     belowGoodPercentage: number;
     goodCount: number;
-    weakCount: number;
+    developingCount: number;
     poorCount: number;
-    weakQuestionsCount: number;
+    developingQuestionsCount: number;
     poorQuestionsCount: number;
   };
 }
@@ -195,7 +195,7 @@ export interface ComparisonData {
     id: string; name: string; date: string; time: string; qualityScore: number; status: string; questionCount: number;
   };
   metrics: {
-    overallQuality: { before: number; after: number; }; successRate: { before: number; after: number; }; highQualityAnswers: { before: number; after: number; }; weakCoverage: { before: number; after: number; }; poorQuestions: { before: number; after: number; }; chunkCoverage: { before: number; after: number; };
+    overallQuality: { before: number; after: number; }; successRate: { before: number; after: number; }; highQualityAnswers: { before: number; after: number; }; developingCoverage: { before: number; after: number; }; poorQuestions: { before: number; after: number; }; chunkCoverage: { before: number; after: number; };
   };
   context: {
     questionsProcessed: { before: number; after: number; };

@@ -759,7 +759,7 @@ async def websocket_experiment_stream(websocket: WebSocket):
         logger.info(f"⏱️ Experiment completed in {experiment_duration:.2f} seconds")
         
         # Save experiment results with config and timing
-        experiment_service.save_experiment_results(
+        saved_filename = experiment_service.save_experiment_results(
             current_experiment_results, 
             {
                 "config": config.dict(),
@@ -771,11 +771,35 @@ async def websocket_experiment_stream(websocket: WebSocket):
             }
         )
         
-        # Send completion signal with timing info
-        logger.info("🏁 Sending completion signal")
+        # Update global variables to track this as the current experiment
+        global experiment_results, current_loaded_experiment, current_selected_documents, current_total_selected_chunks
+        experiment_results = current_experiment_results
+        current_loaded_experiment = saved_filename
+        
+        # Extract selected documents and chunks info from the saved experiment
+        try:
+            import os
+            import json
+            experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+            saved_filepath = os.path.join(experiments_folder, saved_filename)
+            
+            if os.path.exists(saved_filepath):
+                with open(saved_filepath, 'r') as f:
+                    experiment_data = json.load(f)
+                current_selected_documents = experiment_data.get("metadata", {}).get("selected_documents", [])
+                current_total_selected_chunks = experiment_data.get("metadata", {}).get("total_selected_chunks", 0)
+                logger.info(f"📊 Updated current experiment tracking: {len(current_selected_documents)} documents, {current_total_selected_chunks} chunks")
+        except Exception as e:
+            logger.warning(f"Could not extract metadata from saved experiment: {e}")
+            current_selected_documents = []
+            current_total_selected_chunks = 0
+        
+        # Send completion signal with timing info and saved filename
+        logger.info(f"🏁 Sending completion signal with saved filename: {saved_filename}")
         await websocket.send_json({
             "type": "completed", 
             "message": "Experiment completed",
+            "saved_filename": saved_filename,
             "timing": {
                 "start_time": experiment_start_time.isoformat(),
                 "end_time": experiment_end_time.isoformat(),

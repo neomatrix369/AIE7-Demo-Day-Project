@@ -157,7 +157,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
     } finally {
       setLoading(false);
     }
-  }, [lastRefreshTime, isVercelDeployment, syncWithStorageAdapter]);
+  }, [lastRefreshTime, syncWithStorageAdapter]);
 
   // Progress display component
   const ProgressDisplay = ({ progress }: { progress: IngestionProgress }) => {

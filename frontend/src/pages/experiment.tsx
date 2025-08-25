@@ -255,13 +255,21 @@ const ExperimentConfiguration: React.FC = () => {
             console.log('⏱️ Experiment timing:', data.timing);
           }
           
+          // Handle saved filename from backend (for both local and Vercel modes)
+          if (data.saved_filename) {
+            setSavedExperimentFilename(data.saved_filename);
+            console.log('💾 Experiment saved as:', data.saved_filename);
+          }
+          
           websocket.close();
           
-          // Auto-save will be handled by useEffect when results are ready
+          // Handle different deployment modes
           if (isVercelDeployment()) {
             console.log('🌐 Vercel mode - auto-save will trigger via useEffect when results are ready');
+            // In Vercel mode, we still trigger browser storage as backup/sync
           } else {
-            console.log('🏠 Local mode - auto-save not needed (backend handles saving)');
+            console.log('🏠 Local mode - experiment saved by backend');
+            // In local mode, we rely on the backend saving and just track the filename
           }
         } else if (data.type === 'error') {
           console.error('❌ Experiment error:', data.message);
@@ -342,7 +350,8 @@ const ExperimentConfiguration: React.FC = () => {
         results,
         total_questions: results.length,
         sources: config.selected_groups,
-        avg_quality_score: avgQualityScore
+        avg_quality_score: avgQualityScore,
+        backend_filename: savedExperimentFilename // Include backend filename for sync
       };
       
       const response = await storageAdapter.saveExperiment(experimentData);
@@ -369,7 +378,7 @@ const ExperimentConfiguration: React.FC = () => {
       });
       console.error('❌ Auto-save error:', error);
     }
-  }, [config, results]);
+  }, [config, results, savedExperimentFilename]);
 
   // Auto-save effect for Vercel deployments when experiment completes
   useEffect(() => {
@@ -385,16 +394,23 @@ const ExperimentConfiguration: React.FC = () => {
   }, [completed, results.length, isRunning, saveExperimentToBrowser]);
 
   const handleViewResults = () => {
-    // Pass the experiment filename as a query parameter
+    // Pass the experiment filename as a query parameter if available
     const query = savedExperimentFilename ? `?experiment=${encodeURIComponent(savedExperimentFilename)}` : '';
-    goTo(`/results${query}`, LABEL_RESULTS, { 
-      action: 'NAVIGATE_TO_RESULTS', 
+    
+    logNavigation('Experiment', 'Results', {
+      component: 'Experiment',
+      action: 'NAVIGATE_TO_RESULTS',
       data: { 
         experiment_completed: completed, 
         questions_processed: results.length,
-        selected_experiment: savedExperimentFilename || null
-      } 
+        selected_experiment: savedExperimentFilename || 'current-memory',
+        has_saved_filename: !!savedExperimentFilename,
+        query_parameter: query
+      }
     });
+    
+    console.log(`🔗 Navigating to results with${savedExperimentFilename ? ` experiment: ${savedExperimentFilename}` : 'out specific experiment (using current)'}`);
+    goTo(`/results${query}`, LABEL_RESULTS);
   };
 
   const handleBackToQuestions = () => {

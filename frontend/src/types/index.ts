@@ -193,7 +193,21 @@ export interface ComparisonData {
     overallQuality: { before: number; after: number; }; successRate: { before: number; after: number; }; highQualityAnswers: { before: number; after: number; }; corpusHealth: { before: string; after: string; }; weakCoverage: { before: number; after: number; }; poorQuestions: { before: number; after: number; }; chunkCoverage: { before: number; after: number; };
   };
   context: {
-    questionsProcessed: number; totalDocuments: number; totalChunks: number; embeddingModel: string; totalSize: string; avgDocLength: string; chunkSize: number; chunkOverlap: number; chunkingStrategy: string; similarityThreshold: number; topKRetrieval: number; retrievalMethod: string; embeddingDimension: number; vectorDbType: string; vectorDbVersion: string;
+    questionsProcessed: { before: number; after: number; };
+    totalDocuments: { before: number; after: number; };
+    totalChunks: { before: number; after: number; };
+    embeddingModel: { before: string; after: string; };
+    totalSize: { before: string; after: string; };
+    avgDocLength: { before: string; after: string; };
+    chunkSize: { before: number; after: number; };
+    chunkOverlap: { before: number; after: number; };
+    chunkingStrategy: { before: string; after: string; };
+    similarityThreshold: { before: number; after: number; };
+    topKRetrieval: { before: number; after: number; };
+    retrievalMethod: { before: string; after: string; };
+    embeddingDimension: { before: number; after: number; };
+    vectorDbType: { before: string; after: string; };
+    vectorDbVersion: { before: string; after: string; };
   };
 }
 

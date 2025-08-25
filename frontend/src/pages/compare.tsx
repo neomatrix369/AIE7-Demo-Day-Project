@@ -22,16 +22,29 @@ const generateQualityScoreComment = (before: number, after: number): string => {
   const statusBefore = getStatusFromQualityScore(before);
   const statusAfter = getStatusFromQualityScore(after);
   
-  if (improvement <= 0) {
-    return `${statusBefore} → ${statusAfter} • No improvement in quality score`;
-  } else if (improvement < 10) {
-    return `${statusBefore} → ${statusAfter} • Minor quality improvement`;
-  } else if (improvement < 25) {
-    return `${statusBefore} → ${statusAfter} • Moderate quality boost`;
-  } else if (improvement < 50) {
-    return `${statusBefore} → ${statusAfter} • Significant quality improvement`;
+  if (improvement === 0) {
+    return `${statusBefore} → ${statusAfter} • No change in quality score`;
+  } else if (improvement < 0) {
+    const decline = Math.abs(improvement);
+    if (decline < 10) {
+      return `${statusBefore} → ${statusAfter} • Minor quality decline`;
+    } else if (decline < 25) {
+      return `${statusBefore} → ${statusAfter} • Moderate quality decline`;
+    } else if (decline < 50) {
+      return `${statusBefore} → ${statusAfter} • Significant quality decline`;
+    } else {
+      return `${statusBefore} → ${statusAfter} • Major quality decline`;
+    }
   } else {
-    return `${statusBefore} → ${statusAfter} • Major quality boost`;
+    if (improvement < 10) {
+      return `${statusBefore} → ${statusAfter} • Minor quality improvement`;
+    } else if (improvement < 25) {
+      return `${statusBefore} → ${statusAfter} • Moderate quality boost`;
+    } else if (improvement < 50) {
+      return `${statusBefore} → ${statusAfter} • Significant quality improvement`;
+    } else {
+      return `${statusBefore} → ${statusAfter} • Major quality boost`;
+    }
   }
 };
 
@@ -39,16 +52,29 @@ const generateSuccessRateComment = (before: number, after: number): string => {
   const improvement = ((after - before) / Math.max(before, 1)) * 100;
   const pointsChange = after - before;
   
-  if (improvement <= 0) {
-    return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • No improvement in success rate`;
-  } else if (improvement < 25) {
-    return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Minor success rate improvement`;
-  } else if (improvement < 50) {
-    return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Moderate success rate boost`;
-  } else if (improvement < 100) {
-    return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Significant success rate improvement`;
+  if (improvement === 0) {
+    return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • No change in success rate`;
+  } else if (improvement < 0) {
+    const decline = Math.abs(improvement);
+    if (decline < 25) {
+      return `${pointsChange.toFixed(1)} percentage points • Minor success rate decline`;
+    } else if (decline < 50) {
+      return `${pointsChange.toFixed(1)} percentage points • Moderate success rate decline`;
+    } else if (decline < 100) {
+      return `${pointsChange.toFixed(1)} percentage points • Significant success rate decline`;
+    } else {
+      return `${pointsChange.toFixed(1)} percentage points • Major success rate decline`;
+    }
   } else {
-    return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Success rate more than doubled`;
+    if (improvement < 25) {
+      return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Minor success rate improvement`;
+    } else if (improvement < 50) {
+      return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Moderate success rate boost`;
+    } else if (improvement < 100) {
+      return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Significant success rate improvement`;
+    } else {
+      return `${pointsChange >= 0 ? '+' : ''}${pointsChange.toFixed(1)} percentage points • Success rate more than doubled`;
+    }
   }
 };
 
@@ -56,16 +82,29 @@ const generateHighQualityAnswersComment = (before: number, after: number): strin
   const improvement = ((after - before) / Math.max(before, 1)) * 100;
   const countChange = after - before;
   
-  if (improvement <= 0) {
-    return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • No improvement in high-quality responses`;
-  } else if (improvement < 50) {
-    return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Minor improvement in answer quality`;
-  } else if (improvement < 100) {
-    return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Moderate improvement in answer quality`;
-  } else if (improvement < 200) {
-    return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Significant improvement in answer quality`;
+  if (improvement === 0) {
+    return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • No change in high-quality responses`;
+  } else if (improvement < 0) {
+    const decline = Math.abs(improvement);
+    if (decline < 50) {
+      return `${countChange} quality answers • Minor decline in answer quality`;
+    } else if (decline < 100) {
+      return `${countChange} quality answers • Moderate decline in answer quality`;
+    } else if (decline < 200) {
+      return `${countChange} quality answers • Significant decline in answer quality`;
+    } else {
+      return `${countChange} quality answers • Major decline in answer quality`;
+    }
   } else {
-    return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Exceptional improvement in answer quality`;
+    if (improvement < 50) {
+      return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Minor improvement in answer quality`;
+    } else if (improvement < 100) {
+      return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Moderate improvement in answer quality`;
+    } else if (improvement < 200) {
+      return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Significant improvement in answer quality`;
+    } else {
+      return `${countChange >= 0 ? '+' : ''}${countChange} quality answers • Exceptional improvement in answer quality`;
+    }
   }
 };
 
@@ -85,20 +124,53 @@ const generateCorpusHealthComment = (before: string, after: string): string => {
   }
 };
 
+// Helper function to calculate impact level based on improvement
+const calculateImpactLevel = (before: number, after: number, metricType: 'percentage' | 'count' | 'score' = 'percentage'): 'HIGH' | 'MEDIUM' | 'LOW' => {
+  if (before === 0 && after === 0) return 'LOW';
+  if (before === 0 && after > 0) return 'HIGH';
+  
+  let improvement: number;
+  
+  if (metricType === 'percentage') {
+    improvement = ((after - before) / Math.max(before, 1)) * 100;
+  } else if (metricType === 'count') {
+    improvement = ((after - before) / Math.max(before, 1)) * 100;
+  } else { // score
+    improvement = ((after - before) / Math.max(before, 1)) * 100;
+  }
+  
+  if (improvement >= 50) return 'HIGH';
+  if (improvement >= 10) return 'MEDIUM';
+  return 'LOW';
+};
+
 const generateWeakCoverageComment = (before: number, after: number): string => {
   const reduction = ((before - after) / Math.max(before, 1)) * 100;
   const countChange = before - after;
   
-  if (reduction <= 0) {
-    return `${countChange >= 0 ? '+' : ''}${countChange} weak areas • No improvement in coverage`;
-  } else if (reduction < 25) {
-    return `${countChange} fewer weak areas • Minor coverage improvement`;
-  } else if (reduction < 50) {
-    return `${countChange} fewer weak areas • Moderate coverage improvement`;
-  } else if (reduction < 75) {
-    return `${countChange} fewer weak areas • Significant coverage improvement`;
+  if (reduction === 0) {
+    return `${countChange >= 0 ? '+' : ''}${countChange} weak areas • No change in coverage`;
+  } else if (reduction < 0) {
+    const increase = Math.abs(reduction);
+    if (increase < 25) {
+      return `${countChange} more weak areas • Minor coverage decline`;
+    } else if (increase < 50) {
+      return `${countChange} more weak areas • Moderate coverage decline`;
+    } else if (increase < 75) {
+      return `${countChange} more weak areas • Significant coverage decline`;
+    } else {
+      return `${countChange} more weak areas • Major coverage decline`;
+    }
   } else {
-    return `${countChange} fewer weak areas • Major coverage improvement`;
+    if (reduction < 25) {
+      return `${countChange} fewer weak areas • Minor coverage improvement`;
+    } else if (reduction < 50) {
+      return `${countChange} fewer weak areas • Moderate coverage improvement`;
+    } else if (reduction < 75) {
+      return `${countChange} fewer weak areas • Significant coverage improvement`;
+    } else {
+      return `${countChange} fewer weak areas • Major coverage improvement`;
+    }
   }
 };
 
@@ -106,32 +178,58 @@ const generatePoorQuestionsComment = (before: number, after: number): string => 
   const reduction = ((before - after) / Math.max(before, 1)) * 100;
   const countChange = before - after;
   
-  if (reduction <= 0) {
-    return `${countChange >= 0 ? '+' : ''}${countChange} poor questions • No improvement in question quality`;
-  } else if (reduction < 25) {
-    return `${countChange} fewer poor questions • Minor quality improvement`;
-  } else if (reduction < 50) {
-    return `${countChange} fewer poor questions • Moderate quality improvement`;
-  } else if (reduction < 75) {
-    return `${countChange} fewer poor questions • Significant quality improvement`;
+  if (reduction === 0) {
+    return `${countChange >= 0 ? '+' : ''}${countChange} poor questions • No change in question quality`;
+  } else if (reduction < 0) {
+    const increase = Math.abs(reduction);
+    if (increase < 25) {
+      return `${countChange} more poor questions • Minor quality decline`;
+    } else if (increase < 50) {
+      return `${countChange} more poor questions • Moderate quality decline`;
+    } else if (increase < 75) {
+      return `${countChange} more poor questions • Significant quality decline`;
+    } else {
+      return `${countChange} more poor questions • Major quality decline`;
+    }
   } else {
-    return `${countChange} fewer poor questions • Major quality improvement`;
+    if (reduction < 25) {
+      return `${countChange} fewer poor questions • Minor quality improvement`;
+    } else if (reduction < 50) {
+      return `${countChange} fewer poor questions • Moderate quality improvement`;
+    } else if (reduction < 75) {
+      return `${countChange} fewer poor questions • Significant quality improvement`;
+    } else {
+      return `${countChange} fewer poor questions • Major quality improvement`;
+    }
   }
 };
 
 const generateChunkCoverageComment = (before: number, after: number): string => {
   const improvement = ((after - before) / Math.max(before, 1)) * 100;
   
-  if (improvement <= 0) {
-    return `No improvement in chunk coverage`;
-  } else if (improvement < 10) {
-    return `Minor improvement in chunk coverage`;
-  } else if (improvement < 25) {
-    return `Moderate improvement in chunk coverage`;
-  } else if (improvement < 50) {
-    return `Significant improvement in chunk coverage`;
+  if (improvement === 0) {
+    return `No change in chunk coverage`;
+  } else if (improvement < 0) {
+    const decline = Math.abs(improvement);
+    if (decline < 10) {
+      return `Minor decline in chunk coverage`;
+    } else if (decline < 25) {
+      return `Moderate decline in chunk coverage`;
+    } else if (decline < 50) {
+      return `Significant decline in chunk coverage`;
+    } else {
+      return `Major decline in chunk coverage`;
+    }
   } else {
-    return `Major improvement in chunk coverage`;
+    if (improvement < 10) {
+      return `Minor improvement in chunk coverage`;
+    } else if (improvement < 25) {
+      return `Moderate improvement in chunk coverage`;
+    } else if (improvement < 50) {
+      return `Significant improvement in chunk coverage`;
+    } else {
+      return `Major improvement in chunk coverage`;
+    }
   }
 };
 
@@ -338,7 +436,7 @@ const ComparePage: React.FC = () => {
               label="Overall Quality Score"
               before={data.metrics.overallQuality.before}
               after={data.metrics.overallQuality.after}
-              impact="HIGH"
+              impact={calculateImpactLevel(data.metrics.overallQuality.before, data.metrics.overallQuality.after, 'score')}
               backgroundColor="#f8fff8"
               improvement={generateQualityScoreComment(data.metrics.overallQuality.before, data.metrics.overallQuality.after)}
             />
@@ -347,7 +445,7 @@ const ComparePage: React.FC = () => {
               label="Success Rate"
               before={data.metrics.successRate.before}
               after={data.metrics.successRate.after}
-              impact="HIGH"
+              impact={calculateImpactLevel(data.metrics.successRate.before, data.metrics.successRate.after, 'percentage')}
               backgroundColor="#f8fff8"
               improvement={generateSuccessRateComment(data.metrics.successRate.before, data.metrics.successRate.after)}
             />
@@ -356,7 +454,7 @@ const ComparePage: React.FC = () => {
               label="High Quality Answers (≥7.0)"
               before={data.metrics.highQualityAnswers.before}
               after={data.metrics.highQualityAnswers.after}
-              impact="HIGH"
+              impact={calculateImpactLevel(data.metrics.highQualityAnswers.before, data.metrics.highQualityAnswers.after, 'count')}
               backgroundColor="#f8fff8"
               improvement={generateHighQualityAnswersComment(data.metrics.highQualityAnswers.before, data.metrics.highQualityAnswers.after)}
             />
@@ -365,7 +463,7 @@ const ComparePage: React.FC = () => {
               label="Corpus Health"
               before={data.metrics.corpusHealth.before}
               after={data.metrics.corpusHealth.after}
-              impact="HIGH"
+              impact="LOW"
               backgroundColor="#f8fff8"
               improvement={generateCorpusHealthComment(data.metrics.corpusHealth.before, data.metrics.corpusHealth.after)}
               isLast={true}
@@ -402,25 +500,27 @@ const ComparePage: React.FC = () => {
               label="Weak Coverage Areas"
               before={data.metrics.weakCoverage.before}
               after={data.metrics.weakCoverage.after}
-              impact="MEDIUM"
+              impact={calculateImpactLevel(data.metrics.weakCoverage.before, data.metrics.weakCoverage.after, 'count')}
               backgroundColor="#fffbf0"
               improvement={generateWeakCoverageComment(data.metrics.weakCoverage.before, data.metrics.weakCoverage.after)}
+              lowerIsBetter={true}
             />
             
             <MetricRow
               label="Poor Questions"
               before={data.metrics.poorQuestions.before}
               after={data.metrics.poorQuestions.after}
-              impact="MEDIUM"
+              impact={calculateImpactLevel(data.metrics.poorQuestions.before, data.metrics.poorQuestions.after, 'count')}
               backgroundColor="#fffbf0"
               improvement={generatePoorQuestionsComment(data.metrics.poorQuestions.before, data.metrics.poorQuestions.after)}
+              lowerIsBetter={true}
             />
             
             <MetricRow
               label="Chunk Coverage"
               before={data.metrics.chunkCoverage.before}
               after={data.metrics.chunkCoverage.after}
-              impact="MEDIUM"
+              impact={calculateImpactLevel(data.metrics.chunkCoverage.before, data.metrics.chunkCoverage.after, 'percentage')}
               backgroundColor="#fffbf0"
               improvement={generateChunkCoverageComment(data.metrics.chunkCoverage.before, data.metrics.chunkCoverage.after)}
               isLast={true}

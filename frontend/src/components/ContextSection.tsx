@@ -6,66 +6,93 @@ interface ContextSectionProps {
 }
 
 const ContextSection: React.FC<ContextSectionProps> = ({ context }) => {
+  const formatValue = (value: any): string => {
+    if (typeof value === 'number') {
+      return value.toLocaleString();
+    }
+    return String(value);
+  };
+
+  const getDisplayValue = (before: any, after: any): string => {
+    const beforeStr = formatValue(before);
+    const afterStr = formatValue(after);
+    
+    if (beforeStr === afterStr) {
+      return beforeStr;
+    }
+    return `${beforeStr} → ${afterStr}`;
+  };
+
+  const getNote = (before: any, after: any, defaultNote: string): string => {
+    if (before === after) {
+      return defaultNote;
+    }
+    return 'Configuration changed between experiments';
+  };
+
   const contextItems = [
     {
       label: 'Questions Processed',
-      value: context.questionsProcessed,
-      note: 'Same for both experiments'
+      value: getDisplayValue(context.questionsProcessed.before, context.questionsProcessed.after),
+      note: getNote(context.questionsProcessed.before, context.questionsProcessed.after, 'Same for both experiments')
     },
     {
       label: 'Total Documents',
-      value: context.totalDocuments.toLocaleString(),
-      note: 'Same corpus used'
+      value: getDisplayValue(context.totalDocuments.before, context.totalDocuments.after),
+      note: getNote(context.totalDocuments.before, context.totalDocuments.after, 'Same corpus used')
     },
     {
       label: 'Total Chunks',
-      value: context.totalChunks.toLocaleString(),
-      note: 'Same chunking strategy'
+      value: getDisplayValue(context.totalChunks.before, context.totalChunks.after),
+      note: getNote(context.totalChunks.before, context.totalChunks.after, 'Same chunking strategy')
     },
     {
       label: 'Total Size',
-      value: context.totalSize,
-      note: 'Same data volume'
+      value: getDisplayValue(context.totalSize.before, context.totalSize.after),
+      note: getNote(context.totalSize.before, context.totalSize.after, 'Same data volume')
     },
     {
       label: 'Avg Document Length',
-      value: context.avgDocLength,
-      note: 'Consistent document sizing'
+      value: getDisplayValue(context.avgDocLength.before, context.avgDocLength.after),
+      note: getNote(context.avgDocLength.before, context.avgDocLength.after, 'Consistent document sizing')
     },
     {
       label: 'Embedding Model',
-      value: context.embeddingModel,
-      note: 'OpenAI model used consistently'
+      value: getDisplayValue(context.embeddingModel.before, context.embeddingModel.after),
+      note: getNote(context.embeddingModel.before, context.embeddingModel.after, 'OpenAI model used consistently')
     },
     {
       label: 'Chunk Size',
-      value: context.chunkSize,
-      note: 'Text splitting configuration'
+      value: getDisplayValue(context.chunkSize.before, context.chunkSize.after),
+      note: getNote(context.chunkSize.before, context.chunkSize.after, 'Text splitting configuration')
     },
     {
       label: 'Chunk Overlap',
-      value: context.chunkOverlap,
-      note: 'Overlap between chunks'
+      value: getDisplayValue(context.chunkOverlap.before, context.chunkOverlap.after),
+      note: getNote(context.chunkOverlap.before, context.chunkOverlap.after, 'Overlap between chunks')
     },
     {
       label: 'Similarity Threshold',
-      value: context.similarityThreshold,
-      note: 'Retrieval quality threshold'
+      value: getDisplayValue(context.similarityThreshold.before, context.similarityThreshold.after),
+      note: getNote(context.similarityThreshold.before, context.similarityThreshold.after, 'Retrieval quality threshold')
     },
     {
       label: 'Top-K Retrieval',
-      value: context.topKRetrieval,
-      note: 'Number of documents retrieved'
+      value: getDisplayValue(context.topKRetrieval.before, context.topKRetrieval.after),
+      note: getNote(context.topKRetrieval.before, context.topKRetrieval.after, 'Number of documents retrieved')
     },
     {
       label: 'Retrieval Method',
-      value: context.retrievalMethod,
-      note: 'Search algorithm used'
+      value: getDisplayValue(context.retrievalMethod.before, context.retrievalMethod.after),
+      note: getNote(context.retrievalMethod.before, context.retrievalMethod.after, 'Search algorithm used')
     },
     {
       label: 'Vector DB',
-      value: `${context.vectorDbType} v${context.vectorDbVersion}`,
-      note: 'Database type and version'
+      value: getDisplayValue(
+        `${context.vectorDbType.before} v${context.vectorDbVersion.before}`,
+        `${context.vectorDbType.after} v${context.vectorDbVersion.after}`
+      ),
+      note: getNote(context.vectorDbType.before, context.vectorDbType.after, 'Database type and version')
     }
   ];
 

@@ -4,6 +4,7 @@ import { formatImprovement } from '../utils/comparisonCalculations';
 
 interface ExtendedMetricRowProps extends MetricRowProps {
   backgroundColor?: string;
+  lowerIsBetter?: boolean; // Flag to indicate if lower values are better (e.g., poor questions, weak coverage)
 }
 
 const MetricRow: React.FC<ExtendedMetricRowProps> = ({ 
@@ -13,7 +14,8 @@ const MetricRow: React.FC<ExtendedMetricRowProps> = ({
   improvement, 
   impact, 
   isLast = false,
-  backgroundColor = '#f8fff8'
+  backgroundColor = '#f8fff8',
+  lowerIsBetter = false
 }) => {
   const getImpactBadgeColor = () => {
     switch (impact) {
@@ -43,6 +45,29 @@ const MetricRow: React.FC<ExtendedMetricRowProps> = ({
 
   const isNumeric = typeof before === 'number' && typeof after === 'number';
   const calculatedImprovement = isNumeric ? formatImprovement(before as number, after as number) : improvement;
+  
+  // Determine if the metric is improving or getting worse
+  // For metrics where lower is better (like poor questions, weak coverage), invert the logic
+  const isImproving = isNumeric ? 
+    (lowerIsBetter ? (after as number) < (before as number) : (after as number) > (before as number)) : 
+    true;
+  const isWorse = isNumeric ? 
+    (lowerIsBetter ? (after as number) > (before as number) : (after as number) < (before as number)) : 
+    false;
+  const isSame = isNumeric ? (after as number) === (before as number) : false;
+  
+  // Color coding based on improvement/degradation
+  const getValueColor = (value: number | string, isAfter: boolean = false) => {
+    if (!isNumeric) return '#333'; // Default color for non-numeric values
+    
+    if (isSame) return '#6c757d'; // Gray for no change
+    
+    if (isAfter) {
+      return isImproving ? '#28a745' : '#dc3545'; // Green if improving, red if worse
+    } else {
+      return isImproving ? '#dc3545' : '#28a745'; // Red if improving (old value), green if worse (old value)
+    }
+  };
 
   return (
     <div style={{
@@ -88,7 +113,7 @@ const MetricRow: React.FC<ExtendedMetricRowProps> = ({
         <span style={{
           fontSize: '32px',
           fontWeight: 'bold',
-          color: '#dc3545'
+          color: getValueColor(before as number, false)
         }}>
           {before}
         </span>
@@ -101,15 +126,15 @@ const MetricRow: React.FC<ExtendedMetricRowProps> = ({
         <span style={{
           fontSize: '32px',
           fontWeight: 'bold',
-          color: '#28a745'
+          color: getValueColor(after as number, true)
         }}>
           {after}
         </span>
         
         {calculatedImprovement && (
           <span style={{
-            backgroundColor: '#d4edda',
-            color: '#155724',
+            backgroundColor: isImproving ? '#d4edda' : isWorse ? '#f8d7da' : '#e2e3e5',
+            color: isImproving ? '#155724' : isWorse ? '#721c24' : '#6c757d',
             padding: '6px 12px',
             borderRadius: '6px',
             fontSize: '14px',
@@ -134,8 +159,19 @@ const MetricRow: React.FC<ExtendedMetricRowProps> = ({
           maxWidth: '600px',
           margin: '12px auto 0 auto'
         }}>
-          <span style={{ color: '#28a745', fontSize: '18px', marginTop: '2px' }}>✅</span>
-          <span style={{ lineHeight: '1.5' }}>{improvement}</span>
+          <span style={{ 
+            color: isImproving ? '#28a745' : isWorse ? '#dc3545' : '#6c757d', 
+            fontSize: '18px', 
+            marginTop: '2px' 
+          }}>
+            {isImproving ? '✅' : isWorse ? '❌' : '➖'}
+          </span>
+          <span style={{ 
+            lineHeight: '1.5',
+            color: isImproving ? '#28a745' : isWorse ? '#dc3545' : '#6c757d'
+          }}>
+            {improvement}
+          </span>
         </div>
       )}
     </div>

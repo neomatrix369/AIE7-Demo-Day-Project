@@ -33,6 +33,30 @@ export const useComparisonData = () => {
         storageAdapter.loadExperiment(experimentB)
       ]);
       
+      // Get chunk coverage data from backend API for both experiments
+      let expAChunkCoverage = 0;
+      let expBChunkCoverage = 0;
+      
+      try {
+        // Load experiment A and get its chunk coverage
+        await fetch(`/api/experiments/load?filename=${experimentA}`, { method: 'POST' });
+        const analysisAResponse = await fetch('/api/results/analysis');
+        if (analysisAResponse.ok) {
+          const analysisA = await analysisAResponse.json();
+          expAChunkCoverage = analysisA.overall?.chunk_coverage?.coverage_percentage || 0;
+        }
+        
+        // Load experiment B and get its chunk coverage
+        await fetch(`/api/experiments/load?filename=${experimentB}`, { method: 'POST' });
+        const analysisBResponse = await fetch('/api/results/analysis');
+        if (analysisBResponse.ok) {
+          const analysisB = await analysisBResponse.json();
+          expBChunkCoverage = analysisB.overall?.chunk_coverage?.coverage_percentage || 0;
+        }
+      } catch (error) {
+        console.warn('Failed to get chunk coverage from backend API:', error);
+      }
+      
       if (expAResponse.success && expBResponse.success) {
         // Transform actual experiment data to ComparisonData format
         const expA = expAResponse.data;
@@ -89,26 +113,71 @@ export const useComparisonData = () => {
               after: countPoorQuestions(expB) 
             },
             chunkCoverage: { 
-              before: calculateChunkCoverage(expA), 
-              after: calculateChunkCoverage(expB) 
+              before: expAChunkCoverage || calculateChunkCoverage(expA), 
+              after: expBChunkCoverage || calculateChunkCoverage(expB) 
             }
           },
           context: {
-            questionsProcessed: expA.metadata?.total_questions || 0,
-            totalDocuments: expA.inputs?.corpus?.total_documents || 0,
-            totalChunks: expA.inputs?.corpus?.total_chunks || 0,
-            embeddingModel: expA.inputs?.embedding?.model || 'Unknown',
-            totalSize: calculateTotalSize(expA),
-            avgDocLength: calculateAvgDocLength(expA),
-            chunkSize: expA.inputs?.corpus?.chunk_size || 0,
-            chunkOverlap: expA.inputs?.corpus?.chunk_overlap || 0,
-            chunkingStrategy: expA.inputs?.corpus?.chunking_strategy || 'Unknown',
-            similarityThreshold: expA.inputs?.assessment?.similarity_threshold || 0,
-            topKRetrieval: expA.inputs?.assessment?.top_k_retrieval || 0,
-            retrievalMethod: expA.inputs?.assessment?.retrieval_method || 'Unknown',
-            embeddingDimension: expA.inputs?.embedding?.dimension || 0,
-            vectorDbType: expA.inputs?.vector_db?.type || 'Unknown',
-            vectorDbVersion: expA.inputs?.vector_db?.version || 'Unknown'
+            questionsProcessed: {
+              before: expA.metadata?.total_questions || 0,
+              after: expB.metadata?.total_questions || 0
+            },
+            totalDocuments: {
+              before: expA.inputs?.corpus?.total_documents || 0,
+              after: expB.inputs?.corpus?.total_documents || 0
+            },
+            totalChunks: {
+              before: expA.inputs?.corpus?.total_chunks || 0,
+              after: expB.inputs?.corpus?.total_chunks || 0
+            },
+            embeddingModel: {
+              before: expA.inputs?.embedding?.model || 'Unknown',
+              after: expB.inputs?.embedding?.model || 'Unknown'
+            },
+            totalSize: {
+              before: calculateTotalSize(expA),
+              after: calculateTotalSize(expB)
+            },
+            avgDocLength: {
+              before: calculateAvgDocLength(expA),
+              after: calculateAvgDocLength(expB)
+            },
+            chunkSize: {
+              before: expA.inputs?.corpus?.chunk_size || 0,
+              after: expB.inputs?.corpus?.chunk_size || 0
+            },
+            chunkOverlap: {
+              before: expA.inputs?.corpus?.chunk_overlap || 0,
+              after: expB.inputs?.corpus?.chunk_overlap || 0
+            },
+            chunkingStrategy: {
+              before: expA.inputs?.corpus?.chunking_strategy || 'Unknown',
+              after: expB.inputs?.corpus?.chunking_strategy || 'Unknown'
+            },
+            similarityThreshold: {
+              before: expA.inputs?.assessment?.similarity_threshold || 0,
+              after: expB.inputs?.assessment?.similarity_threshold || 0
+            },
+            topKRetrieval: {
+              before: expA.inputs?.assessment?.top_k_retrieval || 0,
+              after: expB.inputs?.assessment?.top_k_retrieval || 0
+            },
+            retrievalMethod: {
+              before: expA.inputs?.assessment?.retrieval_method || 'Unknown',
+              after: expB.inputs?.assessment?.retrieval_method || 'Unknown'
+            },
+            embeddingDimension: {
+              before: expA.inputs?.embedding?.dimension || 0,
+              after: expB.inputs?.embedding?.dimension || 0
+            },
+            vectorDbType: {
+              before: expA.inputs?.vector_db?.type || 'Unknown',
+              after: expB.inputs?.vector_db?.type || 'Unknown'
+            },
+            vectorDbVersion: {
+              before: expA.inputs?.vector_db?.version || 'Unknown',
+              after: expB.inputs?.vector_db?.version || 'Unknown'
+            }
           }
         };
         
@@ -157,9 +226,11 @@ const calculateSuccessRate = (experiment: any): number => {
   // Calculate from question results if performance metrics not available
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
     const totalQuestions = experiment.question_results.length;
-    const successfulQuestions = experiment.question_results.filter((q: any) => 
-      (q.avg_similarity || 0) >= 0.5  // Consider questions with similarity >= 0.5 as successful
-    ).length;
+    const successfulQuestions = experiment.question_results.filter((q: any) => {
+      // Use quality_score if available, otherwise convert avg_similarity to quality score
+      const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
+      return qualityScore >= 7.0;  // Consider questions with quality score >= 7.0 as successful
+    }).length;
     
     if (totalQuestions > 0) {
       return Math.round((successfulQuestions / totalQuestions) * 100);
@@ -177,19 +248,23 @@ const countHighQualityAnswers = (experiment: any): number => {
   
   // Calculate from question results if quality_score_metrics not available
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
-    return experiment.question_results.filter((q: any) => 
-      (q.avg_similarity || 0) >= 0.7  // Consider questions with similarity >= 0.7 as high quality
-    ).length;
+    return experiment.question_results.filter((q: any) => {
+      // Use quality_score if available, otherwise convert avg_similarity to quality score
+      const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
+      return qualityScore >= 7.0;  // Consider questions with quality score >= 7.0 as high quality
+    }).length;
   }
   return 0;
 };
 
 const countWeakCoverage = (experiment: any): number => {
-  // Calculate weak coverage based on questions with low similarity scores
+  // Calculate weak coverage based on questions with low quality scores
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
-    return experiment.question_results.filter((q: any) => 
-      (q.avg_similarity || 0) < 0.3
-    ).length;
+    return experiment.question_results.filter((q: any) => {
+      // Use quality_score if available, otherwise convert avg_similarity to quality score
+      const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
+      return qualityScore < 5.0;  // Consider questions with quality score < 5.0 as weak coverage
+    }).length;
   }
   return 0;
 };
@@ -201,30 +276,39 @@ const countPoorQuestions = (experiment: any): number => {
   
   // Calculate from question results if quality_score_metrics not available
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
-    return experiment.question_results.filter((q: any) => 
-      (q.avg_similarity || 0) < 0.4
-    ).length;
+    return experiment.question_results.filter((q: any) => {
+      // Use quality_score if available, otherwise convert avg_similarity to quality score
+      const qualityScore = q.quality_score || (q.avg_similarity ? q.avg_similarity * 10 : 0);
+      return qualityScore < 5.0;  // Consider questions with quality score < 5.0 as poor
+    }).length;
   }
   return 0;
 };
 
 const calculateChunkCoverage = (experiment: any): number => {
-  // Calculate chunk coverage based on unique chunks retrieved
+  // First try to get chunk coverage from backend calculation
+  if (experiment.results?.overall?.chunk_coverage?.coverage_percentage !== undefined) {
+    return experiment.results.overall.chunk_coverage.coverage_percentage;
+  }
+  
+  // Fallback to frontend calculation if backend data not available
   if (experiment.question_results && Array.isArray(experiment.question_results)) {
-    const uniqueChunks = new Set();
+    const retrievedChunkIdentifiers = new Set();
     experiment.question_results.forEach((q: any) => {
       if (q.retrieved_docs && Array.isArray(q.retrieved_docs)) {
         q.retrieved_docs.forEach((doc: any) => {
-          if (doc.chunk_id) {
-            uniqueChunks.add(doc.chunk_id);
-          }
+          // Use a combination of doc_id and content as chunk identifier
+          // since chunk_id might be empty
+          const contentPreview = doc.content ? doc.content.substring(0, 50) : '';
+          const chunkIdentifier = `${doc.doc_id || 'unknown'}_${contentPreview}`;
+          retrievedChunkIdentifiers.add(chunkIdentifier);
         });
       }
     });
     
     const totalChunks = experiment.inputs?.corpus?.total_chunks || 0;
     if (totalChunks > 0) {
-      return Math.round((uniqueChunks.size / totalChunks) * 100);
+      return Math.round((retrievedChunkIdentifiers.size / totalChunks) * 100);
     }
   }
   return 0;

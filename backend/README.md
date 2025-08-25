@@ -7,27 +7,31 @@ FastAPI backend with real document processing, vector embeddings, and persistent
 ## Architecture
 
 ### Document Processing Pipeline
-1. **Document Loading**: CSV and PDF files loaded using LangChain with configurable loaders
-2. **Text Chunking**: Documents split into configurable chunks (default: 750-char chunks with 100-char overlap)
-3. **Chunking Strategy Unification**: Unified chunking and retrieval strategies with configurable parameters
-4. **Vector Embeddings**: OpenAI text-embedding-3-small (1536 dimensions) with metadata tracking
-5. **Vector Storage**: Qdrant database with cosine similarity search and real-time connectivity monitoring
-6. **Caching**: Advanced caching system prevents expensive reprocessing with TTL and size management
+1. **Document Discovery**: Automatic file discovery (CSV, PDF, MD, TXT, JSON) with subdirectory scanning
+2. **Generic Document Loading**: Conditional processing with domain-specific handling and generic fallbacks
+3. **Phase-Based Management**: Discovery → Ingestion → Selection with precise status tracking
+4. **Text Chunking**: Documents split into configurable chunks (default: 750-char chunks with 100-char overlap)
+5. **Vector Embeddings**: OpenAI text-embedding-3-small (1536 dimensions) with metadata tracking
+6. **Vector Storage**: Qdrant database with selection-aware storage and real-time connectivity monitoring
+7. **Caching**: Advanced caching system prevents expensive reprocessing with TTL and size management
 
 ### Key Components
-- **`main.py`**: FastAPI application with REST API and WebSocket endpoints (855 lines, comprehensive routing)
-- **`simple_document_processor.py`**: Document processing orchestrator with manager integration
+- **`main.py`**: FastAPI application with REST API and WebSocket endpoints with enhanced experiment streaming
+- **`unified_document_processor.py`**: Unified document processing with phase-based management and selection tracking
 - **`managers/`**: Directory for business logic managers with service layer architecture:
-  - `qdrant_manager.py`: Vector database operations and collection management
+  - `enhanced_qdrant_manager.py`: Enhanced vector database operations with selection-aware storage
+  - `document_selection_manager.py`: Document selection status tracking and configuration management  
   - `corpus_statistics_manager.py`: Corpus analysis with real-time chunk counting
   - `search_manager.py`: Vector similarity search with caching (5min TTL)
-  - `data_manager.py`: Document loading and preprocessing
+  - `data_manager.py`: Generic document loading with conditional processing
   - `vector_store_manager.py`: Vector embedding and storage orchestration
 - **`services/`**: Business logic services:
   - `quality_score_service.py`: Centralized quality score calculations and normalization
-  - `experiment_service.py`: Experiment orchestration and result processing
-  - `gap_analysis_service.py`: NEW! Non-ML rule-based gap detection and recommendations engine
+  - `experiment_service.py`: Enhanced experiment orchestration with memorable naming and metadata tracking
+  - `gap_analysis_service.py`: Non-ML rule-based gap detection and recommendations engine
   - `error_response_service.py`: Standardized error handling and responses
+- **`utils/`**: Utility modules:
+  - `name_generator.py`: Docker-style experiment name generation with AI/ML themes
 - **`test_qdrant.py`**: Qdrant connection testing utility with health checks
 - **`logging_config.py`**: Centralized logging configuration with structured output
 
@@ -106,10 +110,15 @@ DEBUG=false
 ### Data Folder Structure
 ```
 ./backend/data/
-├── complaints.csv          # Consumer complaint data  
+├── complaints.csv          # Domain-specific CSV data (special processing)
+├── generic_data.csv        # Generic CSV files (content field extraction)
 ├── document1.pdf          # PDF documents
-├── document2.pdf
-└── ...
+├── document2.md           # Markdown files
+├── document3.txt          # Text files  
+├── subdirectory/          # Subdirectories are automatically scanned
+│   ├── more_docs.pdf
+│   └── additional.csv
+└── document_selection.json # Auto-generated selection tracking
 ```
 
 ## Performance Features
@@ -136,9 +145,10 @@ DEBUG=false
 ## Development
 
 ### Adding New Document Types
-1. Add loader in `SimpleDocumentProcessor.load_*_data()` methods
-2. Update corpus statistics calculation
-3. Test with `test_qdrant.py`
+1. Add loader in `DataManager._load_*()` methods in `managers/data_manager.py`
+2. Update file discovery patterns in `UnifiedDocumentProcessor`
+3. Add file type handling to document selection manager
+4. Test with `test_qdrant.py` and verify auto-discovery
 
 ### Logging
 - Comprehensive logging with context

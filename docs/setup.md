@@ -5,7 +5,7 @@
 2. **Node.js 18+ or 22+** - For frontend development (with nvm recommended)
 3. **Python 3.8+** - For backend development (uv package manager recommended)
 4. **OpenAI API Key** - Required for document embeddings ([Get API key](https://platform.openai.com/api-keys))
-5. **Data Files** - CSV and PDF files in `./backend/data/` folder for document processing
+5. **Data Files** - CSV, PDF, MD, TXT files in `./backend/data/` folder (supports subdirectories)
 
 ## Quick Start
 ```bash
@@ -24,6 +24,7 @@ uv pip install -r requirements.txt
 uvicorn main:app --reload
 
 # 4. Start frontend (in new terminal)
+source ~/.zshrc && nvm use default && nvm use default
 cd frontend
 npm install  
 npm run dev
@@ -62,6 +63,10 @@ uvicorn main:app --reload
 
 ### Frontend
 ```bash
+# Ensure correct Node version
+source ~/.zshrc && nvm use default && nvm use default
+node --version  # Should show 18+ or 22+
+
 cd frontend
 npm install
 npm run dev

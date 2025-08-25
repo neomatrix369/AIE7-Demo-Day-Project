@@ -20,28 +20,50 @@ class DataManager:
 
     def load_csv_data(self, filename: str = "complaints.csv") -> List[Dict[str, Any]]:
         """
-        Load CSV data and return as list of dictionaries.
+        Load CSV data with conditional processing based on filename.
+        Uses specific complaint processing for complaints.csv, generic loading for others.
         """
         csv_path = os.path.join(self.data_folder, filename)
         if not os.path.exists(csv_path):
             logger.warning(f"⚠️ CSV file not found: {filename}")
             return []
         try:
-            raw_documents = self._load_raw_csv_documents(csv_path)
-            if not raw_documents:
-                return []
-            self._set_page_content_from_narrative(raw_documents)
-            filtered_documents = self._apply_quality_filters(raw_documents)
-            gc.collect()
-            logger.info(f"✅ Loaded {len(filtered_documents)} valid complaint records from CSV")
-            return filtered_documents.copy()
+            # Determine processing type based on filename
+            is_complaints_file = filename.lower() in ["complaints.csv", "student_loans.csv"]
+            
+            if is_complaints_file:
+                return self._load_complaints_csv(csv_path, filename)
+            else:
+                return self._load_generic_csv(csv_path, filename)
+                
         except Exception as e:
             logger.error(f"❌ Error loading CSV: {str(e)}")
             return []
 
-    def _get_csv_metadata_columns(self) -> List[str]:
+    def _load_complaints_csv(self, csv_path: str, filename: str) -> List[Dict[str, Any]]:
+        """Load and process complaints CSV with specific business logic."""
+        raw_documents = self._load_raw_csv_documents(csv_path, self._get_complaints_csv_metadata_columns())
+        if not raw_documents:
+            return []
+        self._set_page_content_from_narrative(raw_documents)
+        filtered_documents = self._apply_complaint_quality_filters(raw_documents)
+        gc.collect()
+        logger.info(f"✅ Loaded {len(filtered_documents)} valid complaint records from {filename}")
+        return filtered_documents.copy()
+
+    def _load_generic_csv(self, csv_path: str, filename: str) -> List[Dict[str, Any]]:
+        """Load generic CSV file without specific business logic."""
+        raw_documents = self._load_raw_csv_documents(csv_path)
+        if not raw_documents:
+            return []
+        processed_documents = self._apply_generic_csv_processing(raw_documents)
+        gc.collect()
+        logger.info(f"✅ Loaded {len(processed_documents)} records from generic CSV: {filename}")
+        return processed_documents.copy()
+
+    def _get_complaints_csv_metadata_columns(self) -> List[str]:
         """
-        Get the list of metadata columns for CSV loading.
+        Get the list of metadata columns for complaints CSV loading.
         """
         return [
             "Date received", "Product", "Sub-product", "Issue", "Sub-issue",
@@ -51,16 +73,20 @@ class DataManager:
             "Timely response?", "Consumer disputed?", "Complaint ID",
         ]
 
-    def _load_raw_csv_documents(self, csv_path: str) -> List[Dict[str, Any]]:
+    def _load_raw_csv_documents(self, csv_path: str, metadata_columns: List[str] = None) -> List[Dict[str, Any]]:
         """
         Load raw CSV documents using LangChain CSVLoader.
         """
-        loader = CSVLoader(file_path=csv_path, metadata_columns=self._get_csv_metadata_columns())
-        logger.info(f"📊 Loading complaint data from: {csv_path}")
-        loan_complaint_data = loader.load()
-        initial_count = len(loan_complaint_data)
-        logger.info(f"📋 STEP 1 - Raw CSV loaded: {initial_count:,} records")
-        return loan_complaint_data
+        if metadata_columns:
+            loader = CSVLoader(file_path=csv_path, metadata_columns=metadata_columns)
+        else:
+            loader = CSVLoader(file_path=csv_path)
+        
+        logger.info(f"📊 Loading CSV data from: {csv_path}")
+        csv_data = loader.load()
+        initial_count = len(csv_data)
+        logger.info(f"📋 Raw CSV loaded: {initial_count:,} records")
+        return csv_data
 
     def _set_page_content_from_narrative(self, documents: List[Dict[str, Any]]) -> None:
         """
@@ -93,11 +119,11 @@ class DataManager:
             f"Complaint Details: {narrative}"
         )
 
-    def _log_filter_results(self, filter_stats: Dict[str, int], initial_count: int, final_count: int) -> None:
+    def _log_complaint_filter_results(self, filter_stats: Dict[str, int], initial_count: int, final_count: int) -> None:
         """
-        Log detailed filter results and statistics.
+        Log detailed complaint filter results and statistics.
         """
-        logger.info("📊 FILTER RESULTS:")
+        logger.info("📊 COMPLAINT FILTER RESULTS:")
         logger.info(f"   ❌ Too short (< 100 chars): {filter_stats['too_short']:,}")
         logger.info(f"   ❌ Too many XXXX (> 5): {filter_stats['too_many_xxxx']:,}")
         logger.info(f"   ❌ Empty/None/N/A: {filter_stats['empty_or_na']:,}")
@@ -109,11 +135,11 @@ class DataManager:
         logger.info(f"   🗑️  Total filtered out: {total_filtered:,}")
         logger.info(f"   📊 Retention rate: {retention_rate:.1f}%")
 
-    def _apply_quality_filters(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _apply_complaint_quality_filters(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Apply quality filters to documents and return valid ones.
+        Apply complaint-specific quality filters to documents and return valid ones.
         """
-        logger.info("🔍 STEP 3 - Applying quality filters...")
+        logger.info("🔍 Applying complaint quality filters...")
         filter_stats = {"too_short": 0, "too_many_xxxx": 0, "empty_or_na": 0, "multiple_issues": 0, "valid": 0}
         filtered_docs = []
         for doc in documents:
@@ -131,8 +157,82 @@ class DataManager:
                 filter_stats["valid"] += 1
                 self._format_valid_document_content(doc, narrative)
                 filtered_docs.append(doc)
-        self._log_filter_results(filter_stats, len(documents), len(filtered_docs))
+        self._log_complaint_filter_results(filter_stats, len(documents), len(filtered_docs))
         return filtered_docs
+
+    def _apply_generic_csv_processing(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Apply generic processing to CSV documents.
+        Sets page content from the first non-empty text field found.
+        """
+        logger.info("🔍 Applying generic CSV processing...")
+        processed_docs = []
+        
+        for doc in documents:
+            # Find the best text content from available fields
+            page_content = self._extract_generic_page_content(doc)
+            
+            if page_content and len(page_content.strip()) > 0:
+                doc.page_content = page_content
+                processed_docs.append(doc)
+            else:
+                logger.debug(f"Skipping document with no usable text content")
+        
+        logger.info(f"✅ Processed {len(processed_docs)} documents with valid content")
+        return processed_docs
+
+    def _extract_generic_page_content(self, doc: Dict[str, Any]) -> str:
+        """
+        Extract page content from generic CSV document.
+        Looks for common text fields and combines them meaningfully.
+        """
+        metadata = doc.metadata
+        content_parts = []
+        
+        # Common field names that might contain the main content
+        primary_content_fields = [
+            'content', 'text', 'description', 'body', 'message', 'narrative', 
+            'summary', 'details', 'comment', 'review', 'feedback'
+        ]
+        
+        # Secondary fields that add context
+        context_fields = [
+            'title', 'subject', 'name', 'category', 'type', 'status'
+        ]
+        
+        # Look for primary content
+        primary_content = None
+        for field in primary_content_fields:
+            for key, value in metadata.items():
+                if field.lower() in key.lower() and value and str(value).strip():
+                    primary_content = str(value).strip()
+                    break
+            if primary_content:
+                break
+        
+        # If no primary content found, use the first substantial text field
+        if not primary_content:
+            for key, value in metadata.items():
+                if value and isinstance(value, str) and len(value.strip()) > 20:
+                    primary_content = value.strip()
+                    break
+        
+        # Add context fields
+        context_parts = []
+        for field in context_fields:
+            for key, value in metadata.items():
+                if field.lower() in key.lower() and value and str(value).strip():
+                    context_parts.append(f"{key}: {str(value).strip()}")
+                    break
+        
+        # Combine content
+        if context_parts:
+            content_parts.extend(context_parts)
+        
+        if primary_content:
+            content_parts.append(f"Content: {primary_content}")
+        
+        return "\n".join(content_parts) if content_parts else ""
 
     def load_pdf_data(self) -> List[Dict[str, Any]]:
         """

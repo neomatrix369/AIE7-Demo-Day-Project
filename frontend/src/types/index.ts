@@ -9,10 +9,21 @@ export interface CorpusStatus {
     avg_doc_length: number;
     selected_by_type?: { [key: string]: number };
     deselected_by_type?: { [key: string]: number };
+    // Error information (optional, for error states)
+    error?: string;
+    message?: string;
+    database_connected?: boolean;
+    database_error?: string;
   };
   // Selection-aware statistics (optional, added by enhanced document processor)
   selected_chunks?: number;
   deselected_chunks?: number;
+  // Error status fields (optional, for error states)
+  status?: 'error' | 'success';
+  error_message?: string;
+  database_connected?: boolean;
+  database_error?: string;
+  documents_loaded?: boolean;
 }
 
 export interface Question {

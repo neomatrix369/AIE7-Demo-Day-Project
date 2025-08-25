@@ -276,13 +276,25 @@ async def get_corpus_status():
                     "database_error": str(e)
                 }
     else:
-        # Return mock data with connectivity status
-        logger.info("📝 Returning mock corpus status (documents not loaded or database not connected)")
-        mock_status = MOCK_CORPUS_STATUS.copy()
-        mock_status["database_connected"] = database_connected
-        mock_status["database_error"] = database_error
-        mock_status["documents_loaded"] = documents_loaded
-        return mock_status
+        # Return error status instead of mock data
+        logger.warning("⚠️ No documents loaded or database not connected - returning error status")
+        return {
+            "corpus_loaded": False,
+            "document_count": 0,
+            "chunk_count": 0,
+            "embedding_model": "unknown",
+            "corpus_metadata": {
+                "error": "No documents loaded",
+                "message": "Please load documents first or check database connection",
+                "database_connected": database_connected,
+                "database_error": database_error if database_error else None
+            },
+            "database_connected": database_connected,
+            "database_error": database_error,
+            "documents_loaded": documents_loaded,
+            "status": "error",
+            "error_message": "No documents loaded or database not connected"
+        }
 
 @app.get("/api/v1/experiment/config")
 async def get_experiment_config():
@@ -299,14 +311,14 @@ async def get_all_chunks():
     """Get all chunks from the vector database for heatmap visualization."""
     try:
         if not documents_loaded:
-            # Return mock chunk data for development
-            logger.info("📝 Returning mock chunk data (no real documents loaded)")
+            # Return error instead of mock data
+            logger.warning("⚠️ No documents loaded - cannot retrieve chunks")
             return {
-                "chunks": [
-                    {"chunk_id": f"mock_chunk_{i:04d}", "doc_id": f"doc_{i//10}", "title": f"Mock Document {i//10}", "content": f"Mock chunk content {i}"}
-                    for i in range(50)  # Mock 50 chunks
-                ],
-                "total_count": 50
+                "chunks": [],
+                "total_count": 0,
+                "error": "No documents loaded",
+                "message": "Please load documents first before accessing chunks",
+                "status": "error"
             }
         
         # Get all points from Qdrant collection using unified processor

@@ -80,7 +80,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
           has_changed: false
         }));
         
-        // Create mock status from config
+        // Create status from config (not mock data - this is real data from storage)
         const status: DocumentStatus = {
           selection_summary: {
             total_documents: documentInfo.length,
@@ -106,7 +106,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
         setDocumentConfig(configResponse.config);
         logInfo('Document status loaded from browser storage', { component: 'DocumentManagement' });
       } else {
-        throw new Error('No document configuration found in storage');
+        throw new Error('No document configuration found in browser storage. Please refresh the page or contact support if the issue persists.');
       }
     } catch (err) {
       logError(`Failed to load from storage adapter: ${err}`, { component: 'DocumentManagement' });
@@ -138,7 +138,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
         if (isVercelDeployment()) {
           await loadFromStorageAdapter();
         } else {
-          throw new Error('Failed to load document status');
+          throw new Error('Unable to load document status from the server. Please check your connection and try again.');
         }
       }
     } catch (err: any) {
@@ -368,21 +368,43 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
     return (
       <div className="card">
         <h3>📁 Document Management</h3>
-        <div style={{ color: '#dc3545', padding: '20px' }}>
-          <strong>Error:</strong> {error}
+        <div style={{ padding: '20px' }}>
+          <div style={{ 
+            backgroundColor: '#f8d7da', 
+            border: '1px solid #f5c6cb', 
+            borderRadius: '4px', 
+            padding: '15px',
+            marginBottom: '15px'
+          }}>
+            <div style={{ color: '#721c24', marginBottom: '10px' }}>
+              <strong>⚠️ Unable to Load Document Status</strong>
+            </div>
+            <div style={{ color: '#721c24', fontSize: '14px', marginBottom: '15px' }}>
+              {error}
+            </div>
+            <div style={{ fontSize: '12px', color: '#856404', backgroundColor: '#fff3cd', padding: '10px', borderRadius: '4px' }}>
+              <strong>💡 Troubleshooting:</strong>
+              <ul style={{ margin: '5px 0 0 20px', padding: 0 }}>
+                <li>Check your internet connection</li>
+                <li>Ensure the backend server is running</li>
+                <li>Try refreshing the page</li>
+                <li>Contact support if the issue persists</li>
+              </ul>
+            </div>
+          </div>
           <button 
             onClick={loadDocumentStatus}
             style={{ 
-              marginLeft: '10px', 
-              padding: '5px 10px', 
-              backgroundColor: '#dc3545', 
+              padding: '8px 16px', 
+              backgroundColor: '#007bff', 
               color: 'white', 
               border: 'none', 
               borderRadius: '4px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              fontSize: '14px'
             }}
           >
-            🔄 Retry
+            🔄 Retry Loading
           </button>
         </div>
       </div>
@@ -394,7 +416,35 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       <div className="card">
         <h3>📁 Document Management</h3>
         <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#666' }}>No document status available</div>
+          <div style={{ fontSize: '18px', color: '#666', marginBottom: '10px' }}>
+            📋 No Document Status Available
+          </div>
+          <div style={{ fontSize: '14px', color: '#999', marginBottom: '20px' }}>
+            Document information could not be loaded. This may be due to:
+          </div>
+          <div style={{ fontSize: '12px', color: '#666', textAlign: 'left', maxWidth: '400px', margin: '0 auto' }}>
+            <ul style={{ margin: '0', paddingLeft: '20px' }}>
+              <li>No documents have been loaded yet</li>
+              <li>Backend service is not running</li>
+              <li>Database connection issues</li>
+              <li>Configuration problems</li>
+            </ul>
+          </div>
+          <button 
+            onClick={loadDocumentStatus}
+            style={{ 
+              marginTop: '20px',
+              padding: '8px 16px', 
+              backgroundColor: '#007bff', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔄 Try Again
+          </button>
         </div>
       </div>
     );
@@ -445,25 +495,27 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '15px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLoadDocuments();
-                }}
-                disabled={actionLoading === 'upload'}
-                style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  cursor: actionLoading === 'upload' ? 'not-allowed' : 'pointer',
-                  opacity: actionLoading === 'upload' ? 0.6 : 1
-                }}
-              >
-                {actionLoading === 'upload' ? '🔄 Uploading...' : '📁 Load Documents'}
-              </button>
+              {!isVercelDeployment() && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLoadDocuments();
+                  }}
+                  disabled={actionLoading === 'upload'}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    cursor: actionLoading === 'upload' ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading === 'upload' ? 0.6 : 1
+                  }}
+                >
+                  {actionLoading === 'upload' ? '🔄 Uploading...' : '📁 Load Documents'}
+                </button>
+              )}
               {documentStatus?.selection_summary?.needing_ingestion > 0 && (
                 <button
                   onClick={(e) => {
@@ -509,15 +561,33 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
             </div>
           </div>
 
-          {/* Hidden file input for document upload */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.csv,.txt,.json"
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
+          {/* Vercel deployment notice */}
+          {isVercelDeployment() && (
+            <div style={{
+              padding: '10px',
+              backgroundColor: '#f8f9fa',
+              border: '1px solid #dee2e6',
+              borderRadius: '4px',
+              marginBottom: '15px',
+              fontSize: '12px',
+              color: '#6c757d'
+            }}>
+              <strong>🌐 Vercel Deployment Notice:</strong> Document upload is not available in cloud deployment. 
+              Documents are pre-loaded and managed through the backend. Use the document selection controls below to manage which documents are active for analysis.
+            </div>
+          )}
+
+          {/* Hidden file input for document upload - only in local development */}
+          {!isVercelDeployment() && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.csv,.txt,.json"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+          )}
 
           {/* Summary Statistics - Compact */}
           <div style={{ 

@@ -1,13 +1,15 @@
 import React from 'react';
-import { GapAnalysis } from '../../types';
+import { GapAnalysis, QuestionResult } from '../../types';
 import QualityScoreLegend from '../QualityScoreLegend';
 import BalloonTooltip from '../ui/BalloonTooltip';
+import { exportQuestionsByStatus } from '../../utils/csvExport';
 
 interface GapAnalysisOverviewProps {
   gapData: GapAnalysis;
+  questions: QuestionResult[];
 }
 
-const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) => {
+const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData, questions }) => {
   const { gapSummary } = gapData;
 
   const getSeverityColor = (percentage: number) => {
@@ -56,9 +58,36 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
               <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
             </BalloonTooltip>
           </div>
-          <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666' }}>
+          <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666', marginBottom: '8px' }}>
             Score 5.0-6.9 ({gapSummary.weakQuestionsCount || gapSummary.weakCount || 0 > 0 ? Math.round(((gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) / gapSummary.totalQuestions) * 100) : 0}%)
           </div>
+          <BalloonTooltip
+            content={`Download ${gapSummary.weakQuestionsCount || gapSummary.weakCount || 0} weak questions (score 5.0-6.9) as CSV file`}
+            maxWidth={300}
+            cursor="help"
+          >
+            <button
+              onClick={() => exportQuestionsByStatus(questions, 'weak')}
+              disabled={(gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) === 0}
+              className="button button-secondary"
+              style={{
+                fontSize: '0.75rem',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                opacity: (gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) === 0 ? 0.5 : 1,
+                cursor: (gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) === 0 ? 'not-allowed' : 'pointer',
+                backgroundColor: '#e67e22',
+                color: 'white',
+                border: '1px solid #e67e22',
+                borderRadius: '4px',
+                margin: '0 auto'
+              }}
+            >
+              📥 Download CSV
+            </button>
+          </BalloonTooltip>
         </div>
 
         <div className="stat-item" style={{ 
@@ -81,9 +110,36 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
               <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
             </BalloonTooltip>
           </div>
-          <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666' }}>
+          <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666', marginBottom: '8px' }}>
             Score &lt; 5.0 ({gapSummary.poorQuestionsCount || gapSummary.poorCount || 0 > 0 ? Math.round(((gapSummary.poorQuestionsCount || gapSummary.poorCount || 0) / gapSummary.totalQuestions) * 100) : 0}%)
           </div>
+          <BalloonTooltip
+            content={`Download ${gapSummary.poorQuestionsCount || gapSummary.poorCount || 0} poor questions (score <5.0) as CSV file`}
+            maxWidth={300}
+            cursor="help"
+          >
+            <button
+              onClick={() => exportQuestionsByStatus(questions, 'poor')}
+              disabled={(gapSummary.poorQuestionsCount || gapSummary.poorCount || 0) === 0}
+              className="button button-secondary"
+              style={{
+                fontSize: '0.75rem',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                opacity: (gapSummary.poorQuestionsCount || gapSummary.poorCount || 0) === 0 ? 0.5 : 1,
+                cursor: (gapSummary.poorQuestionsCount || gapSummary.poorCount || 0) === 0 ? 'not-allowed' : 'pointer',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: '1px solid #dc3545',
+                borderRadius: '4px',
+                margin: '0 auto'
+              }}
+            >
+              📥 Download CSV
+            </button>
+          </BalloonTooltip>
         </div>
 
         {/* Questions Analyzed - neutral blue theme to complement quality score cards */}

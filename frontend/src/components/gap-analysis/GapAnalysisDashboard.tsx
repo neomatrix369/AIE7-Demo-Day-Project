@@ -10,12 +10,15 @@ import WeakCoverageAreas from './WeakCoverageAreas';
 import RecommendationCards from './RecommendationCards';
 
 const GapAnalysisDashboard: React.FC = () => {
-  // Stable data loader function
-  const dataLoader = useCallback(() => resultsApi.getGapAnalysis(), []);
+  // Stable data loader function for gap analysis
+  const gapDataLoader = useCallback(() => resultsApi.getGapAnalysis(), []);
+  
+  // Stable data loader function for analysis results (to get all questions)
+  const analysisDataLoader = useCallback(() => resultsApi.getAnalysis(), []);
 
   // Data loading with standard pattern
-  const { data: gapData, loading, error, reload } = usePageData<GapAnalysis>(
-    dataLoader,
+  const { data: gapData, loading: gapLoading, error: gapError, reload: gapReload } = usePageData<GapAnalysis>(
+    gapDataLoader,
     {
       component: 'GapAnalysis',
       loadAction: 'GAP_ANALYSIS_LOAD_START',
@@ -32,6 +35,22 @@ const GapAnalysisDashboard: React.FC = () => {
       })
     }
   );
+
+  // Load analysis results to get all questions for export
+  const { data: analysisData, loading: analysisLoading } = usePageData(
+    analysisDataLoader,
+    {
+      component: 'AnalysisResults',
+      loadAction: 'ANALYSIS_RESULTS_LOAD_START',
+      successAction: 'ANALYSIS_RESULTS_LOAD_SUCCESS',
+      errorAction: 'ANALYSIS_RESULTS_LOAD_ERROR',
+      userErrorMessage: 'Failed to load analysis results'
+    }
+  );
+
+  const loading = gapLoading || analysisLoading;
+  const error = gapError;
+  const reload = gapReload;
 
   if (loading) {
     return (
@@ -184,7 +203,7 @@ const GapAnalysisDashboard: React.FC = () => {
             <RuleBasedBadge text="Rule-Based Analysis (non-ML)" />
           )}
         </div>
-        <GapAnalysisOverview gapData={gapData} />
+        <GapAnalysisOverview gapData={gapData} questions={analysisData?.per_question || []} />
       </div>
 
       {/* Weak Coverage Areas */}

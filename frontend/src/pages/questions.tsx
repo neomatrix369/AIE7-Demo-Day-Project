@@ -84,6 +84,17 @@ const QuestionGroupsOverview: React.FC = () => {
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
           AI-generated vs RAGAS-generated questions ready for analysis
         </p>
+        <div style={{ 
+          backgroundColor: '#fff3cd', 
+          border: '1px solid #ffeaa7', 
+          borderRadius: '4px', 
+          padding: '10px', 
+          marginBottom: '20px',
+          fontSize: '14px',
+          color: '#856404'
+        }}>
+          <strong>⚠️ Important Note:</strong> All AI-generated content in this system should be reviewed by subject matter experts (SMEs) before being used in production or shared with users.
+        </div>
 
         <div className="two-column">
           <div className="card" style={{ backgroundColor: '#f0f8ff', border: '2px solid #007bff' }}>

@@ -198,7 +198,7 @@ class GapAnalysisService:
             'id': str(uuid.uuid4())[:8],
             'gapDescription': f"Category '{role}' shows poor performance: {query_count} questions averaging {avg_score}/10",
             'suggestedContent': suggested_content,
-            'improvementStrategies': improvement_strategies['all_strategies'],
+            'improvementStrategies': [strategy.replace('{role}', role) for strategy in improvement_strategies['all_strategies']],
             'expectedImprovement': min(GAP_ANALYSIS_THRESHOLDS['MAX_SCORE'], avg_score + (GAP_ANALYSIS_THRESHOLDS['MAX_SCORE'] - avg_score) * GAP_ANALYSIS_PERCENTAGES['IMPROVEMENT_POTENTIAL']),  # 60% improvement potential
             'priorityLevel': priority_level,
             'priorityScore': round(priority_score, 2),
@@ -347,7 +347,7 @@ class GapAnalysisService:
         all_strategies = strategies + data_collection_strategies
         
         return {
-            'primary_strategy': strategies[0] if strategies else f"Improve content quality for {role} questions",
+            'primary_strategy': strategies[0].replace('{role}', role) if strategies else f"Improve content quality for {role} questions",
             'all_strategies': all_strategies
         }
     
@@ -374,17 +374,17 @@ class GapAnalysisService:
             strategies.extend([
                 "🔍 **Internal Knowledge Mining**: Extract tacit knowledge from {role} team members through structured interviews and knowledge sharing sessions",
                 "📊 **External Research**: Gather industry best practices and standards relevant to {role} from professional communities and publications",
-                "🤖 **LLM-Generated Content**: Use AI to generate initial content drafts for {role} topics, then validate with subject matter experts"
+                "🤖 **LLM-Generated Content**: Use AI to generate initial content drafts for {role} topics, then validate with subject matter experts *(Note: All AI-generated content must be reviewed by domain experts before publication)*"
             ])
         elif performance_type == 'poor':
             strategies.extend([
                 "📋 <b>Survey Implementation</b>: Conduct targeted surveys with {role} team to identify specific information gaps and improvement areas",
                 "📚 **External Documentation**: Research and incorporate relevant external documentation and resources for {role}",
-                "🔄 **Content Validation**: Use LLMs to generate content variations for {role} topics and validate accuracy with domain experts"
+                "🔄 **Content Validation**: Use LLMs to generate content variations for {role} topics and validate accuracy with domain experts *(Note: All AI-generated content must be reviewed by domain experts before publication)*"
             ])
         else:  # weak
             strategies.extend([
-                "💡 **Quick Content Generation**: Use AI tools to quickly generate additional content for {role} based on existing high-performing topics",
+                "💡 **Quick Content Generation**: Use AI tools to quickly generate additional content for {role} based on existing high-performing topics *(Note: All AI-generated content must be reviewed by domain experts before publication)*",
                 "📖 **Resource Compilation**: Gather and organize existing internal resources and external references for {role}",
                 "🎯 **Targeted Enhancement**: Focus on improving specific {role} content areas based on user feedback and usage patterns"
             ])
@@ -392,6 +392,9 @@ class GapAnalysisService:
         # Add role-specific data collection strategies
         if query_count > 10:
             strategies.append("📈 **Analytics-Driven Enhancement**: Use query analytics to identify {role} topics with high search volume but low satisfaction scores")
+        
+        # Replace {role} placeholders with actual role value
+        strategies = [strategy.replace('{role}', role) for strategy in strategies]
         
         return strategies
 

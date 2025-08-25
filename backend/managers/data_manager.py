@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 from pathlib import Path
 from datetime import datetime
 from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader
+from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from managers.chunking_manager import ChunkingStrategyManager
 from config.settings import CHUNK_STRATEGY, CHUNK_SIZE, CHUNK_OVERLAP
@@ -20,7 +21,7 @@ class DataManager:
     def __init__(self, data_folder: str):
         self.data_folder = data_folder
 
-    def load_csv_data(self, filename: str = "complaints.csv") -> List[Dict[str, Any]]:
+    def load_csv_data(self, filename: str = "complaints.csv") -> List[Document]:
         """
         Load CSV data with conditional processing based on filename.
         Uses specific complaint processing for complaints.csv, generic loading for others.
@@ -42,7 +43,7 @@ class DataManager:
             logger.error(f"❌ Error loading CSV: {str(e)}")
             return []
 
-    def _load_complaints_csv(self, csv_path: str, filename: str) -> List[Dict[str, Any]]:
+    def _load_complaints_csv(self, csv_path: str, filename: str) -> List[Document]:
         """Load and process complaints CSV with specific business logic."""
         raw_documents = self._load_raw_csv_documents(csv_path, self._get_complaints_csv_metadata_columns())
         if not raw_documents:
@@ -53,7 +54,7 @@ class DataManager:
         logger.info(f"✅ Loaded {len(filtered_documents)} valid complaint records from {filename}")
         return filtered_documents.copy()
 
-    def _load_generic_csv(self, csv_path: str, filename: str) -> List[Dict[str, Any]]:
+    def _load_generic_csv(self, csv_path: str, filename: str) -> List[Document]:
         """Load generic CSV file without specific business logic."""
         raw_documents = self._load_raw_csv_documents(csv_path)
         if not raw_documents:
@@ -75,7 +76,7 @@ class DataManager:
             "Timely response?", "Consumer disputed?", "Complaint ID",
         ]
 
-    def _load_raw_csv_documents(self, csv_path: str, metadata_columns: List[str] = None) -> List[Dict[str, Any]]:
+    def _load_raw_csv_documents(self, csv_path: str, metadata_columns: List[str] = None) -> List[Document]:
         """
         Load raw CSV documents using LangChain CSVLoader.
         """
@@ -90,7 +91,7 @@ class DataManager:
         logger.info(f"📋 Raw CSV loaded: {initial_count:,} records")
         return csv_data
 
-    def _set_page_content_from_narrative(self, documents: List[Dict[str, Any]]) -> None:
+    def _set_page_content_from_narrative(self, documents: List[Document]) -> None:
         """
         Set the page content for each document from the complaint narrative.
         """
@@ -137,7 +138,7 @@ class DataManager:
         logger.info(f"   🗑️  Total filtered out: {total_filtered:,}")
         logger.info(f"   📊 Retention rate: {retention_rate:.1f}%")
 
-    def _apply_complaint_quality_filters(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _apply_complaint_quality_filters(self, documents: List[Document]) -> List[Document]:
         """
         Apply complaint-specific quality filters to documents and return valid ones.
         """
@@ -162,7 +163,7 @@ class DataManager:
         self._log_complaint_filter_results(filter_stats, len(documents), len(filtered_docs))
         return filtered_docs
 
-    def _apply_generic_csv_processing(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _apply_generic_csv_processing(self, documents: List[Document]) -> List[Document]:
         """
         Apply generic processing to CSV documents.
         Sets page content from the first non-empty text field found.
@@ -183,7 +184,7 @@ class DataManager:
         logger.info(f"✅ Processed {len(processed_docs)} documents with valid content")
         return processed_docs
 
-    def _extract_generic_page_content(self, doc: Dict[str, Any]) -> str:
+    def _extract_generic_page_content(self, doc: Document) -> str:
         """
         Extract page content from generic CSV document.
         Looks for common text fields and combines them meaningfully.
@@ -242,7 +243,7 @@ class DataManager:
         content_parts = [str(part) for part in content_parts if part is not None]
         return "\n".join(content_parts) if content_parts else ""
 
-    def discover_all_csv_files(self) -> List[Dict[str, Any]]:
+    def discover_all_csv_files(self) -> List[Document]:
         """
         Automatically discover CSV files and load only selected ones.
         """
@@ -344,7 +345,7 @@ class DataManager:
         except Exception as e:
             logger.error(f"❌ Error updating document selection: {str(e)}")
 
-    def load_json_files(self) -> List[Dict[str, Any]]:
+    def load_json_files(self) -> List[Document]:
         """
         Load JSON files from data folder, excluding config files, only selected ones.
         """
@@ -393,7 +394,7 @@ class DataManager:
         logger.info(f"✅ Total JSON documents loaded: {len(json_docs)}")
         return json_docs
 
-    def load_pdf_data(self) -> List[Dict[str, Any]]:
+    def load_pdf_data(self) -> List[Document]:
         """
         Load PDF documents, but only selected ones.
         """
@@ -494,7 +495,7 @@ class DataManager:
         
         return chunk
 
-    def load_all_documents(self) -> List[Dict[str, Any]]:
+    def load_all_documents(self) -> List[Document]:
         """
         Load all documents from CSV, JSON, and PDF sources automatically.
         

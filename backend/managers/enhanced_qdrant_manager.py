@@ -137,8 +137,11 @@ class EnhancedQdrantManager:
                     "modified_at": doc.get('metadata', {}).get('modified_at', datetime.now().isoformat()),
                 }
                 
-                # Create unique ID
-                unique_id = f"{document_source}_{i}_{hash(doc.get('page_content', ''))}"
+                # Create unique ID as integer (Qdrant requires unsigned integer)
+                # Combine document index with content hash for uniqueness
+                content_hash = abs(hash(doc.get('page_content', '')))
+                document_hash = abs(hash(document_source))
+                unique_id = int(f"{document_hash % 1000000}{i:03d}{content_hash % 1000000}")
                 
                 # Validate embedding before creating PointStruct
                 embedding = doc.get('embedding', [])

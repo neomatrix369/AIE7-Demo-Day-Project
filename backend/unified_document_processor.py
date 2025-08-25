@@ -561,14 +561,14 @@ class UnifiedDocumentProcessor:
             logger.error(f"❌ Failed to ensure chunks have selection field: {e}")
             return False
 
-    def _load_document(self, filename: str) -> List[Dict[str, Any]]:
+    def _load_document(self, filename: str) -> List[Any]:
         """Load a specific document based on its type."""
         try:
             file_path = os.path.join(self.data_folder, filename)
             file_extension = filename.lower().split('.')[-1]
             
             if file_extension == 'csv':
-                return self.data_manager.load_csv_data([filename])
+                return self.data_manager.load_csv_data(filename)
             elif file_extension == 'pdf':
                 return self.data_manager.load_pdf_data([filename])
             elif file_extension in ['txt', 'json']:
@@ -580,7 +580,7 @@ class UnifiedDocumentProcessor:
             logger.error(f"❌ Failed to load document {filename}: {e}")
             return []
 
-    def _split_documents(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _split_documents(self, documents: List[Any]) -> List[Any]:
         """Split documents into chunks."""
         try:
             return self.chunking_manager.split_documents(documents)
@@ -588,14 +588,18 @@ class UnifiedDocumentProcessor:
             logger.error(f"❌ Failed to split documents: {e}")
             return []
 
-    def _add_embeddings(self, chunks: List[Dict[str, Any]], filename: str) -> List[Dict[str, Any]]:
+    def _add_embeddings(self, chunks: List[Any], filename: str) -> List[Dict[str, Any]]:
         """Add embeddings to chunks with comprehensive metadata."""
         try:
             embedded_chunks = []
             for i, chunk in enumerate(chunks):
                 try:
+                    # All chunks are now LangChain Document objects
+                    content = chunk.page_content
+                    metadata = chunk.metadata
+                    
                     # Get embedding
-                    embedding = self.embedding.embed_query(chunk['content'])
+                    embedding = self.embedding.embed_query(content)
                     
                     # Get document selection status
                     is_selected = self.selection_manager.selection_config.get("documents", {}).get(filename, {}).get("is_selected", True)
@@ -604,9 +608,9 @@ class UnifiedDocumentProcessor:
                     embedded_chunk = {
                         'id': f"{filename}_{i}",
                         'embedding': embedding,
-                        'page_content': chunk['content'],  # Legacy field for compatibility
+                        'page_content': content,  # Legacy field for compatibility
                         'metadata': {
-                            **chunk.get('metadata', {}),
+                            **metadata,
                             'document_source': filename,
                             'chunk_id': f"{filename}_{i}",
                             'chunk_index': i,

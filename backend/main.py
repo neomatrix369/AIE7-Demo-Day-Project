@@ -34,7 +34,6 @@ from config.settings import (
 from datetime import datetime
 
 # Add new imports for document management
-from enhanced_document_processor import EnhancedDocumentProcessor
 from unified_document_processor import UnifiedDocumentProcessor
 
 # Initialize unified document processor (replaces both simple and enhanced)

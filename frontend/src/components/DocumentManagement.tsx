@@ -15,6 +15,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(true); // Collapsed by default
+  const [ingestionProgress, setIngestionProgress] = useState<{filename: string, progress: number, status: string} | null>(null);
   const [documentConfig, setDocumentConfig] = useState<DocumentConfig | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -209,17 +210,31 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
   const handleIngestDocument = async (filename: string) => {
     try {
       setActionLoading(`ingest-${filename}`);
+      setIngestionProgress({filename, progress: 0, status: 'Starting ingestion...'});
+      
+      // Simulate progress steps for better UX
+      setIngestionProgress({filename, progress: 20, status: 'Loading document...'});
+      
       const response = await documentsApi.ingestDocument(filename);
+      
+      setIngestionProgress({filename, progress: 80, status: 'Processing chunks...'});
+      
       if (response.success) {
+        setIngestionProgress({filename, progress: 100, status: 'Ingestion complete!'});
         await loadDocumentStatus();
         logSuccess(`Document ingested: ${filename}`, { component: 'DocumentManagement' });
         onStatusChange?.();
+        
+        // Clear progress after a brief delay
+        setTimeout(() => setIngestionProgress(null), 2000);
       } else {
         throw new Error(response.message || 'Failed to ingest document');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to ingest document');
+      setIngestionProgress({filename, progress: 0, status: `Error: ${err.message}`});
       logError(`Failed to ingest document ${filename}: ${err.message}`, { component: 'DocumentManagement' });
+      setTimeout(() => setIngestionProgress(null), 3000);
     } finally {
       setActionLoading(null);
     }
@@ -697,7 +712,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
                       </div>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: '6px', marginLeft: '12px', flexShrink: 0, position: 'relative' }}>
                       {doc.is_ingested ? (
                         // Ingested files: Show Select/Deselect toggle
                         <>
@@ -763,8 +778,46 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
                               opacity: actionLoading === `ingest-${doc.filename}` ? 0.6 : 1
                             }}
                           >
-                            {actionLoading === `ingest-${doc.filename}` ? '🔄 Ingesting' : '📥 Ingest'}
+                            {actionLoading === `ingest-${doc.filename}` ? '🔄 Ingesting...' : '📥 Ingest'}
                           </button>
+                          
+                          {/* Ingestion Progress Indicator */}
+                          {ingestionProgress && ingestionProgress.filename === doc.filename && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: '0',
+                              right: '0',
+                              backgroundColor: 'white',
+                              border: '1px solid #007bff',
+                              borderRadius: '4px',
+                              padding: '8px',
+                              fontSize: '10px',
+                              zIndex: 1000,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}>
+                              <div style={{marginBottom: '4px', color: '#333'}}>
+                                {ingestionProgress.status}
+                              </div>
+                              <div style={{
+                                width: '100%',
+                                height: '4px',
+                                backgroundColor: '#f0f0f0',
+                                borderRadius: '2px',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  width: `${ingestionProgress.progress}%`,
+                                  height: '100%',
+                                  backgroundColor: ingestionProgress.progress === 100 ? '#28a745' : '#007bff',
+                                  transition: 'width 0.3s ease-in-out'
+                                }} />
+                              </div>
+                              <div style={{marginTop: '2px', color: '#666'}}>
+                                {ingestionProgress.progress}%
+                              </div>
+                            </div>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

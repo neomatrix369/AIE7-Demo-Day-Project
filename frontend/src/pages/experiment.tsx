@@ -47,6 +47,7 @@ const ExperimentConfiguration: React.FC = () => {
     end_time?: string;
     duration_seconds?: number;
   }>({});
+  const [savedExperimentFilename, setSavedExperimentFilename] = useState<string | null>(null);
   const [experimentStartTime, setExperimentStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -347,6 +348,7 @@ const ExperimentConfiguration: React.FC = () => {
       const response = await storageAdapter.saveExperiment(experimentData);
       
       if (response.success) {
+        setSavedExperimentFilename(response.filename);
         logSuccess(`Experiment auto-saved: ${response.filename}`, {
           component: 'Experiment',
           action: 'AUTO_SAVE_SUCCESS',
@@ -383,7 +385,14 @@ const ExperimentConfiguration: React.FC = () => {
   }, [completed, results.length, isRunning, saveExperimentToBrowser]);
 
   const handleViewResults = () => {
-    goTo('/results', LABEL_RESULTS, { action: 'NAVIGATE_TO_RESULTS', data: { experiment_completed: completed, questions_processed: results.length } });
+    goTo('/results', LABEL_RESULTS, { 
+      action: 'NAVIGATE_TO_RESULTS', 
+      data: { 
+        experiment_completed: completed, 
+        questions_processed: results.length,
+        selected_experiment: savedExperimentFilename
+      } 
+    });
   };
 
   const handleBackToQuestions = () => {

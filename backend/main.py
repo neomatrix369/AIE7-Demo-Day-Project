@@ -355,8 +355,11 @@ async def get_all_chunks():
                 doc_id = metadata.get("doc_id", "unknown")
                 title = metadata.get("title", "Unknown Document")
                 
+                # Use descriptive chunk_id from payload instead of numeric point.id
+                chunk_id = point.payload.get("chunk_id", str(point.id))
+                
                 chunk_data = {
-                    "chunk_id": str(point.id),
+                    "chunk_id": chunk_id,
                     "doc_id": doc_id,
                     "title": title,
                     "content": point.payload.get("page_content", "")[:200] + "..." if len(point.payload.get("page_content", "")) > 200 else point.payload.get("page_content", "")

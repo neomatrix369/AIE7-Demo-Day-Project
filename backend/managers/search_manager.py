@@ -123,16 +123,16 @@ class SearchManager:
             
             results = []
             for i, (doc, score) in enumerate(docs_and_scores):
-                # Try to match with raw Qdrant result to get chunk UUID
-                chunk_id = "unknown"
-                if i < len(raw_qdrant_results):
+                # Use descriptive chunk_id from metadata if available, otherwise fall back to numeric ID
+                chunk_id = doc.metadata.get("chunk_id", "unknown")
+                if chunk_id == "unknown" and i < len(raw_qdrant_results):
                     chunk_id = str(raw_qdrant_results[i].id)
                 
                 results.append({
                     "content": doc.page_content[:500] + "..." if len(doc.page_content) > 500 else doc.page_content,
                     "similarity": round(score, 3),
                     "metadata": doc.metadata,
-                    "doc_id": doc.metadata.get("source", "unknown"),
+                    "doc_id": doc.metadata.get("doc_id", doc.metadata.get("source", "unknown")),
                     "chunk_id": chunk_id,
                     "title": doc.metadata.get("title", "Document")
                 })

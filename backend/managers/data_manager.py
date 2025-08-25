@@ -510,6 +510,17 @@ class DataManager:
             title = os.path.basename(source)
             doc_id = f"PDF:{os.path.basename(source)}"
             
+        elif source.endswith((".md", ".txt")):
+            # For markdown and text files: create a cleaner title
+            filename = os.path.basename(source)
+            # Remove file extension
+            name_without_ext = os.path.splitext(filename)[0]
+            # Replace underscores and hyphens with spaces for better readability
+            clean_title = name_without_ext.replace('_', ' ').replace('-', ' ')
+            # Capitalize words
+            title = ' '.join(word.capitalize() for word in clean_title.split())
+            doc_id = f"TEXT:{os.path.basename(source)}"
+            
         else:
             # Fallback for other document types
             title = f"Document from {source}" if source != "unknown" else "Unknown Document"

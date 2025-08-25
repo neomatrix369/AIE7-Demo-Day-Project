@@ -9,6 +9,9 @@ from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, Filter, FieldCondition, MatchValue
 from qdrant_client.http.models import UpdateStatus, PointStruct
 from qdrant_client.http.exceptions import UnexpectedResponse
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 # Set up logging
 logger = logging.getLogger(__name__)

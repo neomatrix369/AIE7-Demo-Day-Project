@@ -85,6 +85,11 @@ class EnhancedQdrantManager:
             if self.collection_name in collection_names:
                 collection_info = client.get_collection(self.collection_name)
                 logger.info(f"📦 Collection '{self.collection_name}' exists with {collection_info.points_count} points")
+                
+                # Ensure payload indexes exist for existing collections
+                logger.info("🔍 Ensuring payload indexes exist for existing collection...")
+                self._ensure_payload_indexes()
+                
                 return True
             
             logger.info(f"📦 Creating new Qdrant collection '{self.collection_name}' with enhanced payload schema")
@@ -106,6 +111,45 @@ class EnhancedQdrantManager:
             logger.error(f"❌ Failed to ensure collection exists: {e}")
             return False
 
+    def _ensure_payload_indexes(self):
+        """Ensure payload indexes exist, create them if they don't."""
+        try:
+            client = self._get_qdrant_client()
+            
+            # Get existing indexes
+            collection_info = client.get_collection(self.collection_name)
+            existing_indexes = collection_info.payload_indexes if hasattr(collection_info, 'payload_indexes') else []
+            existing_field_names = [idx.field_name for idx in existing_indexes] if existing_indexes else []
+            
+            logger.info(f"📊 Existing payload indexes: {existing_field_names}")
+            
+            # Define required indexes
+            required_indexes = [
+                ("document_source", "keyword"),
+                ("is_selected", "bool"),
+                ("document_type", "keyword")
+            ]
+            
+            # Create missing indexes
+            for field_name, field_schema in required_indexes:
+                if field_name not in existing_field_names:
+                    logger.info(f"🔧 Creating missing payload index for '{field_name}'")
+                    try:
+                        client.create_payload_index(
+                            collection_name=self.collection_name,
+                            field_name=field_name,
+                            field_schema=field_schema
+                        )
+                        logger.info(f"✅ Created payload index for '{field_name}'")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to create payload index for '{field_name}': {e}")
+                else:
+                    logger.info(f"✅ Payload index for '{field_name}' already exists")
+            
+            logger.info("✅ All required payload indexes are ensured")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to ensure payload indexes: {e}")
+
     def _create_payload_indexes(self):
         """Create payload indexes for efficient filtering."""
         try:
@@ -115,21 +159,21 @@ class EnhancedQdrantManager:
             client.create_payload_index(
                 collection_name=self.collection_name,
                 field_name="document_source",
-                field_schema=models.PayloadFieldSchema.KEYWORD
+                field_schema="keyword"
             )
             
             # Index for selection status filtering
             client.create_payload_index(
                 collection_name=self.collection_name,
                 field_name="is_selected",
-                field_schema=models.PayloadFieldSchema.BOOL
+                field_schema="bool"
             )
             
             # Index for document type filtering
             client.create_payload_index(
                 collection_name=self.collection_name,
                 field_name="document_type",
-                field_schema=models.PayloadFieldSchema.KEYWORD
+                field_schema="keyword"
             )
             
             logger.info("✅ Created payload indexes for efficient filtering")

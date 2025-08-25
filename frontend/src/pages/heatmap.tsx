@@ -217,6 +217,20 @@ const InteractiveHeatmapVisualization: React.FC = () => {
 
   // Calculate Unretrieved chunk statistics
   const chunkCoverageStats = React.useMemo(() => {
+    // Use backend chunk coverage data if available, otherwise fall back to frontend calculation
+    if (results?.overall?.chunk_coverage) {
+      const backendData = results.overall.chunk_coverage;
+      return {
+        totalChunks: backendData.total_chunks,
+        retrievedChunks: backendData.retrieved_chunks,
+        unretrievedChunks: backendData.unretrieved_chunks,
+        coveragePercentage: backendData.coverage_percentage,
+        unretrievedPercentage: backendData.unretrieved_percentage,
+        isDataAvailable: true
+      };
+    }
+
+    // Fallback to frontend calculation if backend data not available
     if (!results || !allChunks) return { 
       totalChunks: null, // Use null to indicate data not available
       retrievedChunks: null, 

@@ -70,6 +70,14 @@ export interface AnalysisResults {
     total_questions: number;
     corpus_health: string;
     key_insight: string;
+    chunk_coverage?: {
+      total_chunks: number;
+      retrieved_chunks: number;
+      unretrieved_chunks: number;
+      coverage_percentage: number;
+      unretrieved_percentage: number;
+      total_retrieved_docs: number;
+    };
   };
   per_group: {
     [group_name: string]: {
@@ -166,6 +174,11 @@ export interface GapAnalysis {
     totalQuestions: number;
     belowGoodCount: number;
     belowGoodPercentage: number;
+    goodCount: number;
+    weakCount: number;
+    poorCount: number;
+    weakQuestionsCount: number;
+    poorQuestionsCount: number;
   };
 }
 

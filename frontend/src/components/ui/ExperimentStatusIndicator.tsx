@@ -6,32 +6,44 @@ interface ExperimentStatusIndicatorProps {
   size?: 'small' | 'tiny';
 }
 
+interface ExperimentStatus {
+  experiment_loaded: boolean;
+  experiment_count: number;
+  current_experiment?: string;
+  timestamp: string;
+}
+
 const ExperimentStatusIndicator: React.FC<ExperimentStatusIndicatorProps> = ({ 
   position = 'top-right',
   size = 'tiny'
 }) => {
-  const [hasExperimentData, setHasExperimentData] = useState<boolean | null>(null);
+  const [experimentStatus, setExperimentStatus] = useState<ExperimentStatus | null>(null);
 
   // Check for experiment data availability
   useEffect(() => {
     const checkExperimentData = async () => {
       try {
-        const results = await resultsApi.getAnalysis();
-        const hasData = results && results.overall && results.overall.total_questions > 0;
-        setHasExperimentData(hasData);
+        const status = await resultsApi.getAnalysisStatus();
+        setExperimentStatus(status);
       } catch (error) {
         // If API fails, assume no data
-        setHasExperimentData(false);
+        setExperimentStatus({
+          experiment_loaded: false,
+          experiment_count: 0,
+          timestamp: new Date().toISOString()
+        });
       }
     };
 
     checkExperimentData();
   }, []);
 
-  if (hasExperimentData === null) {
+  if (experimentStatus === null) {
     // Loading state - show nothing to avoid flash
     return null;
   }
+
+  const hasExperimentData = experimentStatus.experiment_loaded;
 
   const getPositionStyles = () => {
     const baseStyles = {
@@ -76,7 +88,18 @@ const ExperimentStatusIndicator: React.FC<ExperimentStatusIndicatorProps> = ({
   };
 
   const getStatusText = () => {
-    return hasExperimentData ? 'Data Available' : 'No Experiment Data';
+    if (!hasExperimentData) {
+      return 'No Experiment Data';
+    }
+    
+    if (experimentStatus.current_experiment) {
+      // Show shortened experiment name
+      const filename = experimentStatus.current_experiment;
+      const shortName = filename.replace('experiment_', '').replace('.json', '');
+      return `Loaded: ${shortName}`;
+    }
+    
+    return 'Data Available';
   };
 
   const getStatusIcon = () => {
@@ -90,7 +113,9 @@ const ExperimentStatusIndicator: React.FC<ExperimentStatusIndicatorProps> = ({
         ...getStatusStyles(),
       }}
       title={hasExperimentData 
-        ? 'Experiment data is loaded and available for analysis' 
+        ? experimentStatus.current_experiment 
+          ? `Currently loaded: ${experimentStatus.current_experiment} (${experimentStatus.experiment_count} questions)`
+          : `Experiment data is loaded and available for analysis (${experimentStatus.experiment_count} questions)`
         : 'No experiment data available. Load one from the Experiments page or run an experiment from the Run Experiments page to see results.'}
     >
       <span style={{ marginRight: '3px' }}>{getStatusIcon()}</span>

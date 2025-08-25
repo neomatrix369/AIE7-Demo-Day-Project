@@ -400,11 +400,22 @@ class GapAnalysisService:
                              recommendations: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Calculate summary statistics for the gap analysis - generic implementation"""
         total_questions = len(all_results)
-        total_gaps = len(low_score_queries)
-        critical_gaps = len([q for q in low_score_queries if q.get('avg_quality_score', 0) < GAP_ANALYSIS_THRESHOLDS['CRITICAL']])
+        
+        # Get quality score thresholds
+        good_threshold = QualityScoreService.get_quality_thresholds()['GOOD']  # 7.0
+        weak_threshold = QualityScoreService.get_quality_thresholds()['WEAK']  # 5.0
+        
+        # Calculate correct statistics
+        good_count = len([r for r in all_results if r.get('avg_quality_score', 0) >= good_threshold])
+        weak_count = len([r for r in all_results if weak_threshold <= r.get('avg_quality_score', 0) < good_threshold])
+        poor_count = len([r for r in all_results if r.get('avg_quality_score', 0) < weak_threshold])
+        
         # Below GOOD threshold (aligns with Results page success rate complement)
-        good_threshold = QualityScoreService.get_quality_thresholds()['GOOD']
-        below_good_count = len([r for r in all_results if r.get('avg_quality_score', 0) < good_threshold])
+        below_good_count = weak_count + poor_count
+        
+        # Total gaps are the poor performing queries (below weak threshold)
+        total_gaps = poor_count
+        critical_gaps = len([q for q in low_score_queries if q.get('avg_quality_score', 0) < GAP_ANALYSIS_THRESHOLDS['CRITICAL']])
         
         # Calculate average gap score
         avg_gap_score = 0.0
@@ -430,7 +441,12 @@ class GapAnalysisService:
             'gapPercentage': round((total_gaps / max(total_questions, 1)) * 100, 1),
             'totalQuestions': total_questions,
             'belowGoodCount': below_good_count,
-            'belowGoodPercentage': round((below_good_count / max(total_questions, 1)) * 100, 1)
+            'belowGoodPercentage': round((below_good_count / max(total_questions, 1)) * 100, 1),
+            'goodCount': good_count,
+            'weakCount': weak_count,
+            'poorCount': poor_count,
+            'weakQuestionsCount': weak_count,  # Questions with score 5.0-6.9
+            'poorQuestionsCount': poor_count   # Questions with score <5.0
         }
     
     def _create_empty_gap_analysis(self) -> Dict[str, Any]:

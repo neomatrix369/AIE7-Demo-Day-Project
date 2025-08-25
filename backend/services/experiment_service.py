@@ -292,10 +292,15 @@ class ExperimentService:
             }
         
         # Extract quality scores from results
+        # Convert similarity scores to quality scores if quality_score not present
         quality_scores = []
         for result in results:
             if "quality_score" in result:
                 quality_scores.append(result["quality_score"])
+            elif "avg_similarity" in result:
+                # Convert similarity (0-1) to quality score (0-10)
+                quality_score = QualityScoreService.similarity_to_quality_score(result["avg_similarity"])
+                quality_scores.append(quality_score)
         
         if not quality_scores:
             return {
@@ -699,12 +704,16 @@ class ExperimentService:
         
         corpus_health = QualityScoreService.get_corpus_health(avg_quality_score)
         
+        # Calculate chunk coverage statistics
+        chunk_coverage = self._calculate_chunk_coverage(per_question_results)
+        
         return {
             "avg_quality_score": avg_quality_score,
             "success_rate": round(success_rate, 2),
             "total_questions": len(per_question_results),
             "corpus_health": corpus_health,
-            "key_insight": f"{round((1-success_rate)*100)}% of questions scored below {QualityScoreService.get_quality_thresholds()['GOOD']} threshold"
+            "key_insight": f"{round((1-success_rate)*100)}% of questions scored below {QualityScoreService.get_quality_thresholds()['GOOD']} threshold",
+            "chunk_coverage": chunk_coverage
         }
 
     def build_analysis_response(self, per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -773,6 +782,56 @@ class ExperimentService:
         except Exception as e:
             logger.warning(f"Could not generate model hash: {e}")
             return "hash_error"
+
+    def _calculate_chunk_coverage(self, per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Calculate chunk coverage statistics from question results.
+        
+        Args:
+            per_question_results: List of question results with retrieved_docs
+            
+        Returns:
+            Dictionary with chunk coverage statistics
+        """
+        # Get total chunks from vector database
+        try:
+            from managers.enhanced_qdrant_manager import EnhancedQdrantManager
+            from config.settings import COLLECTION_NAMES
+            qdrant_manager = EnhancedQdrantManager(COLLECTION_NAMES['DEFAULT_COLLECTION'])
+            collection_info = qdrant_manager.get_collection_info()
+            total_chunks = collection_info.get('total_points', 0)
+        except Exception as e:
+            logger.warning(f"Could not get total chunks from vector database: {e}")
+            total_chunks = 0
+        
+        # Calculate retrieved chunks using a more reliable method
+        retrieved_chunk_identifiers = set()
+        total_retrieved_docs = 0
+        
+        for question in per_question_results:
+            for doc in question.get("retrieved_docs", []):
+                total_retrieved_docs += 1
+                # Use a combination of doc_id and content hash as chunk identifier
+                # since chunk_id might be empty
+                content_hash = hashlib.md5(doc.get("content", "").encode()).hexdigest()[:8]
+                chunk_identifier = f"{doc.get('doc_id', 'unknown')}_{content_hash}"
+                retrieved_chunk_identifiers.add(chunk_identifier)
+        
+        retrieved_chunks = len(retrieved_chunk_identifiers)
+        unretrieved_chunks = max(0, total_chunks - retrieved_chunks)
+        
+        # Calculate percentages
+        coverage_percentage = round((retrieved_chunks / max(total_chunks, 1)) * 100, 1)
+        unretrieved_percentage = round((unretrieved_chunks / max(total_chunks, 1)) * 100, 1)
+        
+        return {
+            "total_chunks": total_chunks,
+            "retrieved_chunks": retrieved_chunks,
+            "unretrieved_chunks": unretrieved_chunks,
+            "coverage_percentage": coverage_percentage,
+            "unretrieved_percentage": unretrieved_percentage,
+            "total_retrieved_docs": total_retrieved_docs
+        }
 
     def _get_environment_variables(self) -> Dict[str, str]:
         """Get non-security environment variables for reproduction."""

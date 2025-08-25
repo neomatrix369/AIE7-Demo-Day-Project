@@ -147,6 +147,9 @@ export const resultsApi = {
   clearResults: (): Promise<{success: boolean, message: string}> =>
     api.post('/results/clear').then(res => res.data),
   
+  getAnalysisStatus: (): Promise<{experiment_loaded: boolean, experiment_count: number, experiment_sample?: any, timestamp: string}> =>
+    api.get('/v1/analysis/status').then(res => res.data),
+  
   getGapAnalysis: (): Promise<GapAnalysis> =>
     api.get('/v1/analysis/gaps').then(res => res.data),
 };

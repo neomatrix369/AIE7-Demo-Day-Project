@@ -75,7 +75,10 @@ const DataLoadingDashboard: React.FC = () => {
   if (corpusStatus.status === 'error' || corpusStatus.error_message) {
     return (
       <ErrorDisplay 
-        error={corpusStatus.error_message || 'Unknown error'}
+        error={{
+          message: corpusStatus.error_message || 'Unknown error',
+          type: 'CorpusError'
+        }}
         title="Corpus Not Ready"
         context={corpusStatus.corpus_metadata?.message || "The document corpus is not properly loaded. Please ensure documents are loaded and the database is connected."}
         onRetry={() => window.location.reload()}

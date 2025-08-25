@@ -62,9 +62,10 @@ documents_loaded = False
 
 # Store for experiment results
 experiment_results = []
+current_loaded_experiment = None  # Track which experiment is currently loaded
 
-# Load any existing results on startup (for backward compatibility)
-experiment_results = experiment_service.load_experiment_results()
+# Don't automatically load experiment on startup - let users explicitly load what they want
+# experiment_results = experiment_service.load_experiment_results()
 
 # Try to load documents on startup using unified processor
 try:
@@ -413,27 +414,18 @@ async def run_experiment(config: ExperimentConfig):
 
 @app.get("/api/results/analysis")
 async def get_analysis_results():
-    """Get analysis results from the most recent experiment."""
-    global experiment_results
-    
-    # Try to load experiment results if global is empty
-    if not experiment_results:
-        try:
-            experiment_results = experiment_service.load_experiment_results()
-            if experiment_results:
-                logger.info(f"📂 Loaded {len(experiment_results)} experiment results for analysis")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not load experiment results: {e}")
+    """Get analysis results from the currently loaded experiment."""
+    global experiment_results, current_loaded_experiment
     
     if not experiment_results:
-        logger.warning("⚠️ No experiment results available, returning empty analysis")
+        logger.warning("⚠️ No experiment loaded, returning empty analysis")
         return {
             "overall": {
                 "avg_quality_score": 0.0,
                 "success_rate": 0.0,
                 "total_questions": 0,
                 "corpus_health": "no_data",
-                "key_insight": "No experiment has been run yet"
+                "key_insight": "No experiment loaded. Please load an experiment from the Experiments page."
             },
             "per_group": {
                 "llm": {"avg_score": 0.0, "distribution": []},
@@ -450,6 +442,19 @@ async def get_analysis_results():
     # Calculate and return analysis metrics
     return experiment_service.build_analysis_response(per_question_results)
 
+@app.get("/api/v1/analysis/status")
+async def get_analysis_status():
+    """Get current analysis status and loaded experiment info."""
+    global experiment_results, current_loaded_experiment
+    
+    return {
+        "experiment_loaded": len(experiment_results) > 0 if experiment_results else False,
+        "experiment_count": len(experiment_results) if experiment_results else 0,
+        "experiment_sample": experiment_results[:2] if experiment_results and len(experiment_results) > 0 else None,
+        "current_experiment": current_loaded_experiment,
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.get("/api/v1/analysis/gaps")
 async def get_gap_analysis():
     """Get gap analysis and recommendations based on current experiment results."""
@@ -459,26 +464,28 @@ async def get_gap_analysis():
         # Try to get the most recent experiment results
         results_to_analyze = None
         
-        # First try the global experiment results
+        # Use the currently loaded experiment results
         if experiment_results:
             results_to_analyze = experiment_results
-            logger.info(f"✅ Using global experiment results: {len(experiment_results)} questions")
+            logger.info(f"✅ Using loaded experiment results: {len(experiment_results)} questions")
+            logger.debug(f"📊 Loaded experiment results sample: {experiment_results[:2] if len(experiment_results) > 0 else 'empty'}")
         else:
-            # Load from most recent saved experiment
-            try:
-                loaded_results = experiment_service.load_experiment_results()
-                if loaded_results:
-                    results_to_analyze = loaded_results
-                    logger.info(f"✅ Using loaded experiment results: {len(loaded_results)} questions")
-            except Exception as e:
-                logger.warning(f"⚠️ Could not load experiment results: {e}")
+            logger.warning("⚠️ No experiment loaded for gap analysis")
                 
         if not results_to_analyze:
             logger.warning("⚠️ No experiment results available for gap analysis, returning empty analysis")
+            logger.info(f"🔍 Debug: Global experiment_results length: {len(experiment_results) if experiment_results else 0}")
             # Return an empty gap analysis so the frontend can show a no-data banner
             return gap_analysis_service.analyze_gaps([])
         
         logger.info(f"🔍 Performing gap analysis on {len(results_to_analyze)} experiment results")
+        
+        # Debug: Check data format
+        if results_to_analyze and len(results_to_analyze) > 0:
+            sample_result = results_to_analyze[0]
+            logger.debug(f"📊 Sample result keys: {list(sample_result.keys())}")
+            logger.debug(f"📊 Sample result has avg_quality_score: {'avg_quality_score' in sample_result}")
+            logger.debug(f"📊 Sample result has role_name: {'role_name' in sample_result}")
         
         # Run gap analysis using the rule-based approach
         gap_analysis = gap_analysis_service.analyze_gaps(results_to_analyze)
@@ -498,10 +505,11 @@ async def get_gap_analysis():
 @app.post("/api/results/clear")
 async def clear_experiment_results():
     """Clear stored experiment results."""
-    global experiment_results
+    global experiment_results, current_loaded_experiment
     
     try:
         experiment_results.clear()
+        current_loaded_experiment = None
         
         # Also delete the file
         results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
@@ -601,16 +609,17 @@ async def list_experiments():
 @app.post("/api/experiments/load")
 async def load_experiment(filename: str):
     """Load a specific experiment file."""
-    global experiment_results
+    global experiment_results, current_loaded_experiment
     
     try:
         results = experiment_service.load_experiment_results(filename)
         if results:
             experiment_results = results
+            current_loaded_experiment = filename
             logger.info(f"📂 Loaded experiment {filename} with {len(results)} results")
             return ErrorResponseService.create_success_response(
                 message=f"Loaded experiment {filename}",
-                data={"count": len(results)}
+                data={"count": len(results), "filename": filename}
             )
         else:
             return ErrorResponseService.not_found_error(
@@ -709,8 +718,9 @@ async def websocket_experiment_stream(websocket: WebSocket):
         logger.info(f"📝 Generated {len(all_questions)} questions for experiment")
         
         # Stream results for each question
-        experiment_results.clear()  # Clear previous results
-        await stream_question_results(websocket, all_questions, config)
+        # Create a local list for this experiment to avoid overwriting loaded experiments
+        current_experiment_results = []
+        await stream_question_results(websocket, all_questions, config, current_experiment_results)
         
         # Calculate experiment timing
         experiment_end_time = datetime.now()
@@ -719,7 +729,7 @@ async def websocket_experiment_stream(websocket: WebSocket):
         
         # Save experiment results with config and timing
         experiment_service.save_experiment_results(
-            experiment_results, 
+            current_experiment_results, 
             {
                 "config": config.dict(),
                 "timing": {
@@ -849,7 +859,7 @@ def generate_real_experiment_questions(selected_groups: List[str]) -> List[Dict[
     
     return all_questions
 
-async def stream_question_results(websocket: WebSocket, questions: List[Dict[str, Any]], config: ExperimentConfig) -> None:
+async def stream_question_results(websocket: WebSocket, questions: List[Dict[str, Any]], config: ExperimentConfig, results_list: List[Dict[str, Any]]) -> None:
     """
     Stream processing results for each question using real vector search.
     
@@ -857,6 +867,7 @@ async def stream_question_results(websocket: WebSocket, questions: List[Dict[str
         websocket: WebSocket connection
         questions: List of questions to process
         config: Experiment configuration
+        results_list: List to store experiment results
     """
     for i, question in enumerate(questions):
         try:
@@ -872,8 +883,8 @@ async def stream_question_results(websocket: WebSocket, questions: List[Dict[str
                 "avg_quality_score": QualityScoreService.similarity_to_quality_score(result["avg_similarity"])
             }
             
-            # Store the result for analysis
-            experiment_results.append(result)
+            # Store the result in the provided list
+            results_list.append(result)
             
             await websocket.send_json(result_with_quality_score)
             

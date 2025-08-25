@@ -42,13 +42,13 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
             fontWeight: 'bold', 
             color: '#e67e22'
           }}>
-            {gapSummary.belowGoodCount}
+            {gapSummary.weakQuestionsCount || gapSummary.weakCount || 0}
           </div>
           <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>Weak Questions</span>
             <BalloonTooltip
               content={
-                'Questions with quality score < 7.0 (below GOOD threshold). These need content improvements to reach good performance.'
+                'Questions with quality score 5.0-6.9 (below GOOD threshold but above POOR). These need content improvements to reach good performance.'
               }
               maxWidth={320}
               cursor="help"
@@ -57,7 +57,7 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
             </BalloonTooltip>
           </div>
           <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666' }}>
-            Score &lt; 7.0 ({gapSummary.belowGoodPercentage}%)
+            Score 5.0-6.9 ({gapSummary.weakQuestionsCount || gapSummary.weakCount || 0 > 0 ? Math.round(((gapSummary.weakQuestionsCount || gapSummary.weakCount || 0) / gapSummary.totalQuestions) * 100) : 0}%)
           </div>
         </div>
 
@@ -67,7 +67,7 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
         }}>
           <div className="stat-icon" style={{ fontSize: '2rem', marginBottom: '8px' }}>⚠️</div>
           <div className="stat-value" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#dc3545' }}>
-            {gapSummary.totalGaps}
+            {gapSummary.poorQuestionsCount || gapSummary.poorCount || 0}
           </div>
           <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>Poor Questions</span>
@@ -82,7 +82,7 @@ const GapAnalysisOverview: React.FC<GapAnalysisOverviewProps> = ({ gapData }) =>
             </BalloonTooltip>
           </div>
           <div className="stat-sublabel" style={{ fontSize: '0.8rem', color: '#666' }}>
-            Score &lt; 5.0 ({gapSummary.gapPercentage}%)
+            Score &lt; 5.0 ({gapSummary.poorQuestionsCount || gapSummary.poorCount || 0 > 0 ? Math.round(((gapSummary.poorQuestionsCount || gapSummary.poorCount || 0) / gapSummary.totalQuestions) * 100) : 0}%)
           </div>
         </div>
 

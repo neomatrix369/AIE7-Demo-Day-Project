@@ -107,11 +107,27 @@ const GapAnalysisDashboard: React.FC = () => {
         <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📊</div>
         <h3 style={{ color: '#666', marginBottom: '15px' }}>No Experiment Data Available</h3>
         <p style={{ color: '#888', marginBottom: '20px', fontSize: '16px' }}>
-          Run an experiment first to generate gap analysis insights and recommendations.
+          Load an experiment first to generate gap analysis insights and recommendations.
         </p>
-        <p style={{ color: '#999', fontSize: '14px' }}>
+        <p style={{ color: '#999', fontSize: '14px', marginBottom: '20px' }}>
           Gap analysis requires experiment results to identify content gaps and generate actionable recommendations.
         </p>
+        <div style={{ 
+          backgroundColor: '#f8f9fa', 
+          padding: '15px', 
+          borderRadius: '6px', 
+          border: '1px solid #dee2e6',
+          textAlign: 'left',
+          maxWidth: '500px',
+          margin: '0 auto'
+        }}>
+          <h4 style={{ color: '#495057', margin: '0 0 10px 0', fontSize: '14px' }}>💡 How to get started:</h4>
+          <ol style={{ color: '#6c757d', fontSize: '13px', margin: '0', paddingLeft: '20px' }}>
+            <li>Go to the <strong>Experiments</strong> page</li>
+            <li>Load an existing experiment or run a new one</li>
+            <li>Return to this page to view gap analysis</li>
+          </ol>
+        </div>
       </div>
     );
   }

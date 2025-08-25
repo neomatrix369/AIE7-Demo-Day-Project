@@ -92,6 +92,11 @@ export interface AnalysisResults {
     };
   };
   per_question: QuestionResult[];
+  experiment_metadata?: {
+    selected_documents_count: number;
+    selected_documents: string[];
+    total_selected_chunks: number;
+  };
 }
 
 export interface ExperimentFile {

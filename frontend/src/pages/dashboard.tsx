@@ -114,7 +114,7 @@ const DataLoadingDashboard: React.FC = () => {
               <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>Selected Documents</span>
                 <BalloonTooltip 
-                  content="Number of documents currently selected and active for search. Only selected documents contribute to the active chunk count."
+                  content="Number of physical files (PDF, CSV, MD, etc.) currently selected and active for search. Each file counts as one document, regardless of size."
                   maxWidth={280} 
                   cursor="help"
                 >

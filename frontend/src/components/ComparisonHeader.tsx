@@ -58,9 +58,17 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
           <span style={{ margin: '0 12px', color: 'rgba(255, 255, 255, 0.8)' }}>→</span>
           <span style={{ color: '#51cf66' }}>📈 Enhanced</span>
         </div>
-        <span style={{ color: '#ff6b6b' }}>{data.experimentA.name}</span>
-        <span style={{ margin: '0 12px', color: 'rgba(255, 255, 255, 0.8)' }}>vs</span>
-        <span style={{ color: '#51cf66' }}>{data.experimentB.name}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <div style={{ color: '#ff6b6b', textAlign: 'center', lineHeight: '1.2' }}>
+            {data.experimentA.name}
+          </div>
+          <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '16px', fontWeight: 'normal' }}>
+            vs
+          </div>
+          <div style={{ color: '#51cf66', textAlign: 'center', lineHeight: '1.2' }}>
+            {data.experimentB.name}
+          </div>
+        </div>
       </h1>
 
       {/* Overall Improvement Badge */}

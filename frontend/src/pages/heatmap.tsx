@@ -189,8 +189,14 @@ const InteractiveHeatmapVisualization: React.FC = () => {
     return uniqueRoles.size;
   }, [results]);
 
-  // Calculate total documents for heatmap controls (documents with chunks)
+  // Get total selected documents from experiment metadata
   const totalDocuments = React.useMemo(() => {
+    // Use selected documents count from experiment metadata if available
+    if (results?.experiment_metadata?.selected_documents_count) {
+      return results.experiment_metadata.selected_documents_count;
+    }
+    
+    // Fallback to calculating from heatmap data for backward compatibility
     if (!results || !allChunks) return 0;
     
     // Build document map exactly like the heatmap visualization does

@@ -381,22 +381,32 @@ class ExperimentService:
         }
         
     def _generate_experiment_name(self, config: Dict[str, Any] = None, results: List[Dict[str, Any]] = None) -> str:
-        """Generate a descriptive experiment name based on configuration and results."""
-        timestamp = datetime.now()
-        base_name = f"RAG Assessment - {timestamp.strftime('%Y-%m-%d %H:%M')}"
-        
-        if config and results:
-            actual_config = config.get("config", {})
-            sources = list(set(r.get("source", "unknown") for r in results))
-            top_k = actual_config.get("top_k", 5)
-            threshold = actual_config.get("similarity_threshold", 0.5)
+        """Generate a memorable experiment name using Docker-style naming."""
+        try:
+            from utils.name_generator import generate_experiment_display_name
             
-            # Create descriptive name
-            source_str = "+".join(sources) if sources else "mixed"
-            name = f"{source_str.upper()} Assessment (k={top_k}, t={threshold}) - {timestamp.strftime('%Y-%m-%d %H:%M')}"
-            return name
-        
-        return base_name
+            if config and results:
+                # Extract config for display name generation
+                actual_config = config.get("config", {})
+                display_config = {
+                    "selected_groups": actual_config.get("selected_groups", []),
+                    "top_k": actual_config.get("top_k", 5),
+                    "similarity_threshold": actual_config.get("similarity_threshold", 0.5)
+                }
+                
+                # Generate memorable name like "Curious Curie | LLM+RAGAS Assessment (k=5, t=0.5)"
+                return generate_experiment_display_name(config=display_config)
+            else:
+                # Fallback for incomplete data
+                from utils.name_generator import generate_experiment_name
+                base_name = generate_experiment_name()
+                return base_name.replace("_", " ").title()
+                
+        except ImportError as e:
+            logger.warning(f"Could not import name generator, falling back to timestamp: {e}")
+            # Fallback to old method if name generator not available
+            timestamp = datetime.now()
+            return f"RAG Assessment - {timestamp.strftime('%Y-%m-%d %H:%M')}"
         
     def save_experiment_results(self, results: List[Dict[str, Any]], config: Dict[str, Any] = None) -> str:
         """Save experiment results to a timestamped JSON file in experiments folder with comprehensive metadata."""
@@ -811,7 +821,12 @@ class ExperimentService:
         return {
             "overall": overall_metrics,
             "per_group": per_role_metrics,
-            "per_question": per_question_results
+            "per_question": per_question_results,
+            "experiment_metadata": {
+                "selected_documents_count": len(selected_documents) if selected_documents else 0,
+                "selected_documents": selected_documents or [],
+                "total_selected_chunks": total_selected_chunks or 0
+            }
         }
 
     def _get_corpus_hash(self) -> str:

@@ -327,8 +327,52 @@ const ExperimentManagement: React.FC = () => {
           <div style={{ fontSize: '20px', color: '#155724', fontWeight: '600', marginBottom: '16px' }}>
             ✅ Ready to Compare
           </div>
-          <div style={{ fontSize: '16px', color: '#155724', marginBottom: '20px' }}>
-            {Array.from(selectedForComparison).join(' vs ')}
+          <div style={{ fontSize: '14px', color: '#155724', marginBottom: '20px', lineHeight: '1.5' }}>
+            {(() => {
+              const selectedFilenames = Array.from(selectedForComparison);
+              if (selectedFilenames.length === 2 && experiments) {
+                const exp1 = experiments.find(exp => exp.filename === selectedFilenames[0]);
+                const exp2 = experiments.find(exp => exp.filename === selectedFilenames[1]);
+                
+                const getDisplayInfo = (exp: any) => {
+                  if (!exp) return { name: 'Unknown', filename: '' };
+                  const name = exp.name || exp.filename.replace('.json', '');
+                  const memorablePart = name.includes(' | ') ? name.split(' | ')[0] : name;
+                  return {
+                    name: memorablePart,
+                    filename: exp.filename
+                  };
+                };
+                
+                const exp1Info = getDisplayInfo(exp1);
+                const exp2Info = getDisplayInfo(exp2);
+                
+                return (
+                  <div>
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+                        📊 {exp1Info.name}
+                      </div>
+                      <div style={{ fontSize: '11px', opacity: 0.7, fontFamily: 'monospace' }}>
+                        {exp1Info.filename}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '8px', textAlign: 'center' }}>
+                      vs
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+                        📊 {exp2Info.name}
+                      </div>
+                      <div style={{ fontSize: '11px', opacity: 0.7, fontFamily: 'monospace' }}>
+                        {exp2Info.filename}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return Array.from(selectedForComparison).join(' vs ');
+            })()}
           </div>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button

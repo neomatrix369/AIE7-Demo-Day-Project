@@ -66,7 +66,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
           >
             📋 Documents → Chunks
             <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
-              ({totalDocuments} documents analysed)
+              ({totalDocuments} selected documents analysed)
             </div>
           </button>
           <button

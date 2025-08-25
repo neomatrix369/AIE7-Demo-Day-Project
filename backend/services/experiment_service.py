@@ -544,7 +544,21 @@ class ExperimentService:
                         if isinstance(data, dict) and "metadata" in data:
                             metadata = data["metadata"]
                             avg_similarity = metadata.get("avg_similarity", 0)
-                            avg_quality_score = metadata.get("avg_quality_score", QualityScoreService.similarity_to_quality_score(avg_similarity))
+                            
+                            # Use the same method as analysis: convert individual similarities to quality scores, then average
+                            if "question_results" in data and isinstance(data["question_results"], list):
+                                quality_scores = []
+                                for result in data["question_results"]:
+                                    if "avg_similarity" in result:
+                                        quality_score = QualityScoreService.similarity_to_quality_score(result["avg_similarity"])
+                                        quality_scores.append(quality_score)
+                                
+                                if quality_scores:
+                                    avg_quality_score = round(sum(quality_scores) / len(quality_scores), 1)
+                                else:
+                                    avg_quality_score = QualityScoreService.similarity_to_quality_score(avg_similarity)
+                            else:
+                                avg_quality_score = QualityScoreService.similarity_to_quality_score(avg_similarity)
                             
                             # Extract timing information from results if available
                             timing_info = {}
@@ -626,6 +640,7 @@ class ExperimentService:
                 "text": result["question"],
                 "source": result["source"],
                 "quality_score": quality_score,
+
                 "status": status,
                 "role_name": result.get("role_name", "Unknown"),
                 "retrieved_docs": [
@@ -680,10 +695,12 @@ class ExperimentService:
 
         for source, data in groups.items():
             if data["distribution"]:
+                # Average the quality scores directly
                 data["avg_quality_score"] = round(sum(data["distribution"]) / len(data["distribution"]), 1)
             
             for role_name, role_data in data["roles"].items():
                 if role_data["distribution"]:
+                    # Average the quality scores directly
                     role_data["avg_quality_score"] = round(sum(role_data["distribution"]) / len(role_data["distribution"]), 1)
                     
         return groups
@@ -698,8 +715,10 @@ class ExperimentService:
         Returns:
             Dictionary with overall metrics using 0-10 scale
         """
+        # Average the quality scores directly (they were already calculated correctly)
         all_quality_scores = [q["quality_score"] for q in per_question_results]
         avg_quality_score = round(sum(all_quality_scores) / len(all_quality_scores), 1)
+        all_quality_scores = [q["quality_score"] for q in per_question_results]
         success_rate = QualityScoreService.calculate_success_rate(all_quality_scores)
         
         corpus_health = QualityScoreService.get_corpus_health(avg_quality_score)

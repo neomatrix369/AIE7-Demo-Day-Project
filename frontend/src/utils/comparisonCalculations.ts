@@ -36,7 +36,7 @@ export const getOverallImprovement = (data: ComparisonData): { text: string; the
   const qualityChange = data.metrics.overallQuality.after - data.metrics.overallQuality.before;
   const successChange = data.metrics.successRate.after - data.metrics.successRate.before;
   
-  const text = `Quality: ${qualityChange >= 0 ? '+' : ''}${qualityChange.toFixed(1)}\nSuccess Rate: ${successChange >= 0 ? '+' : ''}${successChange.toFixed(1)}%`;
+  const text = `Quality Score: ${qualityChange >= 0 ? '+' : ''}${qualityChange.toFixed(1)}\nSuccess Rate: ${successChange >= 0 ? '+' : ''}${successChange.toFixed(1)}%`;
   
   // Determine theme and narrative based on overall performance
   if (qualityChange > 0 || successChange > 0) {

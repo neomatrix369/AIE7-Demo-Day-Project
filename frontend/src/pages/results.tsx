@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
 import usePageData from '../hooks/usePageData';
 import { LABEL_DASHBOARD, LABEL_HEATMAP, CORPUS_HEALTH_INFO } from '../utils/constants';
-import { resultsApi } from '../services/api';
+import { resultsApi, experimentsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logInfo, logSuccess, logError } from '../utils/logger';
 import { getStatusColor as getStatusColorShared, getStatus as getStatusShared } from '../utils/qualityScore';
@@ -23,9 +24,42 @@ const AnalysisResults: React.FC = () => {
   const [isAdvancedVisualizationExpanded, setIsAdvancedVisualizationExpanded] = useState(false);
   
   const { goTo } = usePageNavigation('Results');
+  const router = useRouter();
 
-  // Stable data loader function
-  const dataLoader = useCallback(() => resultsApi.getAnalysis(), []);
+  // Get experiment filename from query parameter
+  const experimentFilename = router.query.experiment as string;
+
+  // Stable data loader function that loads specific experiment if provided
+  const dataLoader = useCallback(async () => {
+    // If a specific experiment is requested, load it first
+    if (experimentFilename) {
+      try {
+        logInfo(`Loading specific experiment: ${experimentFilename}`, {
+          component: 'Results',
+          action: 'LOAD_SPECIFIC_EXPERIMENT',
+          data: { experiment_filename: experimentFilename }
+        });
+        
+        await experimentsApi.load(experimentFilename);
+        
+        logSuccess(`Experiment loaded: ${experimentFilename}`, {
+          component: 'Results',
+          action: 'EXPERIMENT_LOADED',
+          data: { experiment_filename: experimentFilename }
+        });
+      } catch (error: any) {
+        logError(`Failed to load experiment ${experimentFilename}: ${error?.message || 'Unknown error'}`, {
+          component: 'Results',
+          action: 'LOAD_EXPERIMENT_ERROR',
+          data: { experiment_filename: experimentFilename, error: error?.message }
+        });
+        // Continue with current results if loading fails
+      }
+    }
+    
+    // Get the analysis results
+    return resultsApi.getAnalysis();
+  }, [experimentFilename]);
 
   // Data loading with standard pattern
   const { data: results, loading, error, reload } = usePageData<AnalysisResultsType>(
@@ -96,14 +130,14 @@ const AnalysisResults: React.FC = () => {
       const searchLower = searchText.toLowerCase().trim();
       filtered = filtered.filter(q => {
         // Search in question text
-        const questionMatch = q.text.toLowerCase().includes(searchLower);
+        const questionMatch = q.text && typeof q.text === 'string' && q.text.toLowerCase().includes(searchLower);
         
-        const sourceMatch = q.source.toLowerCase().includes(searchLower);
+        const sourceMatch = q.source && typeof q.source === 'string' && q.source.toLowerCase().includes(searchLower);
 
         // Search in document titles
         const docMatch = q.retrieved_docs.some(doc => 
-          doc.title.toLowerCase().includes(searchLower) ||
-          doc.doc_id.toLowerCase().includes(searchLower)
+          (doc.title && typeof doc.title === 'string' && doc.title.toLowerCase().includes(searchLower)) ||
+          (doc.doc_id && typeof doc.doc_id === 'string' && doc.doc_id.toLowerCase().includes(searchLower))
         );
         
         return questionMatch || docMatch || sourceMatch;

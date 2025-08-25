@@ -39,6 +39,24 @@ class QualityScoreService:
         return round(similarity * 10, 1)
     
     @staticmethod
+    def calculate_average_quality_score(similarities: List[float]) -> float:
+        """
+        Calculate average quality score from a list of similarity scores.
+        This is the CORRECT method: average similarities first, then convert to quality score.
+        
+        Args:
+            similarities: List of similarity scores between 0 and 1
+            
+        Returns:
+            Average quality score between 0 and 10, rounded to 1 decimal place
+        """
+        if not similarities:
+            return 0.0
+        
+        avg_similarity = sum(similarities) / len(similarities)
+        return QualityScoreService.similarity_to_quality_score(avg_similarity)
+    
+    @staticmethod
     def get_quality_status(quality_score: float) -> QualityStatus:
         """
         Determine status based on quality score using consistent thresholds.

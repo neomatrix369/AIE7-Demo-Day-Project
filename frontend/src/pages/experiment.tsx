@@ -348,7 +348,7 @@ const ExperimentConfiguration: React.FC = () => {
       const response = await storageAdapter.saveExperiment(experimentData);
       
       if (response.success) {
-        setSavedExperimentFilename(response.filename);
+        setSavedExperimentFilename(response.filename || null);
         logSuccess(`Experiment auto-saved: ${response.filename}`, {
           component: 'Experiment',
           action: 'AUTO_SAVE_SUCCESS',
@@ -385,12 +385,14 @@ const ExperimentConfiguration: React.FC = () => {
   }, [completed, results.length, isRunning, saveExperimentToBrowser]);
 
   const handleViewResults = () => {
-    goTo('/results', LABEL_RESULTS, { 
+    // Pass the experiment filename as a query parameter
+    const query = savedExperimentFilename ? `?experiment=${encodeURIComponent(savedExperimentFilename)}` : '';
+    goTo(`/results${query}`, LABEL_RESULTS, { 
       action: 'NAVIGATE_TO_RESULTS', 
       data: { 
         experiment_completed: completed, 
         questions_processed: results.length,
-        selected_experiment: savedExperimentFilename
+        selected_experiment: savedExperimentFilename || null
       } 
     });
   };

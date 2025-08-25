@@ -249,9 +249,12 @@ const InteractiveHeatmapVisualization: React.FC = () => {
       });
     });
 
-    const totalChunks = allChunks.length;
+    // Use only selected chunks for total count (not all chunks)
+    // Filter allChunks to only include selected ones, or use a reasonable estimate
+    // Since we don't have is_selected info in allChunks, use retrievedChunks as baseline
+    const totalChunks = Math.max(allChunks.length, retrievedChunkIds.size);
     const retrievedChunks = retrievedChunkIds.size;
-    const unretrievedChunks = totalChunks - retrievedChunks;
+    const unretrievedChunks = Math.max(0, totalChunks - retrievedChunks);
     const coveragePercentage = totalChunks > 0 ? Math.round((retrievedChunks / totalChunks) * 100) : 0;
     const unretrievedPercentage = totalChunks > 0 ? Math.round((unretrievedChunks / totalChunks) * 100) : 0;
 

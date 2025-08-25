@@ -59,9 +59,11 @@ experiment_service = ExperimentService()
 gap_analysis_service = GapAnalysisService()
 documents_loaded = False
 
-# Store for experiment results
+# Global variables for experiment state
 experiment_results = []
-current_loaded_experiment = None  # Track which experiment is currently loaded
+current_loaded_experiment = None
+current_selected_documents = []  # Store selected documents for chunk coverage calculation
+current_total_selected_chunks = 0  # Store total chunks count for selected documents
 
 # Progress tracking for long-running operations
 ingestion_progress = {}
@@ -420,7 +422,7 @@ async def run_experiment(config: ExperimentConfig):
 @app.get("/api/results/analysis")
 async def get_analysis_results():
     """Get analysis results from the currently loaded experiment."""
-    global experiment_results, current_loaded_experiment
+    global experiment_results, current_loaded_experiment, current_selected_documents, current_total_selected_chunks
     
     if not experiment_results:
         logger.warning("⚠️ No experiment loaded, returning empty analysis")
@@ -444,8 +446,8 @@ async def get_analysis_results():
     # Convert experiment results to analysis format
     per_question_results = experiment_service.convert_experiment_results_to_analysis(experiment_results)
     
-    # Calculate and return analysis metrics
-    return experiment_service.build_analysis_response(per_question_results)
+    # Calculate and return analysis metrics with selected documents and chunk count for chunk coverage
+    return experiment_service.build_analysis_response(per_question_results, current_selected_documents, current_total_selected_chunks)
 
 @app.get("/api/v1/analysis/status")
 async def get_analysis_status():
@@ -510,11 +512,13 @@ async def get_gap_analysis():
 @app.post("/api/results/clear")
 async def clear_experiment_results():
     """Clear stored experiment results."""
-    global experiment_results, current_loaded_experiment
+    global experiment_results, current_loaded_experiment, current_selected_documents, current_total_selected_chunks
     
     try:
         experiment_results.clear()
         current_loaded_experiment = None
+        current_selected_documents = []
+        current_total_selected_chunks = 0
         
         # Also delete the file
         results_file = os.path.join(os.path.dirname(__file__), 'experiment_results.json')
@@ -614,17 +618,39 @@ async def list_experiments():
 @app.post("/api/experiments/load")
 async def load_experiment(filename: str):
     """Load a specific experiment file."""
-    global experiment_results, current_loaded_experiment
+    global experiment_results, current_loaded_experiment, current_selected_documents, current_total_selected_chunks
     
     try:
-        results = experiment_service.load_experiment_results(filename)
+        # Load the full experiment data to get metadata
+        import os
+        import json
+        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        filepath = os.path.join(experiments_folder, filename)
+        
+        if not os.path.exists(filepath):
+            return ErrorResponseService.not_found_error(
+                resource="Experiment file",
+                identifier=filename
+            )
+        
+        # Load full experiment data
+        with open(filepath, 'r') as f:
+            experiment_data = json.load(f)
+        
+        # Extract question results and selected documents
+        results = experiment_data.get("question_results", [])
+        selected_documents = experiment_data.get("metadata", {}).get("selected_documents", [])
+        total_selected_chunks = experiment_data.get("metadata", {}).get("total_selected_chunks", 0)
+        
         if results:
             experiment_results = results
             current_loaded_experiment = filename
-            logger.info(f"📂 Loaded experiment {filename} with {len(results)} results")
+            current_selected_documents = selected_documents
+            current_total_selected_chunks = total_selected_chunks
+            logger.info(f"📂 Loaded experiment {filename} with {len(results)} results and {len(selected_documents)} selected documents")
             return ErrorResponseService.create_success_response(
                 message=f"Loaded experiment {filename}",
-                data={"count": len(results), "filename": filename}
+                data={"count": len(results), "filename": filename, "selected_documents": selected_documents}
             )
         else:
             return ErrorResponseService.not_found_error(
@@ -1573,6 +1599,18 @@ async def shutdown_event():
         logger.info("✅ Application shutdown complete")
     except Exception as e:
         logger.error(f"❌ Error during shutdown: {e}")
+
+@app.get("/api/debug/globals")
+async def debug_globals():
+    """Debug endpoint to check global variables."""
+    global experiment_results, current_loaded_experiment, current_selected_documents, current_total_selected_chunks
+    
+    return {
+        "experiment_results_count": len(experiment_results) if experiment_results else 0,
+        "current_loaded_experiment": current_loaded_experiment,
+        "current_selected_documents": current_selected_documents,
+        "current_total_selected_chunks": current_total_selected_chunks
+    }
 
 if __name__ == "__main__":
     import uvicorn

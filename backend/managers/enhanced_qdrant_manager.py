@@ -488,11 +488,35 @@ class EnhancedQdrantManager:
             collection_info = self._get_qdrant_client().get_collection(self.collection_name)
             stats = self.get_document_statistics()
             
+            # Safely extract vector configuration
+            vector_size = None
+            distance = None
+            
+            try:
+                if hasattr(collection_info, 'config') and collection_info.config:
+                    if hasattr(collection_info.config, 'params') and collection_info.config.params:
+                        if hasattr(collection_info.config.params, 'vectors'):
+                            vectors_config = collection_info.config.params.vectors
+                            
+                            # Handle different types of vectors_config
+                            if isinstance(vectors_config, dict):
+                                # Case where vectors_config is a dict
+                                vector_size = vectors_config.get('size')
+                                distance = vectors_config.get('distance')
+                            elif hasattr(vectors_config, 'size'):
+                                # Case where vectors_config is an object with attributes
+                                vector_size = vectors_config.size
+                                distance = getattr(vectors_config, 'distance', None)
+                            else:
+                                logger.debug(f"Unexpected vectors_config type: {type(vectors_config)}")
+            except Exception as e:
+                logger.warning(f"Could not extract vector config: {e}")
+            
             return {
                 "collection_name": self.collection_name,
-                "total_points": collection_info.points_count,
-                "vector_size": collection_info.config.params.vectors.size,
-                "distance": collection_info.config.params.vectors.distance,
+                "total_points": getattr(collection_info, 'points_count', 0),
+                "vector_size": vector_size,
+                "distance": distance,
                 "document_statistics": stats
             }
         except Exception as e:

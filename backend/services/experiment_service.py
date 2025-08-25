@@ -416,6 +416,7 @@ class ExperimentService:
             
             # Get selected documents from unified document processor
             selected_documents = []
+            selected_chunks_count = 0
             try:
                 from unified_document_processor import UnifiedDocumentProcessor
                 doc_processor = UnifiedDocumentProcessor()
@@ -429,11 +430,65 @@ class ExperimentService:
                         if doc_info.get('is_selected', False)
                     ]
                     logger.info(f"📄 Captured {len(selected_documents)} selected documents for experiment")
+                    
+                    # Calculate total chunks for selected documents
+                    try:
+                        from managers.enhanced_qdrant_manager import EnhancedQdrantManager
+                        from config.settings import COLLECTION_NAMES
+                        from qdrant_client import models
+                        
+                        qdrant_manager = EnhancedQdrantManager(COLLECTION_NAMES['DEFAULT_COLLECTION'])
+                        
+                        # Count chunks where is_selected=True
+                        try:
+                            count_response = qdrant_manager._get_qdrant_client().count(
+                                collection_name=qdrant_manager.collection_name,
+                                count_filter=models.Filter(
+                                    must=[
+                                        models.FieldCondition(
+                                            key="is_selected",
+                                            match=models.MatchValue(value=True)
+                                        )
+                                    ]
+                                )
+                            )
+                            selected_chunks_count = count_response.count
+                            logger.info(f"📊 Captured {selected_chunks_count} total chunks for selected documents")
+                        except Exception as count_error:
+                            logger.warning(f"Could not count selected chunks: {count_error}")
+                            # Fallback: try manual count
+                            try:
+                                response = qdrant_manager._get_qdrant_client().scroll(
+                                    collection_name=qdrant_manager.collection_name,
+                                    limit=10000,
+                                    with_payload=True,
+                                    with_vectors=False
+                                )
+                                
+                                selected_count = 0
+                                for point in response[0]:
+                                    payload = point.payload
+                                    is_selected = payload.get('is_selected', False)
+                                    if not is_selected and 'metadata' in payload:
+                                        is_selected = payload['metadata'].get('is_selected', False)
+                                    if is_selected:
+                                        selected_count += 1
+                                
+                                selected_chunks_count = selected_count
+                                logger.info(f"📊 Captured {selected_chunks_count} total chunks for selected documents (manual count)")
+                            except Exception as scroll_error:
+                                logger.warning(f"Could not manually count selected chunks: {scroll_error}")
+                                selected_chunks_count = 0
+                                
+                    except Exception as qdrant_error:
+                        logger.warning(f"Could not access Qdrant for chunk counting: {qdrant_error}")
+                        selected_chunks_count = 0
                 else:
                     logger.warning("⚠️ Selection manager not available, using empty document list")
             except Exception as e:
                 logger.warning(f"⚠️ Failed to get selected documents: {e}")
                 selected_documents = []
+                selected_chunks_count = 0
             
             # Extract timing information if available
             timing_data = config.get("timing", {}) if config else {}
@@ -465,7 +520,8 @@ class ExperimentService:
                     "sources": list(set(r["source"] for r in results)),  # Question groups like "llm", "ragas"
                     "selected_documents": selected_documents,  # Actual document filenames
                     "avg_similarity": avg_similarity,
-                    "avg_quality_score": avg_quality_score
+                    "avg_quality_score": avg_quality_score,
+                    "total_selected_chunks": selected_chunks_count
                 },
                 "question_results": results,
                 "environment": self._get_environment_info()
@@ -705,12 +761,14 @@ class ExperimentService:
                     
         return groups
 
-    def calculate_overall_metrics(self, per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def calculate_overall_metrics(self, per_question_results: List[Dict[str, Any]], selected_documents: List[str] = None, total_selected_chunks: int = None) -> Dict[str, Any]:
         """
         Calculate overall analysis metrics using quality scores.
         
         Args:
             per_question_results: List of question results with quality_score field
+            selected_documents: List of selected document filenames
+            total_selected_chunks: Total number of chunks from selected documents
             
         Returns:
             Dictionary with overall metrics using 0-10 scale
@@ -724,7 +782,7 @@ class ExperimentService:
 
         
         # Calculate chunk coverage statistics
-        chunk_coverage = self._calculate_chunk_coverage(per_question_results)
+        chunk_coverage = self._calculate_chunk_coverage(per_question_results, selected_documents, total_selected_chunks)
         
         return {
             "avg_quality_score": avg_quality_score,
@@ -735,17 +793,19 @@ class ExperimentService:
             "chunk_coverage": chunk_coverage
         }
 
-    def build_analysis_response(self, per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def build_analysis_response(self, per_question_results: List[Dict[str, Any]], selected_documents: List[str] = None, total_selected_chunks: int = None) -> Dict[str, Any]:
         """
         Build the complete analysis response.
         
         Args:
             per_question_results: List of question results
+            selected_documents: List of selected document filenames
+            total_selected_chunks: Total number of chunks from selected documents
             
         Returns:
             Complete analysis response dictionary
         """
-        overall_metrics = self.calculate_overall_metrics(per_question_results)
+        overall_metrics = self.calculate_overall_metrics(per_question_results, selected_documents, total_selected_chunks)
         per_role_metrics = self.calculate_per_role_metrics(per_question_results)
         
         return {
@@ -802,26 +862,122 @@ class ExperimentService:
             logger.warning(f"Could not generate model hash: {e}")
             return "hash_error"
 
-    def _calculate_chunk_coverage(self, per_question_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _calculate_chunk_coverage(self, per_question_results: List[Dict[str, Any]], selected_documents: List[str] = None, total_selected_chunks: int = None) -> Dict[str, Any]:
         """
         Calculate chunk coverage statistics from question results.
         
         Args:
             per_question_results: List of question results with retrieved_docs
+            selected_documents: List of selected document filenames (for backward compatibility)
+            total_selected_chunks: Total number of chunks from selected documents (from experiment metadata)
             
         Returns:
             Dictionary with chunk coverage statistics
         """
-        # Get total chunks from vector database
-        try:
-            from managers.enhanced_qdrant_manager import EnhancedQdrantManager
-            from config.settings import COLLECTION_NAMES
-            qdrant_manager = EnhancedQdrantManager(COLLECTION_NAMES['DEFAULT_COLLECTION'])
-            collection_info = qdrant_manager.get_collection_info()
-            total_chunks = collection_info.get('total_points', 0)
-        except Exception as e:
-            logger.warning(f"Could not get total chunks from vector database: {e}")
+        # Use saved total chunks from experiment metadata if available
+        if total_selected_chunks is not None and total_selected_chunks > 0:
+            total_chunks = total_selected_chunks
+            logger.info(f"📊 Using saved total chunks from experiment metadata: {total_chunks}")
+        else:
+            # Fallback: try to get from Qdrant (for backward compatibility)
             total_chunks = 0
+            try:
+                from managers.enhanced_qdrant_manager import EnhancedQdrantManager
+                from config.settings import COLLECTION_NAMES
+                from qdrant_client import models
+                
+                qdrant_manager = EnhancedQdrantManager(COLLECTION_NAMES['DEFAULT_COLLECTION'])
+                
+                # First, let's check if the is_selected field exists by getting a sample point
+                try:
+                    sample_response = qdrant_manager._get_qdrant_client().scroll(
+                        collection_name=qdrant_manager.collection_name,
+                        limit=1,
+                        with_payload=True,
+                        with_vectors=False
+                    )
+                    if sample_response[0]:
+                        sample_payload = sample_response[0][0].payload
+                        logger.info(f"📊 Sample payload keys: {list(sample_payload.keys())}")
+                        logger.info(f"📊 Sample is_selected value: {sample_payload.get('is_selected', 'NOT_FOUND')}")
+                        
+                        # Check if is_selected is in metadata
+                        if 'metadata' in sample_payload:
+                            metadata = sample_payload['metadata']
+                            logger.info(f"📊 Sample metadata keys: {list(metadata.keys())}")
+                            logger.info(f"📊 Sample metadata is_selected: {metadata.get('is_selected', 'NOT_FOUND')}")
+                    else:
+                        logger.warning("📊 No sample points found in collection")
+                except Exception as sample_error:
+                    logger.warning(f"Could not get sample point: {sample_error}")
+                
+                # Try to use count method first (more efficient)
+                try:
+                    count_response = qdrant_manager._get_qdrant_client().count(
+                        collection_name=qdrant_manager.collection_name,
+                        count_filter=models.Filter(
+                            must=[
+                                models.FieldCondition(
+                                    key="is_selected",
+                                    match=models.MatchValue(value=True)
+                                )
+                            ]
+                        )
+                    )
+                    total_chunks = count_response.count
+                    logger.info(f"📊 Retrieved total chunks with is_selected=True using count: {total_chunks}")
+                except Exception as count_error:
+                    logger.warning(f"Count method failed, trying metadata.is_selected: {count_error}")
+                    try:
+                        # Try with metadata.is_selected
+                        count_response = qdrant_manager._get_qdrant_client().count(
+                            collection_name=qdrant_manager.collection_name,
+                            count_filter=models.Filter(
+                                must=[
+                                    models.FieldCondition(
+                                        key="metadata.is_selected",
+                                        match=models.MatchValue(value=True)
+                                    )
+                                ]
+                            )
+                        )
+                        total_chunks = count_response.count
+                        logger.info(f"📊 Retrieved total chunks with metadata.is_selected=True using count: {total_chunks}")
+                    except Exception as metadata_count_error:
+                        logger.warning(f"Metadata count method failed, falling back to scroll: {metadata_count_error}")
+                        # Fallback: scroll through all chunks and count manually
+                        response = qdrant_manager._get_qdrant_client().scroll(
+                            collection_name=qdrant_manager.collection_name,
+                            limit=10000,  # Get a large number to count all chunks
+                            with_payload=True,
+                            with_vectors=False
+                        )
+                        
+                        # Count chunks where is_selected=True (either in payload or metadata)
+                        selected_count = 0
+                        for point in response[0]:
+                            payload = point.payload
+                            is_selected = payload.get('is_selected', False)
+                            if not is_selected and 'metadata' in payload:
+                                is_selected = payload['metadata'].get('is_selected', False)
+                            if is_selected:
+                                selected_count += 1
+                        
+                        total_chunks = selected_count
+                        logger.info(f"📊 Retrieved total chunks with is_selected=True using manual count: {total_chunks}")
+                    
+            except Exception as e:
+                logger.warning(f"Could not get selected chunks count from Qdrant: {e}")
+                # Fallback: try unified processor
+                try:
+                    from unified_document_processor import UnifiedDocumentProcessor
+                    doc_processor = UnifiedDocumentProcessor()
+                    corpus_stats = doc_processor.get_unified_status()
+                    total_chunks = corpus_stats.get("chunk_count", 0)
+                    logger.info(f"📊 Retrieved total chunks from unified processor: {total_chunks}")
+                except Exception as e2:
+                    logger.warning(f"Could not get total chunks from unified processor either: {e2}")
+                    total_chunks = 0
         
         # Calculate retrieved chunks using a more reliable method
         retrieved_chunk_identifiers = set()
@@ -842,6 +998,8 @@ class ExperimentService:
         # Calculate percentages
         coverage_percentage = round((retrieved_chunks / max(total_chunks, 1)) * 100, 1)
         unretrieved_percentage = round((unretrieved_chunks / max(total_chunks, 1)) * 100, 1)
+        
+        logger.info(f"📊 Chunk coverage calculation: total={total_chunks}, retrieved={retrieved_chunks}, coverage={coverage_percentage}%")
         
         return {
             "total_chunks": total_chunks,

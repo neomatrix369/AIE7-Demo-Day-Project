@@ -158,6 +158,7 @@ export const experimentsApi = {
     timestamp: string;
     total_questions: number;
     sources: string[];
+    selected_documents?: string[];
     avg_quality_score: number;
     file_size: number;
     start_time?: string;
@@ -170,6 +171,7 @@ export const experimentsApi = {
         ...data,
         experiments: data.experiments.map((exp: any) => ({
           ...exp,
+          selected_documents: exp.selected_documents || [],
           avg_quality_score: exp.avg_quality_score || exp.avg_similarity,
         })),
       };

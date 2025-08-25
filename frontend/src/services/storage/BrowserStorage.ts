@@ -22,6 +22,7 @@ export class BrowserStorage implements StorageAdapter {
         timestamp: data.timestamp,
         total_questions: data.total_questions,
         sources: data.sources,
+        selected_documents: data.selected_documents || [],
         avg_quality_score: data.avg_quality_score,
         file_size: JSON.stringify(data).length,
         // Extract timing information if available

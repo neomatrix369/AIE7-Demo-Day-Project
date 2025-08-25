@@ -9,10 +9,7 @@ import random
 import logging
 import os
 from logging_config import setup_logging
-from simple_document_processor import SimpleDocumentProcessor
-from managers.qdrant_manager import QdrantManager
-from managers.data_manager import DataManager
-from managers.search_manager import SearchManager
+# Legacy imports removed - using unified processor instead
 from services.quality_score_service import QualityScoreService
 from services.experiment_service import ExperimentService
 from services.gap_analysis_service import GapAnalysisService
@@ -38,9 +35,13 @@ from datetime import datetime
 
 # Add new imports for document management
 from enhanced_document_processor import EnhancedDocumentProcessor
+from unified_document_processor import UnifiedDocumentProcessor
 
-# Initialize enhanced document processor
-enhanced_doc_processor = EnhancedDocumentProcessor()
+# Initialize unified document processor (replaces both simple and enhanced)
+unified_doc_processor = UnifiedDocumentProcessor()
+
+# Note: Legacy processors removed to prevent duplicate initialization
+# All functionality now uses unified_doc_processor
 
 # Load environment variables from root .env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -53,10 +54,8 @@ app = FastAPI(title=SERVER_CONFIG['APP_TITLE'], version=SERVER_CONFIG['APP_VERSI
 logger = setup_logging(__name__)
 
 # Initialize managers and services
-doc_processor = SimpleDocumentProcessor()
-qdrant_manager = QdrantManager(collection_name=COLLECTION_NAMES['DEFAULT_COLLECTION'])
-data_manager = DataManager(data_folder=data_folder)
-search_manager = SearchManager(data_manager, qdrant_manager)
+# Note: doc_processor removed - using unified_doc_processor instead
+# Note: qdrant_manager, data_manager, search_manager removed - using unified_doc_processor instead
 experiment_service = ExperimentService()
 gap_analysis_service = GapAnalysisService()
 documents_loaded = False
@@ -67,34 +66,24 @@ experiment_results = []
 # Load any existing results on startup (for backward compatibility)
 experiment_results = experiment_service.load_experiment_results()
 
-# Try to load documents on startup
+# Try to load documents on startup using unified processor
 try:
     logger.info(LOG_MESSAGES['INIT_DOC_PROCESSING'])
-    stats = doc_processor.get_corpus_stats()
-    if stats["corpus_loaded"]:
+    
+    # Use unified processor to check status and initialize if needed
+    unified_status = unified_doc_processor.get_unified_status()
+    
+    if unified_status.get("corpus_loaded", False):
         documents_loaded = True
         logger.info(LOG_MESSAGES['DOC_PROCESSING_SUCCESS'])
         
-        # Initialize vector store if needed
-        try:
-            # Check if vector store is already populated before loading documents
-            collection_info = qdrant_manager.client.get_collection(qdrant_manager.collection_name)
-            if collection_info.points_count > 0:
-                logger.info(f"📦 Vector store already populated with {collection_info.points_count} points, skipping document reload")
-                search_manager.get_vector_store()  # Test connection only
-                logger.info(LOG_MESSAGES['VECTOR_STORE_SUCCESS'])
-            else:
-                logger.info("📥 Vector store empty, loading documents...")
-                combined_docs = data_manager.load_all_documents()
-                if combined_docs:
-                    qdrant_manager.initialize_collection()
-                    search_manager.get_vector_store()  # Test connection
-                    logger.info(LOG_MESSAGES['VECTOR_STORE_SUCCESS'])
-                else:
-                    logger.warning(LOG_MESSAGES['NO_DOCUMENTS_FOUND'])
-        except Exception as e:
-            logger.error(f"❌ {ERROR_MESSAGES['VECTOR_STORE_INIT_FAILED']}: {str(e)}")
-            logger.info(LOG_MESSAGES['VECTOR_STORE_FALLBACK'])
+        # Check if vector store is already populated
+        if unified_status.get("chunk_count", 0) > 0:
+            logger.info(f"📦 Vector store already populated with {unified_status.get('chunk_count', 0)} chunks, skipping document reload")
+            logger.info(LOG_MESSAGES['VECTOR_STORE_SUCCESS'])
+        else:
+            logger.info("📥 Vector store empty, but unified processor will handle initialization when needed")
+            logger.info(LOG_MESSAGES['VECTOR_STORE_SUCCESS'])
     else:
         logger.warning(LOG_MESSAGES['MOCK_DATA_FALLBACK'])
 except Exception as e:
@@ -233,21 +222,59 @@ async def get_corpus_status():
     database_error = None
     
     try:
-        # Test Qdrant connection
-        collections = qdrant_manager.client.get_collections()
-        database_connected = True
-        logger.info("✅ Database connectivity verified")
+        # Test Qdrant connection using unified processor
+        database_connected = unified_doc_processor._check_database_connectivity()
+        if database_connected:
+            logger.info("✅ Database connectivity verified")
+        else:
+            database_error = "Database connectivity check failed"
+            logger.warning("⚠️ Database connectivity issue")
     except Exception as e:
         database_connected = False
         database_error = str(e)
         logger.warning(f"⚠️ Database connectivity issue: {e}")
     
     if documents_loaded and database_connected:
-        # Return real corpus statistics with connectivity info
-        corpus_stats = doc_processor.get_corpus_stats()
-        corpus_stats["database_connected"] = True
-        corpus_stats["database_error"] = None
-        return corpus_stats
+        # Use unified document processor to get comprehensive status
+        try:
+            # Get unified status (includes both corpus and selection information)
+            unified_status = unified_doc_processor.get_unified_status()
+            
+            # Return in the format expected by the frontend
+            corpus_stats = {
+                "corpus_loaded": unified_status.get("corpus_loaded", False),
+                "document_count": unified_status.get("document_count", 0),
+                "chunk_count": unified_status.get("chunk_count", 0),
+                "embedding_model": unified_status.get("embedding_model", ""),
+                "corpus_metadata": unified_status.get("corpus_metadata", {}),
+                "selected_chunks": unified_status.get("selected_chunks", 0),
+                "deselected_chunks": unified_status.get("deselected_chunks", 0),
+                "database_connected": unified_status.get("database_connected", True),
+                "database_error": None
+            }
+            
+            logger.info(f"📊 Unified corpus status: {unified_status.get('selected_chunks', 0)} selected, {unified_status.get('deselected_chunks', 0)} deselected chunks")
+            return corpus_stats
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get unified corpus status: {e}")
+            # Fallback to unified processor with error handling
+            try:
+                corpus_stats = unified_doc_processor.get_corpus_stats()
+                corpus_stats["database_connected"] = True
+                corpus_stats["database_error"] = None
+                return corpus_stats
+            except Exception as fallback_error:
+                logger.error(f"❌ Fallback also failed: {fallback_error}")
+                return {
+                    "corpus_loaded": False,
+                    "document_count": 0,
+                    "chunk_count": 0,
+                    "embedding_model": "unknown",
+                    "corpus_metadata": {},
+                    "database_connected": False,
+                    "database_error": str(e)
+                }
     else:
         # Return mock data with connectivity status
         logger.info("📝 Returning mock corpus status (documents not loaded or database not connected)")
@@ -282,9 +309,9 @@ async def get_all_chunks():
                 "total_count": 50
             }
         
-        # Get all points from Qdrant collection
-        collection_info = qdrant_manager.client.get_collection(qdrant_manager.collection_name)
-        total_points = collection_info.points_count
+        # Get all points from Qdrant collection using unified processor
+        qdrant_stats = unified_doc_processor.qdrant_manager.get_document_statistics()
+        total_points = qdrant_stats.get("total_chunks", 0)
         
         if total_points == 0:
             logger.warning("⚠️ No chunks found in vector database")
@@ -296,8 +323,8 @@ async def get_all_chunks():
         batch_size = 100
         
         while True:
-            scroll_result = qdrant_manager.client.scroll(
-                collection_name=qdrant_manager.collection_name,
+            scroll_result = unified_doc_processor.qdrant_manager.client.scroll(
+                collection_name=unified_doc_processor.qdrant_manager.collection_name,
                 limit=batch_size,
                 offset=offset,
                 with_payload=True,
@@ -873,10 +900,10 @@ async def process_question_with_search(question: Dict[str, Any], config: Experim
         query = question["question"]
         
         # Perform vector search with configuration
-        search_results = search_manager.search_with_similarity_threshold(
+        search_results = unified_doc_processor.search_documents(
             query=query,
-            top_k=config.top_k,
-            threshold=config.similarity_threshold
+            limit=config.top_k,
+            filter_selected=True
         )
         
         # Calculate average similarity
@@ -918,7 +945,7 @@ async def root():
         "status": "running",
         "document_processor": {
             "initialized": documents_loaded,
-            "documents_loaded": doc_processor.get_corpus_stats()["document_count"] if documents_loaded else 0,
+                            "documents_loaded": unified_doc_processor.get_corpus_stats()["document_count"] if documents_loaded else 0,
             "mode": "real_data" if documents_loaded else "mock_data"
         }
     }
@@ -936,8 +963,8 @@ async def search_corpus(query: str, top_k: int = 5):
     try:
         logger.info(f"🔍 Searching corpus for: {query[:100]}...")
         
-        # Perform vector search using enhanced search manager
-        results = search_manager.search_documents(query, top_k)
+        # Perform vector search using unified processor
+        results = unified_doc_processor.search_documents(query, top_k, filter_selected=True)
         
         logger.info(f"📚 Found {len(results)} relevant documents")
         
@@ -945,7 +972,7 @@ async def search_corpus(query: str, top_k: int = 5):
             "query": query,
             "results": results,
             "total_found": len(results),
-            "search_method": "vector_similarity" if search_manager.get_vector_store() else "keyword_matching"
+            "search_method": "vector_similarity"
         }
         
     except Exception as e:
@@ -964,8 +991,8 @@ async def reload_corpus():
     try:
         logger.info("🔄 Reloading corpus data...")
         
-        # Reinitialize simple document processor
-        stats = doc_processor.get_corpus_stats()
+        # Get stats from unified processor
+        stats = unified_doc_processor.get_corpus_stats()
         
         if stats["corpus_loaded"]:
             documents_loaded = True
@@ -1004,26 +1031,29 @@ async def rebuild_corpus():
     try:
         logger.info("🔄 Rebuilding corpus with enhanced metadata...")
         
-        # Load documents
-        combined_docs = data_manager.load_all_documents()
-        if not combined_docs:
+        # Use unified processor to scan and update documents
+        scan_result = unified_doc_processor.scan_and_update_documents()
+        if scan_result.get("new_documents_added", 0) == 0:
             return {
                 "success": False,
                 "message": "No documents found to rebuild corpus",
                 "documents_loaded": 0
             }
         
-        # Force rebuild with enhanced metadata
-        doc_processor.vector_store_manager.initialize_vector_store_if_needed(
-            combined_docs, 
-            force_rebuild=True
-        )
+        # Force rebuild using unified processor
+        success = unified_doc_processor.force_rebuild_collection()
+        if not success:
+            return {
+                "success": False,
+                "message": "Failed to rebuild corpus",
+                "documents_loaded": 0
+            }
         
         # Update document loaded status
         documents_loaded = True
         
         # Get final stats
-        stats = doc_processor.get_corpus_stats()
+        stats = unified_doc_processor.get_corpus_stats()
         
         logger.info("✅ Corpus rebuilt successfully with enhanced metadata")
         return {
@@ -1048,8 +1078,9 @@ async def rebuild_corpus():
 async def get_document_status():
     """Get comprehensive document status and selection information."""
     try:
-        status = enhanced_doc_processor.get_document_status()
-        logger.info("📊 Retrieved document status")
+        # Use unified processor for document status
+        status = unified_doc_processor.get_document_status()
+        logger.info("📊 Retrieved document status from unified processor")
         return {"success": True, "data": status}
     except Exception as e:
         return ErrorResponseService.log_and_return_error(
@@ -1061,7 +1092,7 @@ async def get_document_status():
 async def select_document(filename: str):
     """Select a document for ingestion."""
     try:
-        success = enhanced_doc_processor.select_document(filename)
+        success = unified_doc_processor.select_document(filename)
         if success:
             logger.info(f"✅ Document selected: {filename}")
             return {"success": True, "message": f"Document '{filename}' selected successfully"}
@@ -1081,7 +1112,7 @@ async def select_document(filename: str):
 async def deselect_document(filename: str):
     """Deselect a document (retain vectors but exclude from search)."""
     try:
-        success = enhanced_doc_processor.deselect_document(filename)
+        success = unified_doc_processor.deselect_document(filename)
         if success:
             logger.info(f"✅ Document deselected: {filename}")
             return {"success": True, "message": f"Document '{filename}' deselected successfully (vectors retained)"}
@@ -1100,7 +1131,7 @@ async def deselect_document(filename: str):
 async def ingest_document(filename: str):
     """Ingest a specific document into the vector store."""
     try:
-        success = enhanced_doc_processor.ingest_document(filename)
+        success = unified_doc_processor.ingest_document(filename)
         if success:
             logger.info(f"✅ Document ingested: {filename}")
             return {"success": True, "message": f"Document '{filename}' ingested successfully"}
@@ -1120,7 +1151,7 @@ async def ingest_pending_documents():
     """Ingest all documents that are selected but not yet ingested."""
     try:
         # Trigger ingestion of pending documents
-        enhanced_doc_processor._ingest_pending_documents()
+        unified_doc_processor.ingest_pending_documents()
         logger.info("✅ Pending documents ingestion completed")
         return {"success": True, "message": "Pending documents ingestion completed"}
     except Exception as e:
@@ -1133,7 +1164,7 @@ async def ingest_pending_documents():
 async def reingest_changed_documents():
     """Re-ingest documents that have changed since last ingestion."""
     try:
-        success = enhanced_doc_processor.reingest_changed_documents()
+        success = unified_doc_processor.reingest_changed_documents()
         if success:
             logger.info("✅ Changed documents re-ingestion completed")
             return {"success": True, "message": "Changed documents re-ingestion completed"}
@@ -1152,7 +1183,7 @@ async def reingest_changed_documents():
 async def load_documents():
     """Scan data folder and add new documents to the tracked list."""
     try:
-        result = enhanced_doc_processor.scan_and_update_documents()
+        result = unified_doc_processor.scan_and_update_documents()
         logger.info("✅ Document load completed")
         return {"success": True, "data": result, "message": f"Document load completed: {result.get('new_documents_added', 0)} new documents added"}
     except Exception as e:
@@ -1165,7 +1196,7 @@ async def load_documents():
 async def rebuild_collection():
     """Force rebuild the entire collection (use with caution)."""
     try:
-        success = enhanced_doc_processor.force_rebuild_collection()
+        success = unified_doc_processor.force_rebuild_collection()
         if success:
             logger.info("✅ Collection rebuild completed")
             return {"success": True, "message": "Collection rebuild completed successfully"}
@@ -1180,11 +1211,49 @@ async def rebuild_collection():
             error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to rebuild collection"
         )
 
+@app.post("/api/documents/refresh-selection")
+async def refresh_chunk_selection():
+    """Force refresh the selection status of all chunks."""
+    try:
+        success = unified_doc_processor.refresh_chunk_selection_status()
+        if success:
+            logger.info("✅ Chunk selection status refreshed successfully")
+            return {"success": True, "message": "Chunk selection status refreshed successfully"}
+        else:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context="Failed to refresh chunk selection status",
+                error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to refresh chunk selection status"
+            )
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to refresh chunk selection status",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to refresh chunk selection status"
+        )
+
+@app.get("/api/documents/validate-metadata")
+async def validate_chunk_metadata():
+    """Validate that all chunks have the required metadata fields."""
+    try:
+        validation_results = unified_doc_processor.validate_chunk_metadata()
+        if validation_results:
+            logger.info("✅ Chunk metadata validation completed")
+            return {"success": True, "data": validation_results}
+        else:
+            return ErrorResponseService.log_and_return_error(
+                error=None, context="Failed to validate chunk metadata",
+                error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to validate chunk metadata"
+            )
+    except Exception as e:
+        return ErrorResponseService.log_and_return_error(
+            error=e, context="Failed to validate chunk metadata",
+            error_type=ErrorType.INTERNAL_ERROR, user_message="Failed to validate chunk metadata"
+        )
+
 @app.get("/api/documents/search")
 async def search_documents(query: str, limit: int = 10, filter_selected: bool = True):
     """Search documents with optional selection filter."""
     try:
-        results = enhanced_doc_processor.search_documents(query, limit, filter_selected)
+        results = unified_doc_processor.search_documents(query, limit, filter_selected)
         logger.info(f"🔍 Document search completed: {len(results)} results")
         return {"success": True, "data": results, "count": len(results)}
     except Exception as e:
@@ -1228,7 +1297,7 @@ async def upload_document(file: UploadFile = File(...)):
             buffer.write(content)
         
         # Add the document to tracking (but don't auto-select it)
-        success = enhanced_doc_processor.selection_manager.add_document_to_tracking(file.filename)
+        success = unified_doc_processor.selection_manager.add_document_to_tracking(file.filename)
         
         if success:
             logger.info(f"✅ Document uploaded and added to tracking: {file.filename}")
@@ -1259,7 +1328,7 @@ async def delete_document(filename: str):
     """Delete a document from the backend data folder and tracking."""
     try:
         # Check if document exists in tracking
-        if not enhanced_doc_processor.selection_manager.document_exists_in_tracking(filename):
+        if not unified_doc_processor.selection_manager.document_exists_in_tracking(filename):
             return ErrorResponseService.log_and_return_error(
                 error=None, context=f"Document not found in tracking: {filename}",
                 error_type=ErrorType.VALIDATION_ERROR, 
@@ -1267,7 +1336,7 @@ async def delete_document(filename: str):
             )
         
         # Check if document is selected (prevent deletion of selected documents)
-        if enhanced_doc_processor.selection_manager.is_document_selected(filename):
+        if unified_doc_processor.selection_manager.is_document_selected(filename):
             return ErrorResponseService.log_and_return_error(
                 error=None, context=f"Cannot delete selected document: {filename}",
                 error_type=ErrorType.VALIDATION_ERROR, 
@@ -1281,7 +1350,7 @@ async def delete_document(filename: str):
             logger.info(f"✅ File deleted from data folder: {filename}")
         
         # Remove document from tracking
-        success = enhanced_doc_processor.selection_manager.remove_document_from_tracking(filename)
+        success = unified_doc_processor.selection_manager.remove_document_from_tracking(filename)
         
         if success:
             logger.info(f"✅ Document removed from tracking: {filename}")

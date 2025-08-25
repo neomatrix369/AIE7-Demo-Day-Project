@@ -11,13 +11,7 @@ sys.path.append(os.path.dirname(__file__))
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-from simple_document_processor import (
-    get_qdrant_client, 
-    ensure_collection_exists, 
-    QDRANT_URL, 
-    QDRANT_COLLECTION_NAME,
-    SimpleDocumentProcessor
-)
+from unified_document_processor import UnifiedDocumentProcessor
 from logging_config import setup_logging
 
 def test_qdrant_connection():
@@ -25,36 +19,34 @@ def test_qdrant_connection():
     logger = setup_logging(__name__)
     
     print("🧪 Testing Qdrant Connection...")
-    print(f"📍 URL: {QDRANT_URL}")
-    print(f"📦 Collection: {QDRANT_COLLECTION_NAME}")
     print()
     
     try:
-        # Test 1: Basic connection
-        print("1️⃣ Testing basic connection...")
-        client = get_qdrant_client()
-        print("   ✅ Connection successful!")
+        # Test 1: Unified processor initialization
+        print("1️⃣ Testing unified processor initialization...")
+        processor = UnifiedDocumentProcessor()
+        print("   ✅ Unified processor initialized!")
         
-        # Test 2: Collection creation
-        print("2️⃣ Testing collection creation...")
-        success = ensure_collection_exists(client, QDRANT_COLLECTION_NAME)
-        if success:
-            print("   ✅ Collection ready!")
+        # Test 2: Database connectivity
+        print("2️⃣ Testing database connectivity...")
+        connected = processor._check_database_connectivity()
+        if connected:
+            print("   ✅ Database connected!")
         else:
-            print("   ❌ Collection creation failed!")
+            print("   ❌ Database connection failed!")
             return False
             
         # Test 3: Collection info
         print("3️⃣ Getting collection information...")
-        collection_info = client.get_collection(QDRANT_COLLECTION_NAME)
+        collection_info = processor.qdrant_manager.client.get_collection(processor.qdrant_manager.collection_name)
         print(f"   📊 Collection has {collection_info.points_count} points")
         print(f"   🎯 Vector size: {collection_info.config.params.vectors.size}")
         print(f"   📏 Distance: {collection_info.config.params.vectors.distance}")
         
-        # Test 4: Document processor initialization
-        print("4️⃣ Testing document processor...")
-        processor = SimpleDocumentProcessor()
-        print("   ✅ Document processor initialized!")
+        # Test 4: Status check
+        print("4️⃣ Testing status retrieval...")
+        status = processor.get_unified_status()
+        print(f"   📊 Status retrieved: {status.get('document_count', 0)} documents")
         
         print()
         print("🎉 All tests passed!")

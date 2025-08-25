@@ -10,6 +10,7 @@ import QualityScoreLegend from '../components/QualityScoreLegend';
 import { createStorageAdapter } from '../services/storage';
 import ExperimentStatusIndicator from '../components/ui/ExperimentStatusIndicator';
 import { useRouter } from 'next/router';
+import { formatDocumentStats, getExperimentDocumentStats } from '../utils/experimentStats';
 
 const ExperimentManagement: React.FC = () => {
   // UI state management 
@@ -414,18 +415,80 @@ const ExperimentManagement: React.FC = () => {
         )}
 
         {experiments.length > 0 && (
-          <QualityScoreLegend 
-            format="compact" 
-            showTitle={true}
-            style={{ 
-              marginBottom: '20px',
-              padding: '12px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '6px',
-              border: '1px solid #dee2e6',
-              fontSize: '0.9rem'
-            }}
-          />
+          <>
+            {/* Document Selection Summary - Only show if there are documents */}
+            {(() => {
+              const allDocuments = experiments.flatMap(exp => exp.selected_documents || []);
+              const uniqueDocuments = Array.from(new Set(allDocuments));
+              
+              if (uniqueDocuments.length > 0) {
+                const stats = getExperimentDocumentStats(uniqueDocuments);
+                return (
+                  <div className="card" style={{ 
+                    marginBottom: '20px',
+                    padding: '15px',
+                    backgroundColor: '#e8f4fd',
+                    borderRadius: '6px',
+                    border: '1px solid #bee5eb'
+                  }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#0c5460' }}>
+                      📊 Document Selection Summary
+                    </h4>
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '8px', fontStyle: 'italic' }}>
+                      Shows document types used across all experiments
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#0c5460' }}>
+                      <div style={{ marginBottom: '8px' }}>
+                        <strong>Total unique documents used across {experiments.length} experiments:</strong> {uniqueDocuments.length}
+                      </div>
+                      <div style={{ lineHeight: '1.4' }}>
+                        <strong>Document types:</strong>
+                        {(() => {
+                          const parts: string[] = [];
+                          
+                          if (stats.included.pdf.length > 0) {
+                            parts.push(`📄 PDF: ${stats.included.pdf.length}`);
+                          }
+                          if (stats.included.csv.length > 0) {
+                            parts.push(`📊 CSV: ${stats.included.csv.length}`);
+                          }
+                          if (stats.included.txt.length > 0) {
+                            parts.push(`📝 TXT: ${stats.included.txt.length}`);
+                          }
+                          if (stats.included.json.length > 0) {
+                            parts.push(`🔧 JSON: ${stats.included.json.length}`);
+                          }
+                          if (stats.included.other.length > 0) {
+                            parts.push(`📁 Other: ${stats.included.other.length}`);
+                          }
+                          
+                          return (
+                            <div style={{ marginTop: '4px', fontSize: '0.9rem' }}>
+                              {parts.join(' | ')}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            
+            <QualityScoreLegend 
+              format="compact" 
+              showTitle={true}
+              style={{ 
+                marginBottom: '20px',
+                padding: '12px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6',
+                fontSize: '0.9rem'
+              }}
+            />
+          </>
         )}
 
         {(experiments?.length || 0) === 0 ? (
@@ -512,6 +575,40 @@ const ExperimentManagement: React.FC = () => {
                       <div>
                         <strong>📁 Sources:</strong> {experiment.sources.join(', ')}
                       </div>
+                      {experiment.selected_documents && experiment.selected_documents.length > 0 && (
+                        <div>
+                          <strong>📊 Documents:</strong>
+                          <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '2px', lineHeight: '1.4' }}>
+                            {(() => {
+                              console.log('Experiment selected_documents:', experiment.selected_documents);
+                              const stats = getExperimentDocumentStats(experiment.selected_documents || []).included;
+                              const parts: string[] = [];
+                              
+                              if (stats.pdf.length > 0) {
+                                parts.push(`📄 PDF: ${stats.pdf.length}`);
+                              }
+                              if (stats.csv.length > 0) {
+                                parts.push(`📊 CSV: ${stats.csv.length}`);
+                              }
+                              if (stats.txt.length > 0) {
+                                parts.push(`📝 TXT: ${stats.txt.length}`);
+                              }
+                              if (stats.json.length > 0) {
+                                parts.push(`🔧 JSON: ${stats.json.length}`);
+                              }
+                              if (stats.other.length > 0) {
+                                parts.push(`📁 Other: ${stats.other.length}`);
+                              }
+                              
+                              return (
+                                <div style={{ marginBottom: '4px' }}>
+                                  {parts.join(' | ')}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <strong>💾 Size:</strong> {formatFileSize(experiment.file_size)}
                       </div>

@@ -105,29 +105,65 @@ class EnhancedQdrantManager:
             # Prepare points with enhanced payload
             points = []
             for i, doc in enumerate(documents):
+                # Ensure all required fields are present
+                from datetime import datetime
+                
+                # Get document type from filename extension
+                file_extension = document_source.lower().split('.')[-1] if '.' in document_source else 'unknown'
+                
+                # Create comprehensive payload with all necessary fields
+                payload = {
+                    # Core content
+                    "content": doc.get('page_content', ''),
+                    "page_content": doc.get('page_content', ''),  # Legacy field for compatibility
+                    
+                    # Document identification
+                    "document_source": document_source,
+                    "document_type": file_extension,
+                    "chunk_id": f"{document_source}_{i}",
+                    
+                    # Selection and status
+                    "is_selected": is_selected,
+                    "ingested_at": datetime.now().isoformat(),
+                    
+                    # Metadata (preserve existing metadata)
+                    "metadata": doc.get('metadata', {}),
+                    
+                    # Additional fields for future compatibility
+                    "chunk_index": i,
+                    "total_chunks": len(documents),
+                    "file_size": doc.get('metadata', {}).get('file_size', 0),
+                    "created_at": doc.get('metadata', {}).get('created_at', datetime.now().isoformat()),
+                    "modified_at": doc.get('metadata', {}).get('modified_at', datetime.now().isoformat()),
+                }
+                
+                # Create unique ID
+                unique_id = f"{document_source}_{i}_{hash(doc.get('page_content', ''))}"
+                
+                # Validate embedding before creating PointStruct
+                embedding = doc.get('embedding', [])
+                if not embedding or not isinstance(embedding, list):
+                    logger.warning(f"⚠️ Skipping document with invalid embedding: {unique_id}")
+                    continue
+                
                 point = PointStruct(
-                    id=f"{document_source}_{i}_{hash(doc.get('page_content', ''))}",
-                    vector=doc.get('embedding', []),
-                    payload={
-                        "content": doc.get('page_content', ''),
-                        "metadata": doc.get('metadata', {}),
-                        "document_source": document_source,
-                        "is_selected": is_selected,
-                        "document_type": doc.get('metadata', {}).get('source', 'unknown'),
-                        "chunk_id": doc.get('metadata', {}).get('chunk_id', f"chunk_{i}"),
-                        "ingested_at": doc.get('metadata', {}).get('ingested_at', ''),
-                    }
+                    id=unique_id,
+                    vector=embedding,
+                    payload=payload
                 )
                 points.append(point)
             
             # Add points to collection
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=points,
-                wait=True
-            )
+            if points:
+                self.client.upsert(
+                    collection_name=self.collection_name,
+                    points=points,
+                    wait=True
+                )
+            else:
+                logger.warning("⚠️ No valid points to add to collection")
             
-            logger.info(f"✅ Added {len(points)} documents from '{document_source}' (selected: {is_selected})")
+            logger.info(f"✅ Added {len(points)} documents from '{document_source}' (selected: {is_selected}) with complete metadata")
             return True
         except Exception as e:
             logger.error(f"❌ Failed to add documents: {e}")
@@ -136,25 +172,35 @@ class EnhancedQdrantManager:
     def update_document_selection_status(self, document_source: str, is_selected: bool) -> bool:
         """Update selection status for all chunks from a specific document source."""
         try:
-            # Create filter for the specific document source
-            filter_condition = Filter(
-                must=[
-                    FieldCondition(
-                        key="document_source",
-                        match=MatchValue(value=document_source)
-                    )
-                ]
+            # First, get all chunks to find the ones from this document source
+            response = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=10000,
+                with_payload=True,
+                with_vectors=False
             )
             
-            # Update selection status
+            # Find chunks that belong to this document source
+            chunk_ids_to_update = []
+            for point in response[0]:
+                point_document_source = point.payload.get("document_source", "")
+                if point_document_source == document_source:
+                    chunk_ids_to_update.append(point.id)
+            
+            if not chunk_ids_to_update:
+                logger.warning(f"⚠️ No chunks found for document source: {document_source}")
+                return False
+            
+            # Update the chunks using their IDs
+            # Use set_payload for updating existing points (no vector required)
             self.client.set_payload(
                 collection_name=self.collection_name,
+                points=chunk_ids_to_update,
                 payload={"is_selected": is_selected},
-                points_selector=filter_condition,
                 wait=True
             )
             
-            logger.info(f"✅ Updated selection status for '{document_source}' to {is_selected}")
+            logger.info(f"✅ Updated selection status for {len(chunk_ids_to_update)} chunks from '{document_source}' to {is_selected}")
             return True
         except Exception as e:
             logger.error(f"❌ Failed to update selection status: {e}")
@@ -217,6 +263,14 @@ class EnhancedQdrantManager:
             
             document_sources = {}
             selected_count = 0
+            
+            # Debug: Log all unique document sources found
+            unique_sources = set()
+            for point in sources_response[0]:
+                source = point.payload.get("document_source", "unknown")
+                unique_sources.add(source)
+            
+            logger.info(f"🔍 Found document sources in chunks: {list(unique_sources)}")
             
             for point in sources_response[0]:
                 source = point.payload.get("document_source", "unknown")

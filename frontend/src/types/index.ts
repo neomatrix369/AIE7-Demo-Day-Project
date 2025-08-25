@@ -7,7 +7,12 @@ export interface CorpusStatus {
     total_size_mb: number;
     document_types: { [key: string]: number };
     avg_doc_length: number;
+    selected_by_type?: { [key: string]: number };
+    deselected_by_type?: { [key: string]: number };
   };
+  // Selection-aware statistics (optional, added by enhanced document processor)
+  selected_chunks?: number;
+  deselected_chunks?: number;
 }
 
 export interface Question {
@@ -76,6 +81,7 @@ export interface ExperimentFile {
   timestamp: string;
   total_questions: number;
   sources: string[];
+  selected_documents?: string[];  // Actual document filenames used in the experiment
   avg_quality_score: number;
   file_size: number;
   // Timing information (optional, for experiments with timing data)

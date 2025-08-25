@@ -62,9 +62,9 @@ class ExperimentService:
     def _get_corpus_info(self) -> Dict[str, Any]:
         """Get comprehensive corpus information from available data."""
         try:
-            from simple_document_processor import SimpleDocumentProcessor
-            doc_processor = SimpleDocumentProcessor()
-            corpus_stats = doc_processor.get_corpus_stats()
+            from unified_document_processor import UnifiedDocumentProcessor
+            doc_processor = UnifiedDocumentProcessor()
+            corpus_stats = doc_processor.get_unified_status()
             
             # Get actual document types from data folder
             data_folder = os.getenv("DATA_FOLDER", "./data/")
@@ -409,6 +409,27 @@ class ExperimentService:
             avg_similarity = sum(r["avg_similarity"] for r in results) / len(results) if results else 0
             avg_quality_score = QualityScoreService.similarity_to_quality_score(avg_similarity)
             
+            # Get selected documents from unified document processor
+            selected_documents = []
+            try:
+                from unified_document_processor import UnifiedDocumentProcessor
+                doc_processor = UnifiedDocumentProcessor()
+                corpus_status = doc_processor.get_unified_status()
+                
+                # Get selected documents from the selection manager
+                if hasattr(doc_processor, 'selection_manager') and doc_processor.selection_manager:
+                    selection_config = doc_processor.selection_manager.selection_config
+                    selected_documents = [
+                        filename for filename, doc_info in selection_config.get('documents', {}).items()
+                        if doc_info.get('is_selected', False)
+                    ]
+                    logger.info(f"📄 Captured {len(selected_documents)} selected documents for experiment")
+                else:
+                    logger.warning("⚠️ Selection manager not available, using empty document list")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to get selected documents: {e}")
+                selected_documents = []
+            
             # Extract timing information if available
             timing_data = config.get("timing", {}) if config else {}
             
@@ -436,7 +457,8 @@ class ExperimentService:
                     "timestamp": timestamp.isoformat(),
                     "filename": filename,
                     "total_questions": len(results),
-                    "sources": list(set(r["source"] for r in results)),
+                    "sources": list(set(r["source"] for r in results)),  # Question groups like "llm", "ragas"
+                    "selected_documents": selected_documents,  # Actual document filenames
                     "avg_similarity": avg_similarity,
                     "avg_quality_score": avg_quality_score
                 },
@@ -542,6 +564,7 @@ class ExperimentService:
                                 "timestamp": metadata.get("timestamp", ""),
                                 "total_questions": metadata.get("total_questions", 0),
                                 "sources": metadata.get("sources", []),
+                                "selected_documents": metadata.get("selected_documents", []),
                                 "avg_similarity": avg_similarity,
                                 "avg_quality_score": avg_quality_score,
                                 "file_size": os.path.getsize(filepath),

@@ -10,6 +10,7 @@ export interface ExperimentData {
   results: any;
   total_questions: number;
   sources: string[];
+  selected_documents?: string[];  // Actual document filenames used in the experiment
   avg_quality_score: number;
 }
 

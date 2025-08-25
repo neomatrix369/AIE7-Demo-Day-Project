@@ -89,9 +89,9 @@ const DataLoadingDashboard: React.FC = () => {
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.document_count}</span>
               <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>Documents Loaded</span>
+                <span>Selected Documents</span>
                 <BalloonTooltip 
-                  content="Total number of documents processed and loaded into the vector database. Each document is analyzed and split into searchable chunks."
+                  content="Number of documents currently selected and active for search. Only selected documents contribute to the active chunk count."
                   maxWidth={280} 
                   cursor="help"
                 >
@@ -102,9 +102,9 @@ const DataLoadingDashboard: React.FC = () => {
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.chunk_count}</span>
               <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>Chunks Indexed</span>
+                <span>Active Chunks</span>
                 <BalloonTooltip 
-                  content="Total number of text chunks created from documents. Each chunk is embedded and stored in the vector database for semantic search during RAG queries."
+                  content="Number of chunks from selected documents that are actively used in search and analysis. Only chunks from selected documents are counted."
                   maxWidth={280} 
                   cursor="help"
                 >
@@ -115,9 +115,9 @@ const DataLoadingDashboard: React.FC = () => {
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.corpus_metadata.total_size_mb} MB</span>
               <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>Total Size</span>
+                <span>Selected Size</span>
                 <BalloonTooltip 
-                  content="Combined size of all processed documents in megabytes. Larger corpora provide more comprehensive knowledge but may affect retrieval performance."
+                  content="Combined size of selected documents in megabytes. Only selected documents contribute to the active corpus size."
                   maxWidth={280} 
                   cursor="help"
                 >
@@ -128,9 +128,9 @@ const DataLoadingDashboard: React.FC = () => {
             <div className="stat-item">
               <span className="stat-value">{corpusStatus.corpus_metadata.avg_doc_length}</span>
               <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>Avg Document Length</span>
+                <span>Avg Selected Doc Length</span>
                 <BalloonTooltip 
-                  content="Average character length of documents in the corpus. Longer documents typically contain more detailed information but are split into more chunks."
+                  content="Average character length of selected documents. This represents the typical size of documents currently active for search."
                   maxWidth={280} 
                   cursor="help"
                 >
@@ -151,6 +151,37 @@ const DataLoadingDashboard: React.FC = () => {
               <span style={{ fontSize: '1.1rem', color: '#007bff', opacity: 0.8 }}>ℹ️</span>
             </BalloonTooltip>
           </div>
+          
+          {/* Selection-aware chunk statistics */}
+          {(corpusStatus.selected_chunks !== undefined || corpusStatus.deselected_chunks !== undefined) && (
+            <div style={{ marginTop: '15px', padding: '12px', backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#495057' }}>📊 Chunk Selection Status</h4>
+              <div style={{ display: 'flex', gap: '20px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: '#28a745', fontWeight: 'bold' }}>{corpusStatus.selected_chunks || 0}</span>
+                  <span>Active Chunks</span>
+                  <BalloonTooltip 
+                    content="Number of chunks from selected documents that are actively used in search and analysis."
+                    maxWidth={250} 
+                    cursor="help"
+                  >
+                    <span style={{ fontSize: '1rem', color: '#28a745', opacity: 0.8 }}>ℹ️</span>
+                  </BalloonTooltip>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: '#6c757d', fontWeight: 'bold' }}>{corpusStatus.deselected_chunks || 0}</span>
+                  <span>Retained Chunks</span>
+                  <BalloonTooltip 
+                    content="Number of chunks from deselected documents that are retained but excluded from search results."
+                    maxWidth={250} 
+                    cursor="help"
+                  >
+                    <span style={{ fontSize: '1rem', color: '#6c757d', opacity: 0.8 }}>ℹ️</span>
+                  </BalloonTooltip>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="card" style={{ backgroundColor: '#e8f4fd', marginBottom: '30px' }}>
@@ -159,7 +190,22 @@ const DataLoadingDashboard: React.FC = () => {
             <div>
               <h4>Document Distribution</h4>
               <div style={{ padding: '10px' }}>
-                {Object.entries(corpusStatus.corpus_metadata.document_types).map(([type, count]) => (
+                {/* Show selected documents by type */}
+                {Object.entries(corpusStatus.corpus_metadata.selected_by_type || {}).map(([type, count]) => (
+                  <div key={`selected-${type}`} style={{ marginBottom: '8px' }}>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 'bold', color: '#28a745' }}>{type}</span>: {count} selected
+                  </div>
+                ))}
+                {/* Show deselected documents by type */}
+                {Object.entries(corpusStatus.corpus_metadata.deselected_by_type || {}).map(([type, count]) => (
+                  <div key={`deselected-${type}`} style={{ marginBottom: '8px' }}>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 'bold', color: '#6c757d' }}>{type}</span>: {count} deselected
+                  </div>
+                ))}
+                {/* Show total by type if no selection breakdown available */}
+                {(!corpusStatus.corpus_metadata.selected_by_type || Object.keys(corpusStatus.corpus_metadata.selected_by_type).length === 0) &&
+                 (!corpusStatus.corpus_metadata.deselected_by_type || Object.keys(corpusStatus.corpus_metadata.deselected_by_type).length === 0) &&
+                 Object.entries(corpusStatus.corpus_metadata.document_types).map(([type, count]) => (
                   <div key={type} style={{ marginBottom: '8px' }}>
                     <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{type}</span>: {count} documents
                   </div>

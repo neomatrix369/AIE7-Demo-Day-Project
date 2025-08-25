@@ -166,7 +166,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
 
   useEffect(() => {
     loadDocumentStatus();
-  }, []); // Remove dependency to prevent infinite loops
+  }, [loadDocumentStatus]); // Include loadDocumentStatus in dependencies
 
   const handleSelectDocument = async (filename: string) => {
     try {

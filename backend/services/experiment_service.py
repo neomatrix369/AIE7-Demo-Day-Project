@@ -71,7 +71,7 @@ class ExperimentService:
             document_types = {}
             if os.path.exists(data_folder):
                 for file in os.listdir(data_folder):
-                    if file.endswith(('.pdf', '.txt', '.csv', '.json')):
+                    if file.endswith(('.pdf', '.txt', '.md', '.csv', '.json')):
                         ext = file.split('.')[-1]
                         document_types[ext] = document_types.get(ext, 0) + 1
             
@@ -746,7 +746,7 @@ class ExperimentService:
             corpus_files = []
             for root, dirs, files in os.walk(data_folder):
                 for file in files:
-                    if file.endswith(('.pdf', '.txt', '.csv', '.json')):
+                    if file.endswith(('.pdf', '.txt', '.md', '.csv', '.json')):
                         filepath = os.path.join(root, file)
                         corpus_files.append(filepath)
             

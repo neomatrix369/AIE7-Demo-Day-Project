@@ -1289,7 +1289,7 @@ async def upload_document(file: UploadFile = File(...)):
     """Upload a document from the browser to the backend data folder."""
     try:
         # Validate file type
-        allowed_extensions = ['.pdf', '.csv', '.txt', '.json']
+        allowed_extensions = ['.pdf', '.csv', '.txt', '.md', '.json']
         file_extension = os.path.splitext(file.filename)[1].lower()
         
         if file_extension not in allowed_extensions:

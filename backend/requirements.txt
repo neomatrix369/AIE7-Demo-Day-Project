@@ -27,6 +27,8 @@ langchain-qdrant>=0.2.0,<1.0.0
 # Document processing
 pypdf2==3.0.1
 pymupdf>=1.23.0  # Required for PyMuPDFLoader
+unstructured>=0.12.0  # Required for UnstructuredMarkdownLoader
+markdown>=3.8.0  # Required for markdown processing
 
 # Core dependencies
 numpy>=1.26.0

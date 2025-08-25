@@ -263,7 +263,7 @@ class DocumentSelectionManager:
         
         try:
             # Scan for supported file types
-            supported_extensions = ['.pdf', '.csv', '.txt', '.json']
+            supported_extensions = ['.pdf', '.csv', '.txt', '.md', '.json']
             
             for root, dirs, files in os.walk(self.data_folder):
                 for file in files:

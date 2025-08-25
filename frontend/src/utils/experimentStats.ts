@@ -6,6 +6,7 @@ export interface DocumentTypeStats {
   pdf: string[];
   csv: string[];
   txt: string[];
+  md: string[];
   json: string[];
   other: string[];
   total: number;
@@ -39,6 +40,7 @@ export function analyzeExperimentSources(sources: string[]): DocumentTypeStats {
     pdf: [],
     csv: [],
     txt: [],
+    md: [],
     json: [],
     other: [],
     total: 0
@@ -60,6 +62,9 @@ export function analyzeExperimentSources(sources: string[]): DocumentTypeStats {
         break;
       case 'txt':
         stats.txt.push(source);
+        break;
+      case 'md':
+        stats.md.push(source);
         break;
       case 'json':
         stats.json.push(source);
@@ -88,6 +93,9 @@ export function generateDocumentSummary(stats: DocumentTypeStats): string {
   }
   if (stats.txt.length > 0) {
     parts.push(`TXT (${stats.txt.length}): ${stats.txt.join(', ')}`);
+  }
+  if (stats.md.length > 0) {
+    parts.push(`MD (${stats.md.length}): ${stats.md.join(', ')}`);
   }
   if (stats.json.length > 0) {
     parts.push(`JSON (${stats.json.length}): ${stats.json.join(', ')}`);
@@ -137,6 +145,9 @@ export function formatDocumentStats(stats: DocumentTypeStats): string {
   }
   if (stats.txt.length > 0) {
     parts.push(`📝 TXT (${stats.txt.length}): ${stats.txt.join(', ')}`);
+  }
+  if (stats.md.length > 0) {
+    parts.push(`📝 MD (${stats.md.length}): ${stats.md.join(', ')}`);
   }
   if (stats.json.length > 0) {
     parts.push(`🔧 JSON (${stats.json.length}): ${stats.json.join(', ')}`);

@@ -329,7 +329,7 @@ class UnifiedDocumentProcessor:
             # Scan all files in the data folder
             new_documents = []
             for file_path in Path(self.data_folder).rglob("*"):
-                if file_path.is_file() and file_path.suffix.lower() in ['.pdf', '.csv', '.txt', '.json']:
+                if file_path.is_file() and file_path.suffix.lower() in ['.pdf', '.csv', '.txt', '.md', '.json']:
                     relative_path = str(file_path.relative_to(self.data_folder))
                     
                     # Skip system files
@@ -571,7 +571,7 @@ class UnifiedDocumentProcessor:
                 return self.data_manager.load_csv_data(filename)
             elif file_extension == 'pdf':
                 return self.data_manager.load_pdf_data([filename])
-            elif file_extension in ['txt', 'json']:
+            elif file_extension in ['txt', 'md', 'json']:
                 return self.data_manager.load_text_data([filename])
             else:
                 logger.error(f"❌ Unsupported file type: {file_extension}")

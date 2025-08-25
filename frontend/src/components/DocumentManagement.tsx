@@ -314,7 +314,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
         const file = files[i];
         
         // Validate file type
-        const allowedTypes = ['.pdf', '.csv', '.txt', '.json'];
+        const allowedTypes = ['.pdf', '.csv', '.txt', '.md', '.json'];
         const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
         
         if (!allowedTypes.includes(fileExtension)) {
@@ -577,7 +577,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.csv,.txt,.json"
+              accept=".pdf,.csv,.txt,.md,.json"
               onChange={handleFileUpload}
               style={{ display: 'none' }}
             />

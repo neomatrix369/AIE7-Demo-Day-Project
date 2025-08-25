@@ -6,7 +6,7 @@ import json
 from typing import List, Dict, Any
 from pathlib import Path
 from datetime import datetime
-from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader
+from langchain_community.document_loaders import CSVLoader, DirectoryLoader, PyMuPDFLoader, TextLoader, UnstructuredMarkdownLoader
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from managers.chunking_manager import ChunkingStrategyManager
@@ -251,10 +251,18 @@ class DataManager:
             logger.warning(f"⚠️ Data folder not found: {self.data_folder}")
             return []
         
+        # Get all CSV files from data folder and subdirectories
         csv_files = []
-        for filename in os.listdir(self.data_folder):
-            if filename.lower().endswith('.csv'):
-                csv_files.append(filename)
+        for root, dirs, files in os.walk(self.data_folder):
+            for file in files:
+                if file.lower().endswith('.csv'):
+                    # Skip system files
+                    if file in ['document_selection.json', '.DS_Store', 'Thumbs.db', '.gitignore', '.env']:
+                        continue
+                    
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, self.data_folder)
+                    csv_files.append(relative_path)
         
         logger.info(f"📊 Found {len(csv_files)} CSV files: {csv_files}")
         
@@ -353,12 +361,20 @@ class DataManager:
             logger.warning(f"⚠️ Data folder not found: {self.data_folder}")
             return []
         
+        # Get all JSON files from data folder and subdirectories
         json_files = []
-        for filename in os.listdir(self.data_folder):
-            if (filename.lower().endswith('.json') and 
-                not filename.lower().startswith('config') and
-                filename != 'document_selection.json'):
-                json_files.append(filename)
+        for root, dirs, files in os.walk(self.data_folder):
+            for file in files:
+                if (file.lower().endswith('.json') and 
+                    not file.lower().startswith('config') and
+                    file != 'document_selection.json'):
+                    # Skip system files
+                    if file in ['.DS_Store', 'Thumbs.db', '.gitignore', '.env']:
+                        continue
+                    
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, self.data_folder)
+                    json_files.append(relative_path)
         
         logger.info(f"📄 Found {len(json_files)} JSON files: {json_files}")
         
@@ -403,8 +419,18 @@ class DataManager:
             logger.warning(f"⚠️ Folder for PDF file(s) not found: {pdf_folder}")
             return []
             
-        # Get all PDF files
-        pdf_files = [f.name for f in Path(pdf_folder).glob("*.pdf")]
+        # Get all PDF files from data folder and subdirectories
+        pdf_files = []
+        for root, dirs, files in os.walk(pdf_folder):
+            for file in files:
+                if file.lower().endswith('.pdf'):
+                    # Skip system files
+                    if file in ['.DS_Store', 'Thumbs.db', '.gitignore', '.env']:
+                        continue
+                    
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, self.data_folder)
+                    pdf_files.append(relative_path)
         logger.info(f"📄 Found {len(pdf_files)} PDF files: {pdf_files}")
         
         # Auto-add to selection if needed
@@ -495,9 +521,115 @@ class DataManager:
         
         return chunk
 
+    def load_text_data(self, filenames: List[str] = None) -> List[Document]:
+        """
+        Load text files (.txt and .md) from the data folder.
+        
+        Args:
+            filenames: List of specific filenames to load. If None, loads all text files.
+            
+        Returns:
+            List of loaded text documents
+        """
+        try:
+            if filenames:
+                # Load specific files
+                all_docs = []
+                for filename in filenames:
+                    file_path = os.path.join(self.data_folder, filename)
+                    if not os.path.exists(file_path):
+                        logger.warning(f"⚠️ Text file not found: {filename}")
+                        continue
+                    
+                    file_extension = filename.lower().split('.')[-1]
+                    if file_extension == 'txt':
+                        loader = TextLoader(file_path, encoding='utf-8')
+                    elif file_extension == 'md':
+                        loader = UnstructuredMarkdownLoader(file_path)
+                    else:
+                        logger.warning(f"⚠️ Unsupported text file type: {file_extension}")
+                        continue
+                    
+                    docs = loader.load()
+                    all_docs.extend(docs)
+                    logger.info(f"✅ Loaded {len(docs)} documents from {filename}")
+                
+                return all_docs
+            else:
+                # Auto-discover and load all text files
+                return self.discover_all_text_files()
+                
+        except Exception as e:
+            logger.error(f"❌ Error loading text data: {str(e)}")
+            return []
+
+    def discover_all_text_files(self) -> List[Document]:
+        """
+        Auto-discover and load all text files (.txt and .md) from the data folder and subdirectories.
+        
+        Returns:
+            List of all loaded text documents
+        """
+        try:
+            logger.info("📝 Auto-discovering text files...")
+            
+            # Get all text files from data folder and subdirectories
+            all_text_files = []
+            for root, dirs, files in os.walk(self.data_folder):
+                for file in files:
+                    if file.lower().endswith(('.txt', '.md')):
+                        # Skip system files
+                        if file in ['document_selection.json', '.DS_Store', 'Thumbs.db', '.gitignore', '.env']:
+                            continue
+                        
+                        file_path = os.path.join(root, file)
+                        relative_path = os.path.relpath(file_path, self.data_folder)
+                        all_text_files.append(relative_path)
+            
+            logger.info(f"📄 Found {len(all_text_files)} text files: {all_text_files}")
+            
+            # Auto-add to selection if needed
+            self._ensure_files_in_selection(all_text_files)
+            
+            # Only load selected text files
+            selected_files = self._get_selected_files(all_text_files)
+            logger.info(f"📋 Loading {len(selected_files)} selected text files: {selected_files}")
+            
+            if not selected_files:
+                logger.info("⏸️ No text files selected for loading")
+                return []
+            
+            # Load only selected files
+            all_docs = []
+            for filename in selected_files:
+                try:
+                    file_path = os.path.join(self.data_folder, filename)
+                    file_extension = filename.lower().split('.')[-1]
+                    
+                    if file_extension == 'txt':
+                        loader = TextLoader(file_path, encoding='utf-8')
+                    elif file_extension == 'md':
+                        loader = UnstructuredMarkdownLoader(file_path)
+                    else:
+                        continue
+                    
+                    docs = loader.load()
+                    all_docs.extend(docs)
+                    logger.info(f"✅ Loaded {len(docs)} documents from {filename}")
+                except Exception as e:
+                    logger.error(f"❌ Error loading text file {filename}: {str(e)}")
+            
+            gc.collect()
+            logger.info(f"✅ Total text documents loaded: {len(all_docs)}")
+            return all_docs
+            
+        except Exception as e:
+            logger.error(f"❌ Error discovering text files: {str(e)}")
+            return []
+
     def load_all_documents(self) -> List[Document]:
         """
-        Load all documents from CSV, JSON, and PDF sources automatically.
+        Load all documents from CSV, JSON, PDF, and text sources automatically.
         
         Returns:
             List of all loaded documents
@@ -517,8 +649,12 @@ class DataManager:
             pdf_docs = self.load_pdf_data()
             logger.info(f"📄 Total PDF documents: {len(pdf_docs)}")
             
+            # Load text files
+            text_docs = self.discover_all_text_files()
+            logger.info(f"📝 Total text documents: {len(text_docs)}")
+            
             # Combine all documents
-            all_docs = csv_docs + json_docs + pdf_docs
+            all_docs = csv_docs + json_docs + pdf_docs + text_docs
             logger.info(f"✅ Total documents loaded: {len(all_docs)}")
             
             return all_docs

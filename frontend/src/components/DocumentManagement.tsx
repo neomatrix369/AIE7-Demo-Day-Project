@@ -306,9 +306,17 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       setActionLoading(`select-${filename}`);
       const response = await documentsApi.selectDocument(filename);
       if (response.success) {
-        await loadDocumentStatus();
-        logSuccess(`Document selected and ingested: ${filename}`, { component: 'DocumentManagement' });
-        onStatusChange?.();
+        // Update local state immediately
+        setDocumentStatus(prevStatus => {
+          if (!prevStatus) return prevStatus;
+          return {
+            ...prevStatus,
+            documents: prevStatus.documents.map(doc => 
+              doc.filename === filename ? { ...doc, is_selected: true } : doc
+            )
+          };
+        });
+        logSuccess(`Document selected: ${filename}`, { component: 'DocumentManagement' });
       } else {
         throw new Error(response.message || 'Failed to select and ingest document');
       }
@@ -325,9 +333,17 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       setActionLoading(`deselect-${filename}`);
       const response = await documentsApi.deselectDocument(filename);
       if (response.success) {
-        await loadDocumentStatus();
+        // Update local state immediately
+        setDocumentStatus(prevStatus => {
+          if (!prevStatus) return prevStatus;
+          return {
+            ...prevStatus,
+            documents: prevStatus.documents.map(doc => 
+              doc.filename === filename ? { ...doc, is_selected: false } : doc
+            )
+          };
+        });
         logSuccess(`Document deselected: ${filename}`, { component: 'DocumentManagement' });
-        onStatusChange?.();
       } else {
         throw new Error(response.message || 'Failed to deselect document');
       }

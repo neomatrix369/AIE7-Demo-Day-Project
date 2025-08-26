@@ -19,6 +19,7 @@ const DataLoadingDashboard: React.FC = () => {
   const router = useRouter();
   const { goTo } = usePageNavigation('Dashboard');
   const [documentStatusChanged, setDocumentStatusChanged] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
 
   useEffect(() => {
     execute(

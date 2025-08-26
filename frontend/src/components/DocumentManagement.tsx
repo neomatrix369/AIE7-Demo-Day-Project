@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { documentsApi } from '../services/api';
 import { DocumentStatus, DocumentInfo } from '../types';
 import { logSuccess, logError, logInfo } from '../utils/logger';
@@ -27,6 +27,52 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
   const [documentConfig, setDocumentConfig] = useState<DocumentConfig | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Calculate dynamic statistics based on current document states
+  const calculateDynamicStats = useCallback((docs: DocumentInfo[]) => {
+    const selectedDocs = docs.filter(d => d.is_selected);
+    const deselectedDocs = docs.filter(d => !d.is_selected);
+    const ingestedDocs = docs.filter(d => d.is_ingested);
+    
+    const totalChunks = docs.reduce((sum, d) => sum + d.chunk_count, 0);
+    const selectedChunks = selectedDocs.reduce((sum, d) => sum + d.chunk_count, 0);
+    const deselectedChunks = deselectedDocs.reduce((sum, d) => sum + d.chunk_count, 0);
+    
+    return {
+      selection_summary: {
+        total_documents: docs.length,
+        selected_documents: selectedDocs.length,
+        deselected_documents: deselectedDocs.length,
+        ingested_documents: ingestedDocs.length,
+        needing_ingestion: docs.filter(d => d.is_selected && !d.is_ingested).length,
+        needing_reingestion: docs.filter(d => d.has_changed && d.is_ingested).length,
+        last_updated: new Date().toISOString()
+      },
+      qdrant_statistics: {
+        total_chunks: totalChunks,
+        selected_chunks: selectedChunks,
+        deselected_chunks: deselectedChunks,
+        document_sources: {},
+        collection_name: 'student_loan_corpus'
+      }
+    };
+  }, []);
+
+  // Calculate current stats dynamically using useMemo for React re-rendering
+  const currentStats = useMemo(() => {
+    if (!documentStatus?.documents) {
+      return documentStatus || null;
+    }
+    
+    const dynamicStats = calculateDynamicStats(documentStatus.documents);
+    
+    
+    return {
+      ...documentStatus,
+      selection_summary: dynamicStats.selection_summary,
+      qdrant_statistics: dynamicStats.qdrant_statistics
+    };
+  }, [documentStatus, calculateDynamicStats]);
   
   // Get storage adapter (cloud-compatible)
   const storageAdapter = createStorageAdapter();
@@ -306,15 +352,17 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       setActionLoading(`select-${filename}`);
       const response = await documentsApi.selectDocument(filename);
       if (response.success) {
-        // Update local state immediately
+        // Update local state immediately and force re-render
         setDocumentStatus(prevStatus => {
           if (!prevStatus) return prevStatus;
-          return {
+          const newStatus = {
             ...prevStatus,
             documents: prevStatus.documents.map(doc => 
               doc.filename === filename ? { ...doc, is_selected: true } : doc
-            )
+            ),
+            last_updated: new Date().toISOString() // Force change detection
           };
+          return newStatus;
         });
         logSuccess(`Document selected: ${filename}`, { component: 'DocumentManagement' });
       } else {
@@ -333,15 +381,17 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       setActionLoading(`deselect-${filename}`);
       const response = await documentsApi.deselectDocument(filename);
       if (response.success) {
-        // Update local state immediately
+        // Update local state immediately and force re-render
         setDocumentStatus(prevStatus => {
           if (!prevStatus) return prevStatus;
-          return {
+          const newStatus = {
             ...prevStatus,
             documents: prevStatus.documents.map(doc => 
               doc.filename === filename ? { ...doc, is_selected: false } : doc
-            )
+            ),
+            last_updated: new Date().toISOString() // Force change detection
           };
+          return newStatus;
         });
         logSuccess(`Document deselected: ${filename}`, { component: 'DocumentManagement' });
       } else {
@@ -658,15 +708,15 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
         <h3 style={{ margin: 0 }}>📁 Document Management</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '14px', color: '#666' }}>
-            {documentStatus?.selection_summary?.total_documents ? (
+            {currentStats?.selection_summary?.total_documents ? (
               <>
-                {documentStatus.selection_summary.total_documents} documents
+                {currentStats.selection_summary.total_documents} documents
                 <span style={{ color: '#28a745', marginLeft: '8px' }}>
-                  ({documentStatus.selection_summary.selected_documents} selected
+                  ({currentStats.selection_summary.selected_documents} selected
                 </span>
-                {documentStatus.selection_summary.deselected_documents > 0 && (
+                {currentStats.selection_summary.deselected_documents > 0 && (
                   <span style={{ color: '#dc3545' }}>
-                    , {documentStatus.selection_summary.deselected_documents} deselected
+                    , {currentStats.selection_summary.deselected_documents} deselected
                   </span>
                 )}
                 <span style={{ color: '#28a745' }}>)</span>
@@ -796,37 +846,37 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
           }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#007bff' }}>
-                {documentStatus?.selection_summary?.total_documents || 0}
+                {currentStats?.selection_summary?.total_documents || 0}
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Total Docs</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
-                {documentStatus?.selection_summary?.selected_documents || 0}
+                {currentStats?.selection_summary?.selected_documents || 0}
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Selected</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#dc3545' }}>
-                {documentStatus?.selection_summary?.deselected_documents || 0}
+                {currentStats?.selection_summary?.deselected_documents || 0}
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Deselected</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
-                {documentStatus?.qdrant_statistics?.total_chunks || 0}
+                {currentStats?.qdrant_statistics?.total_chunks || 0}
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Total Chunks</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
-                {documentStatus?.qdrant_statistics?.selected_chunks || 0}
+                {currentStats?.qdrant_statistics?.selected_chunks || 0}
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Active Chunks</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#6c757d' }}>
-                {documentStatus?.qdrant_statistics?.deselected_chunks || 0}
+                {currentStats?.qdrant_statistics?.deselected_chunks || 0}
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Retained Chunks</div>
             </div>

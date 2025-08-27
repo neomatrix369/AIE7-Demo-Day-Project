@@ -1,4 +1,12 @@
-# Troubleshooting Cloud Deployment
+# Troubleshooting
+
+## Environment Issues ✅ AUTO-MANAGED
+
+**Version not switching:** `exec zsh`
+**Check versions:** `python --version && node --version`
+**Project overrides:** Create `.python-version` or `.nvmrc` files
+
+## Cloud Deployment
 
 ## Common Issues and Solutions
 

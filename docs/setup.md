@@ -1,33 +1,16 @@
-# Setup Guide
+# Setup Guide ✅ AUTO-MANAGED
 
 ## Prerequisites
-1. **Docker & Docker Compose** - Required for Qdrant vector database
-2. **Node.js 18+ or 22+** - For frontend development (with nvm recommended)
-3. **Python 3.8+** - For backend development (uv package manager recommended)
-4. **OpenAI API Key** - Required for document embeddings ([Get API key](https://platform.openai.com/api-keys))
-5. **Data Files** - CSV, PDF, MD, TXT files in `./backend/data/` folder (supports subdirectories)
+1. **Docker & Docker Compose** - Qdrant vector database
+2. **OpenAI API Key** - Document embeddings ([Get API key](https://platform.openai.com/api-keys))  
+3. **Data Files** - CSV/PDF/MD/TXT files in `./backend/data/`
+
+*Python 3.12.2 & Node.js v22.16.0 auto-managed via pyenv/nvm*
 
 ## Quick Start
 ```bash
-# 1. Set up environment
-cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
-
-# 2. Start Qdrant database
-./scripts/setup_qdrant.sh
-
-# 3. Start backend
-cd backend
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-uvicorn main:app --reload
-
-# 4. Start frontend (in new terminal)
-source ~/.zshrc && nvm use default && nvm use default
-cd frontend
-npm install  
-npm run dev
+cp .env.example .env  # Add OPENAI_API_KEY
+./scripts/setup_qdrant.sh && ./setup.sh
 ```
 
 ## Manual Setup

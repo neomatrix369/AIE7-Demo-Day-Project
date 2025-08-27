@@ -79,37 +79,18 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
   : 'http://localhost:8000/api';
 ```
 
-### Setup Instructions
+### Setup Instructions ✅ AUTO-MANAGED
 
-1. **Ensure correct Node.js version**:
-   ```bash
-   nvm use default  # Run twice if needed
-   node --version   # Should show 18+ or 22+
-   ```
+**Environment auto-switches to Node.js v22.16.0**
 
-2. **Install dependencies**:
-   ```bash
-   cd frontend
-   rm -rf node_modules package-lock.json  # If reinstalling
-   npm install
-   ```
+```bash
+cd frontend && npm install && npm run dev
+```
 
-3. **Test build**:
-   ```bash
-   npm run build  # Should complete successfully
-   ```
+### Troubleshooting ✅ AUTO-MANAGED
 
-4. **Run development server**:
-   ```bash
-   npm run dev
-   ```
-
-### Troubleshooting
-
-#### Build Failures
-- Always remove `node_modules` and `package-lock.json` when changing Node.js versions
-- Ensure using the correct Node.js version with `nvm use default`
-- Check that all dependencies are compatible versions
+**Version issues:** `exec zsh` to restart shell
+**Build failures:** Remove `node_modules` and reinstall
 
 #### WebSocket Support
 - WebSocket connections work directly to `ws://localhost:8000` regardless of Next.js version
@@ -119,9 +100,8 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 - Development: Direct calls to `http://localhost:8000/api`
 - Production: Relative calls to `/api` (requires reverse proxy setup)
 
-## Remember for Future Next.js Projects
-1. Check Node.js compatibility first
-2. Use `nvm use default` (twice) for proper Node.js activation  
-3. Start with stable Next.js versions (12.x) for reliability
-4. Remove `node_modules` when switching Node.js versions
-5. Test build process early to catch compatibility issues
+## Remember for Future Projects ✅ AUTO-MANAGED
+1. Environment auto-manages Node.js versions
+2. Start with stable Next.js versions (12.x) for reliability  
+3. Remove `node_modules` when issues occur
+4. Test build process early

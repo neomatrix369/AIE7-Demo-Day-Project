@@ -1,14 +1,37 @@
 import React from 'react';
+import { useRouter } from 'next/router';
 import { ComparisonData } from '../types';
 import { getOverallImprovement, formatDate, formatTime } from '../utils/comparisonCalculations';
 import { getStatusColorScheme } from '../utils/statusColors';
+import { logNavigation } from '../utils/logger';
 
 interface ComparisonHeaderProps {
   data: ComparisonData;
 }
 
 const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
+  const router = useRouter();
   const overallImprovement = getOverallImprovement(data);
+
+  const handleNavigateToResults = (experimentName: string, experimentId: string) => {
+    logNavigation('compare', 'results', {
+      component: 'ComparisonHeader',
+      action: 'NAVIGATE_TO_RESULTS',
+      data: { experimentId, experimentName }
+    });
+    // Use experimentId (filename) for the API, which is what the backend expects
+    router.push(`/results?experiment=${encodeURIComponent(experimentId)}`);
+  };
+
+  const handleNavigateToGapAnalysis = (experimentName: string, experimentId: string) => {
+    logNavigation('compare', 'gap-analysis', {
+      component: 'ComparisonHeader',
+      action: 'NAVIGATE_TO_GAP_ANALYSIS',
+      data: { experimentId, experimentName }
+    });
+    // Use experimentId (filename) for the API, which is what the backend expects
+    router.push(`/gap-analysis?experiment=${encodeURIComponent(experimentId)}`);
+  };
   
   // Get background color based on theme
   const getBadgeBackgroundColor = (theme: 'positive' | 'negative' | 'neutral') => {
@@ -175,9 +198,64 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
             padding: '3px 8px',
             borderRadius: '4px',
             fontSize: '10px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            marginBottom: '12px'
           }}>
             BASELINE
+          </div>
+          
+          {/* Navigation buttons for Experiment A */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <button
+              onClick={() => handleNavigateToResults(data.experimentA.name, data.experimentA.id)}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              📊 Results Analysis
+            </button>
+            <button
+              onClick={() => handleNavigateToGapAnalysis(data.experimentA.name, data.experimentA.id)}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              🎯 Gap Analysis
+            </button>
           </div>
         </div>
 
@@ -212,9 +290,64 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
             padding: '3px 8px',
             borderRadius: '4px',
             fontSize: '10px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            marginBottom: '12px'
           }}>
             ENHANCED
+          </div>
+          
+          {/* Navigation buttons for Experiment B */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <button
+              onClick={() => handleNavigateToResults(data.experimentB.name, data.experimentB.id)}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              📊 Results Analysis
+            </button>
+            <button
+              onClick={() => handleNavigateToGapAnalysis(data.experimentB.name, data.experimentB.id)}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              🎯 Gap Analysis
+            </button>
           </div>
         </div>
       </div>

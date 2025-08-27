@@ -84,13 +84,13 @@ export type HeatmapPerspective =
 
 ## 📊 SCORING LEGEND
 
-### Evaluation Criteria (1-10 Scale)
-| Criteria | **1-3 (Poor)** | **4-6 (Developing)** | **7-8 (Good)** | **9-10 (Excellent)** |
-|----------|----------------|----------------------|-----------------|----------------------|
-| **Developer Value** | Minimal debugging utility | Some technical insights | Clear optimization paths | Critical development tool |
-| **Client Value** | Low business relevance | Moderate ROI visibility | Strong business intelligence | Essential decision support |
-| **Visual Effectiveness** | Confusing/cluttered | Functional but unclear | Intuitive and clear | Outstanding visual design |
-| **Information Density** | Sparse actionable data | Moderate insights | Rich, useful information | Maximum insight per space |
+### Evaluation Criteria (0-10 Scale)
+| Criteria | **<5.0 (Poor)** | **5.0-6.9 (Developing)** | **≥7.0 (Good)** |
+|----------|-----------------|--------------------------|------------------|
+| **Developer Value** | Minimal debugging utility | Some technical insights | Clear optimization paths & critical tools |
+| **Client Value** | Low business relevance | Moderate ROI visibility | Strong business intelligence & decision support |
+| **Visual Effectiveness** | Confusing/cluttered | Functional but unclear | Intuitive, clear & outstanding design |
+| **Information Density** | Sparse actionable data | Moderate insights | Rich, useful information with maximum insight |
 
 ### **Impact Score Calculation**
 - **Formula**: Average of all 4 criteria scores
@@ -129,11 +129,10 @@ export type HeatmapPerspective =
 
 ## 📝 SCORING FOOTNOTES
 
-**¹ Evaluation Criteria (1-10 Scale):**
-- **1-3 (Poor)**: Minimal utility/value
-- **4-6 (Developing)**: Moderate utility/value  
-- **7-8 (Good)**: Strong utility/value
-- **9-10 (Excellent)**: Critical/essential utility/value
+**¹ Evaluation Criteria (0-10 Scale):**
+- **<5.0 (Poor)**: Minimal utility/value
+- **5.0-6.9 (Developing)**: Moderate utility/value  
+- **≥7.0 (Good)**: Strong utility/value to critical/essential utility/value
 
 **² Impact Score:** Average of all 4 criteria scores
 

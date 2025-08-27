@@ -317,12 +317,11 @@ class ExperimentService:
         min_quality = min(quality_scores)
         max_quality = max(quality_scores)
         
-        # Quality score distribution (buckets)
+        # Quality score distribution (buckets) - Using standard thresholds: GOOD (≥7.0), DEVELOPING (≥5.0), POOR (<5.0)
         distribution = {
-            "excellent": len([s for s in quality_scores if s >= 8.0]),
-            "good": len([s for s in quality_scores if 6.0 <= s < 8.0]),
-            "fair": len([s for s in quality_scores if 4.0 <= s < 6.0]),
-            "poor": len([s for s in quality_scores if s < 4.0])
+            "good": len([s for s in quality_scores if s >= 7.0]),
+            "developing": len([s for s in quality_scores if 5.0 <= s < 7.0]),
+            "poor": len([s for s in quality_scores if s < 5.0])
         }
         
         # Quality threshold analysis

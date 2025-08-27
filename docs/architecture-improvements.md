@@ -28,7 +28,7 @@ These metrics should be computed when needed rather than stored:
 
 "quality_score_metrics": {
   "quality_score_distribution": {     // Histogram from raw scores
-    "excellent": 0, "good": 33, "fair": 44, "poor": 1
+    "good": 33, "developing": 44, "poor": 1
   },
   "quality_threshold_analysis": {     // Count-based analysis
     "above_7": 11, "above_6": 33, "above_5": 67, "below_5": 11

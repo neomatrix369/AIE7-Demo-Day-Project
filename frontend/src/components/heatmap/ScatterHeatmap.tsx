@@ -10,7 +10,6 @@ import {
 } from '../../utils/heatmapData';
 import { 
   processDocumentsToChunksRefactored,
-  processQuestionsToChunksRefactored,
   processChunksToQuestionsRefactored,
   processRolesToChunksRefactored
 } from '../../utils/heatmapProcessors';
@@ -95,8 +94,6 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         }))
       });
       points = processDocumentsToChunksRefactored(questionResults, memoizedAllChunks || undefined);
-    } else if (perspective === 'questions-to-chunks') {
-      points = processQuestionsToChunksRefactored(questionResults, memoizedAllChunks || undefined);
     } else if (perspective === 'chunks-to-questions') {
       points = processChunksToQuestionsRefactored(questionResults, memoizedAllChunks || undefined);
     } else if (perspective === 'roles-to-chunks') {
@@ -149,7 +146,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
           screenX: Math.max(20, Math.min(canvasWidth - 20, x)),
           screenY: Math.max(20, Math.min(canvasHeight - 20, y))
         };
-      } else if (perspective === 'documents-to-chunks' || perspective === 'questions-to-chunks') { // This will handle 'documents-to-chunks' and 'questions-to-chunks'
+      } else if (perspective === 'documents-to-chunks') {
         // Delegate to shared grid positioning
         const gridPoints = gridify(heatmapPoints);
         return gridPoints[index];
@@ -265,7 +262,6 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
       }))
     });
 
-    const generateChunkHexagon = generateHexagonPoints;
 
     // Unified owner (document/role) chunk rendering
     const renderDocumentChunks = (documentPoint: HeatmapPoint, parentG: d3.Selection<SVGGElement, unknown, null, undefined>) => {
@@ -465,7 +461,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('.scatter-point')
-      .on('click', function(event, d) {
+      .on('click', function(_, d) {
         // Hide tooltip on click
         setTooltipPosition(prev => ({ ...prev, visible: false }));
         setTooltipData(null);
@@ -523,9 +519,7 @@ const ScatterHeatmap: React.FC<ScatterHeatmapProps> = React.memo(({
         color: '#666',
         textAlign: 'center'
       }}>
-        {perspective === 'questions-to-chunks' 
-          ? `${heatmapPoints.length} questions shown`
-          : `${totalChunks || heatmapPoints.length} chunks shown`}
+        {`${totalChunks || heatmapPoints.length} chunks shown`}
         {qualityFilter !== 'all' && ` (${qualityFilter} quality only)`}
       </div>
     </div>

@@ -195,23 +195,31 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = React.memo(({
         lineHeight: '1.4'
       }}>
         <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-          📊 Current View: {perspective === 'questions-to-chunks' ? 'Questions → Chunks' : 'Chunks → Questions'}
+          📊 Current View: {perspective.replace(/-/g, ' → ').replace(/\b\w/g, l => l.toUpperCase())}
         </div>
         <div>
-          {perspective === 'questions-to-chunks' ? (
-            <>
-              <strong>Scatter Space:</strong> 2D distribution of questions<br/>
-              <strong>Each point:</strong> Represents one question<br/>
-              <strong>Position:</strong> Organic scatter layout
-            </>
-          ) : (
+          {perspective === 'chunks-to-questions' ? (
             <>
               <strong>Scatter Space:</strong> Optimized center-edge distribution<br/>
               <strong>Center Cluster:</strong> Retrieved chunks (larger, colored)<br/>
               <strong>Edge Scatter:</strong> Unretrieved chunks (smaller, grey)<br/>
               <strong>Spacing:</strong> Auto-optimized to prevent overlaps
             </>
-          )}
+          ) : perspective === 'documents-to-chunks' ? (
+            <>
+              <strong>Hexagonal Grid:</strong> Documents as hexagonal containers<br/>
+              <strong>Each hexagon:</strong> Represents one document<br/>
+              <strong>Size:</strong> Based on chunk count and retrieval frequency<br/>
+              <strong>Color:</strong> Average similarity across document
+            </>
+          ) : perspective === 'roles-to-chunks' ? (
+            <>
+              <strong>Role Distribution:</strong> Horizontal spacing by performance<br/>
+              <strong>Each point:</strong> Represents a user role<br/>
+              <strong>Size:</strong> Number of questions from role<br/>
+              <strong>Position:</strong> Quality-based vertical positioning
+            </>
+          ) : null}
         </div>
       </div>
 

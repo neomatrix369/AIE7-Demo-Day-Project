@@ -670,135 +670,7 @@ function createChunksToQuestionsUnretrievedClusters(
   });
 }
 
-// =============================================================================
-// QUESTIONS PROCESSOR (REFACTORED)
-// =============================================================================
 
-export function processQuestionsToChunksRefactored(
-  questionResults: QuestionResult[],
-  allChunks?: Array<{chunk_id: string; doc_id: string; title: string; content: string}>
-): HeatmapPoint[] {
-  
-  // Create defensive copies to prevent mutation of input data
-  const questionResultsCopy = [...questionResults];
-  const allChunksCopy = allChunks ? [...allChunks] : undefined;
-  
-  // Build question map with retrieved chunks
-  const questionMap = new Map<string, {
-    questionId: string;
-    questionText: string;
-    source: string;
-    roleName: string;
-    chunks: Array<{
-      chunkId: string;
-      docId: string;
-      title: string;
-      content: string;
-      similarity: number;
-    }>;
-    totalSimilarity: number;
-  }>();
-
-  // Process questions and their retrieved chunks
-  questionResultsCopy.forEach(question => {
-    const questionId = question.id || 'unknown';
-    
-    if (!questionMap.has(questionId)) {
-      questionMap.set(questionId, {
-        questionId,
-        questionText: question.text || 'Unknown question',
-        source: question.source || 'unknown',
-        roleName: question.role_name || 'Unknown Role',
-        chunks: [],
-        totalSimilarity: 0
-      });
-    }
-
-    const questionData = questionMap.get(questionId)!;
-    
-    (question.retrieved_docs || []).forEach(doc => {
-      const similarity = (doc.similarity || 0) * 10;
-      questionData.chunks.push({
-        chunkId: doc.chunk_id || 'unknown',
-        docId: doc.doc_id || 'unknown',
-        title: doc.title || 'Unknown document',
-        content: doc.content || '',
-        similarity
-      });
-      questionData.totalSimilarity += similarity;
-    });
-  });
-
-  const questions = Array.from(questionMap.values());
-  const maxChunkCount = Math.max(...questions.map(q => q.chunks.length), 1);
-
-  // Create question points using shared utility
-  const questionPoints: HeatmapPoint[] = questions.map((question) => {
-    const avgSimilarity = question.chunks.length > 0 
-      ? question.totalSimilarity / question.chunks.length 
-      : 0;
-
-    const questionData: QuestionHeatmapData = {
-      type: 'question',
-      questionId: question.questionId,
-      questionText: question.questionText,
-      source: question.source,
-      qualityScore: avgSimilarity,
-      status: avgSimilarity >= 7.0 ? 'good' : avgSimilarity >= 5.0 ? 'developing' : 'poor',
-      avgSimilarity,
-      chunkFrequency: question.chunks.length,
-      retrievedChunks: question.chunks.map(chunk => ({
-        chunkId: chunk.chunkId,
-        docId: chunk.docId,
-        title: chunk.title,
-        content: chunk.content,
-        similarity: chunk.similarity
-      }))
-    };
-
-    return {
-      id: question.questionId,
-      x: 0, // Will be positioned later
-      y: 0,
-      size: calculateStandardSize(question.chunks.length, maxChunkCount),
-      color: calculateStandardColor(question.totalSimilarity, question.chunks.length),
-      opacity: calculateStandardOpacity(question.chunks.length > 0),
-      data: questionData
-    };
-  });
-
-  // Create unretrieved clusters using shared utility
-  const retrievedChunkIds = new Set(
-    questions.flatMap(q => q.chunks.map(chunk => chunk.chunkId))
-  );
-  const unretrievedChunks = allChunksCopy?.filter(chunk => 
-    !retrievedChunkIds.has(chunk.chunk_id)
-  ) || [];
-
-  const unretrievedClusters = createUnretrievedClusters(unretrievedChunks, {
-    targetClusterCount: Math.min(16, Math.max(6, Math.ceil(unretrievedChunks.length / 30))),
-    positionStrategy: 'perimeter',
-    sizeMethod: 'linear'
-  });
-
-  const allPoints = [...questionPoints, ...unretrievedClusters];
-
-  // Validate consistency
-  const validation = validateHeatmapConsistency(allPoints);
-  if (!validation.isValid) {
-    console.warn('🚨 Heatmap consistency issues detected:', validation.issues);
-  }
-
-  console.log('📊 Questions processed (refactored):', {
-    questionCount: questionPoints.length,
-    unretrievedClusters: unretrievedClusters.length,
-    totalUnretrievedChunks: unretrievedChunks.length,
-    validation: validation.isValid ? '✅' : '⚠️',
-    timestamp: new Date().toISOString()
-  });
-
-  return allPoints;
-}
 
 // =============================================================================
 // MIGRATION UTILITIES
@@ -814,7 +686,6 @@ export function enableRefactoredProcessors() {
   return {
     processDocumentsToChunks: processDocumentsToChunksRefactored,
     processRolesToChunks: processRolesToChunksRefactored,
-    processChunksToQuestions: processChunksToQuestionsRefactored,
-    processQuestionsToChunks: processQuestionsToChunksRefactored
+    processChunksToQuestions: processChunksToQuestionsRefactored
   };
 }

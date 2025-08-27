@@ -349,49 +349,6 @@ function groupUnretrievedChunks(
 }
 
 /**
- * Process questions data for Questions-to-Chunks perspective
- */
-export function processQuestionsToChunks(questionResults: QuestionResult[]): HeatmapPoint[] {
-  const maxChunkFrequency = Math.max(...questionResults.map(q => (q.retrieved_docs || []).length), 1);
-  const maxQualityScore = Math.max(...questionResults.map(q => q.quality_score ?? 0), 1);
-  
-  return questionResults.map((question, index) => {
-    const qualityScore = question.quality_score ?? 0;
-    const retrievedDocs = question.retrieved_docs || [];
-    
-    const questionData: QuestionHeatmapData = {
-      type: 'question',
-      questionId: question.id || 'unknown',
-      questionText: question.text || 'Unknown question',
-      source: question.source || 'unknown',
-      qualityScore: qualityScore,
-      status: question.status || 'poor',
-      retrievedChunks: retrievedDocs.map(doc => ({
-        chunkId: doc.chunk_id || 'unknown',
-        docId: doc.doc_id || 'unknown',
-        content: doc.content || '',
-        similarity: (doc.similarity ?? 0) * 10, // Convert 0-1 to 0-10 scale
-        title: doc.title || 'Unknown document'
-      })),
-      avgSimilarity: retrievedDocs.length > 0 
-        ? (retrievedDocs.reduce((sum, doc) => sum + (doc.similarity ?? 0), 0) / retrievedDocs.length) * 10 // Convert to 0-10 scale
-        : 0,
-      chunkFrequency: retrievedDocs.length
-    };
-
-    return {
-      id: question.id || `question_${index}`,
-      x: index, // Question index on x-axis
-      y: questionData.avgSimilarity * 10, // Average similarity (0-10 scale) on y-axis
-      size: Math.max(0.6, (questionData.chunkFrequency / maxChunkFrequency) * 1.0 * (0.8 + (qualityScore / 10) * 0.2)), // Size based on frequency and quality
-      color: qualityScore, // Pass actual quality score (0-10 scale)
-      opacity: 0.8, // Fixed visible opacity - use color and size for differentiation
-      data: questionData
-    };
-  });
-}
-
-/**
  * Process questions data for Chunks-to-Questions perspective
  * Includes both retrieved chunks and Unretrieved chunks (never retrieved)
  */

@@ -115,7 +115,7 @@ export interface ExperimentFile {
 }
 
 // Heatmap-specific interfaces
-export type HeatmapPerspective = 'documents-to-chunks' | 'questions-to-chunks' | 'chunks-to-questions' | 'roles-to-chunks';
+export type HeatmapPerspective = 'documents-to-chunks' | 'chunks-to-questions' | 'roles-to-chunks';
 
 export interface HeatmapConfig {
   perspective: HeatmapPerspective;

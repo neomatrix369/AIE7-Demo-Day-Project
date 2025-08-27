@@ -54,6 +54,7 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
           🔄 Visualization Perspective
         </h4>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Sorted by Priority Score: Documents→Chunks (8.0), Chunks→Questions (7.8), Roles→Chunks (7.0) */}
           <button
             className={config.perspective === 'documents-to-chunks' ? 'button' : 'button button-secondary'}
             style={{ 
@@ -70,21 +71,6 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
             </div>
           </button>
           <button
-            className={config.perspective === 'roles-to-chunks' ? 'button' : 'button button-secondary'}
-            style={{ 
-              padding: '8px 16px',
-              fontSize: '0.85rem',
-              backgroundColor: config.perspective === 'roles-to-chunks' ? '#007bff' : '#6c757d',
-              minWidth: '160px'
-            }}
-            onClick={() => handlePerspectiveChange('roles-to-chunks')}
-          >
-            🎭 Roles → Chunks
-            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
-              ({totalRoles} roles analysed)
-            </div>
-          </button>
-          <button
             className={config.perspective === 'chunks-to-questions' ? 'button' : 'button button-secondary'}
             style={{ 
               padding: '8px 16px',
@@ -97,6 +83,21 @@ const HeatmapControls: React.FC<HeatmapControlsProps> = React.memo(({
             📄 Chunks → Questions
             <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
               ({totalChunks} retrieved chunks)
+            </div>
+          </button>
+          <button
+            className={config.perspective === 'roles-to-chunks' ? 'button' : 'button button-secondary'}
+            style={{ 
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              backgroundColor: config.perspective === 'roles-to-chunks' ? '#007bff' : '#6c757d',
+              minWidth: '160px'
+            }}
+            onClick={() => handlePerspectiveChange('roles-to-chunks')}
+          >
+            🎭 Roles → Chunks
+            <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '2px' }}>
+              ({totalRoles} roles analysed)
             </div>
           </button>
         </div>

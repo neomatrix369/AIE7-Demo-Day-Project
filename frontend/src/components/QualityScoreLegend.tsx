@@ -22,7 +22,7 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
         display: 'flex', 
         alignItems: 'center', 
         flexWrap: 'wrap',
-        gap: '32px',
+        gap: '45px',
         ...style 
       }}>
         {titleText && <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{titleText}:</span>}
@@ -105,9 +105,9 @@ const QualityScoreLegend: React.FC<QualityScoreLegendProps> = React.memo(({
     <div style={{ 
       fontSize: '0.8rem', 
       color: '#666', 
-      display: 'flex !important', 
+      display: 'flex', 
       alignItems: 'center', 
-      gap: '30px',
+      gap: '45px',
       flexWrap: 'wrap',
       flexDirection: 'row',
       justifyContent: 'flex-start',

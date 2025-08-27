@@ -15,10 +15,11 @@ import VectorDbStatusIndicator from '../components/ui/VectorDbStatusIndicator';
 import DocumentManagement from '../components/DocumentManagement';
 
 const DataLoadingDashboard: React.FC = () => {
-  const { data: corpusStatus, loading, error, execute } = useApiCall<CorpusStatus>();
+  const { data: corpusStatus, loading, error, execute, setData } = useApiCall<CorpusStatus>();
+  
+
   const router = useRouter();
   const { goTo } = usePageNavigation('Dashboard');
-  const [documentStatusChanged, setDocumentStatusChanged] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
 
   useEffect(() => {
@@ -27,21 +28,6 @@ const DataLoadingDashboard: React.FC = () => {
       { component: 'Dashboard', action: 'FETCH_CORPUS_STATUS' }
     );
   }, [execute]);
-
-  // Refresh corpus status when document status changes
-  useEffect(() => {
-    if (documentStatusChanged) {
-      execute(
-        corpusApi.getStatus,
-        { component: 'Dashboard', action: 'REFRESH_CORPUS_STATUS' }
-      );
-      setDocumentStatusChanged(false);
-    }
-  }, [documentStatusChanged, execute]);
-
-  const handleDocumentStatusChange = () => {
-    setDocumentStatusChanged(true);
-  };
 
   const handleProceedToQuestions = () => {
     goTo('/questions', 'Questions', { action: 'NAVIGATE_TO_QUESTIONS' });
@@ -79,7 +65,7 @@ const DataLoadingDashboard: React.FC = () => {
         <NavigationHeader currentPage="dashboard" />
         <VectorDbStatusIndicator position="top-left" />
         <ExperimentStatusIndicator />
-        <DocumentManagement onStatusChange={handleDocumentStatusChange} />
+        <DocumentManagement onCorpusUpdate={setData} />
         <div className="card">
           <ErrorDisplay 
             error={{
@@ -100,7 +86,7 @@ const DataLoadingDashboard: React.FC = () => {
       <NavigationHeader currentPage="dashboard" />
       <VectorDbStatusIndicator position="top-left" />
       <ExperimentStatusIndicator />
-      <DocumentManagement onStatusChange={handleDocumentStatusChange} />
+              <DocumentManagement onCorpusUpdate={setData} />
       <div className="card">
           <h2>🔍 RagCheck - Ready to Analyze</h2>
           <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>

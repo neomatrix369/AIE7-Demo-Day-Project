@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { documentsApi } from '../services/api';
+import { documentsApi, corpusApi } from '../services/api';
 import { DocumentStatus, DocumentInfo } from '../types';
 import { logSuccess, logError, logInfo } from '../utils/logger';
 import { createStorageAdapter, isVercelDeployment } from '../services/storage';
 import { DocumentConfig } from '../services/storage/StorageAdapter';
 
 interface DocumentManagementProps {
-  onStatusChange?: () => void;
+  onCorpusUpdate?: (data: any) => void;
 }
 
 interface IngestionProgress {
@@ -17,7 +17,7 @@ interface IngestionProgress {
   timestamp: string;
 }
 
-const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange }) => {
+const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate }) => {
   const [documentStatus, setDocumentStatus] = useState<DocumentStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +172,18 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
 
   // Use useRef to store stable function references and prevent infinite loops
   const loadDocumentStatusRef = useRef<() => Promise<void>>();
+  
+    // Function to refresh corpus status and update parent component
+  const refreshCorpusStatus = useCallback(async () => {
+    try {
+      const response = await corpusApi.getStatus();
+      if (response && onCorpusUpdate) {
+        onCorpusUpdate(response);
+      }
+    } catch (err) {
+      console.error('Failed to refresh corpus status:', err);
+    }
+  }, [onCorpusUpdate]);
   
   const loadDocumentStatus = useCallback(async () => {
     try {
@@ -365,6 +377,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
           return newStatus;
         });
         logSuccess(`Document selected: ${filename}`, { component: 'DocumentManagement' });
+        // Refresh corpus status to update parent component
+        await refreshCorpusStatus();
       } else {
         throw new Error(response.message || 'Failed to select and ingest document');
       }
@@ -394,6 +408,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
           return newStatus;
         });
         logSuccess(`Document deselected: ${filename}`, { component: 'DocumentManagement' });
+        // Refresh corpus status to update parent component
+        await refreshCorpusStatus();
       } else {
         throw new Error(response.message || 'Failed to deselect document');
       }
@@ -454,7 +470,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       if (response.success) {
         await loadDocumentStatus();
         logSuccess('Pending documents ingested', { component: 'DocumentManagement' });
-        onStatusChange?.();
+        await refreshCorpusStatus();
       } else {
         throw new Error(response.message || 'Failed to ingest pending documents');
       }
@@ -473,7 +489,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       if (response.success) {
         await loadDocumentStatus();
         logSuccess('Changed documents re-ingested', { component: 'DocumentManagement' });
-        onStatusChange?.();
+        await refreshCorpusStatus();
       } else {
         throw new Error(response.message || 'Failed to re-ingest changed documents');
       }
@@ -492,7 +508,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
       if (response.success) {
         await loadDocumentStatus();
         logSuccess(`Document deleted: ${filename}`, { component: 'DocumentManagement' });
-        onStatusChange?.();
+        await refreshCorpusStatus();
       } else {
         throw new Error(response.message || 'Failed to delete document');
       }
@@ -512,7 +528,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
         // Force reload from backend
         await loadDocumentStatus();
         logSuccess('Document cache cleared', { component: 'DocumentManagement' });
-        onStatusChange?.();
+        await refreshCorpusStatus();
       } else {
         throw new Error(response.message || 'Failed to clear document cache');
       }
@@ -558,7 +574,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onStatusChange 
 
       // Reload document status after upload
       await loadDocumentStatus();
-      onStatusChange?.();
+      await refreshCorpusStatus();
       
       // Clear the file input
       if (fileInputRef.current) {

@@ -17,12 +17,12 @@ const HeatmapLegend: React.FC<HeatmapLegendProps> = React.memo(({
     { value: 0.3, label: 'Document: Low Avg Quality (<5.0)', color: '#dc3545' },
     { value: 0.0, label: 'Document: No Retrieved Chunks', color: '#9e9e9e' }
   ] : perspective === 'chunks-to-questions' ? [
-    { value: 0.9, label: 'Excellent (≥7.0)', color: '#28a745' },
+    { value: 0.9, label: 'Good (≥7.0)', color: '#28a745' },
     { value: 0.6, label: 'Developing (5.0-7.0)', color: '#e67e22' },
     { value: 0.3, label: 'Poor (<5.0)', color: '#dc3545' },
     { value: 0.0, label: 'Unretrieved chunk clusters (darker)', color: '#6d4c41' }
   ] : [
-    { value: 0.9, label: 'Excellent (≥7.0)', color: '#28a745' },
+    { value: 0.9, label: 'Good (≥7.0)', color: '#28a745' },
     { value: 0.6, label: 'Developing (5.0-7.0)', color: '#e67e22' },
     { value: 0.3, label: 'Poor (<5.0)', color: '#dc3545' }
   ];

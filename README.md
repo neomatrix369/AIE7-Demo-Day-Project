@@ -5,8 +5,11 @@ A 6-screen wizard application for comprehensive RAG system quality assessment us
 ## Visuals
 
 
-|: ![RagCheck Analysis Results: Quality Score](./screenshots/rag-check-analysis-results.png) :|: ![RagCheck Analysis Results: Quality Score](./screenshots/rag-check-gap-analysis.png) :|
+|: ![RagCheck Analysis Results: Quality Score](./screenshots/rag-check-analysis-results.png) :|: ![RagCheck Gap Analysis Results](./screenshots/rag-check-gap-analysis.png) :|
 |:----:|:----:|
+
+|: ![RagCheck Heatmap](./screenshots/rag-check-heatmap.png) :|
+|:----:|
 
 ## Quick Start
 

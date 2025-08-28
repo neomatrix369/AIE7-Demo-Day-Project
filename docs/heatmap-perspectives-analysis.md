@@ -82,6 +82,46 @@ export type HeatmapPerspective =
 - **✅ Standardized**: Quality terminology across all systems
 - **🔮 Future**: Quality → Coverage perspective when backend analytics ready
 
+---
+
+## 📋 DEVELOPMENT SESSION NOTES - Quality → Coverage Perspective
+
+### **Session Context (August 2025)**
+- **Request**: Implement fourth heatmap perspective "Quality Score → Chunks" 
+- **Approach**: Simple 2D quality-coverage matrix using "fewest elements" principle
+- **Status**: Planning completed, implementation paused for future session
+
+### **Technical Requirements**
+- **Visualization**: 2D matrix with quality scores (0-10) vs chunk coverage frequency
+- **Data Structure**: Each point represents a chunk with its quality performance and retrieval frequency
+- **Visual Design**: Heat gradient from poor coverage/quality combinations to good
+- **Business Value**: Shows ROI of content expansion by correlating quality with coverage
+
+### **Implementation Plan**
+1. **Type Definition**: Add `'quality-to-coverage'` to `HeatmapPerspective` type
+2. **Data Processing**: Create chunk-level aggregation of quality scores vs retrieval frequency  
+3. **Visualization**: Simple scatter plot with heat intensity based on both metrics
+4. **UI Integration**: Add perspective button to existing heatmap controls
+
+### **Key Design Principles**
+- **Fewest Elements**: Simple 2D matrix without complex overlays
+- **Business Critical**: Direct correlation between quality and coverage for expansion decisions
+- **Visual Power**: Clear heat gradient showing performance vs utilization patterns
+- **Actionable Intelligence**: Identify underutilized high-quality chunks and overused poor-quality chunks
+
+### **Next Steps (Future Session)**
+1. Update TypeScript interfaces in `types/index.ts`
+2. Implement data transformation logic for quality-coverage correlation
+3. Add visualization component following existing heatmap patterns
+4. Test with current experiment data to validate usefulness
+5. Integrate with existing heatmap control system
+
+### **Success Criteria**
+- Clear visual separation between high-quality/high-coverage vs low-quality/low-coverage chunks
+- Actionable insights for content expansion decisions
+- Maintains simplicity principle with minimal UI complexity
+- Provides business value through ROI visibility
+
 ## 📊 SCORING LEGEND
 
 ### Evaluation Criteria (0-10 Scale)

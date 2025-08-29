@@ -73,6 +73,10 @@ coverage/
 
 # NextJS related
 **/.next/*
+**/tsconfig.tsbuildinfo
+
+# Python version files (environment-specific)
+**/.python-version
 
 CLAUDE.md
 

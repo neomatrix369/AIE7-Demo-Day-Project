@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
 import usePageData from '../hooks/usePageData';
 import { LABEL_DASHBOARD, LABEL_HEATMAP } from '../utils/constants';
-import { resultsApi, experimentsApi } from '../services/api';
+import { resultsApi } from '../services/api';
 import { AnalysisResults as AnalysisResultsType } from '../types';
 import { logInfo, logSuccess, logError } from '../utils/logger';
 import { getStatusColor as getStatusColorShared, getStatus as getStatusShared } from '../utils/qualityScore';
@@ -12,6 +12,8 @@ import QualityScoreLegend from '../components/QualityScoreLegend';
 import BalloonTooltip from '../components/ui/BalloonTooltip';
 import { createStorageAdapter } from '../services/storage';
 import QuickActions from '../components/ui/QuickActions';
+import ExperimentBanner from '../components/ui/ExperimentBanner';
+import { useExperimentName } from '../hooks/useExperimentName';
 
 const AnalysisResults: React.FC = () => {
   // UI state management (not moved to usePageData)
@@ -28,38 +30,20 @@ const AnalysisResults: React.FC = () => {
 
   // Get experiment filename from query parameter
   const experimentFilename = router.query.experiment as string;
+  
+  // Use shared hook for experiment name fetching
+  const { experimentName, loadExperimentName } = useExperimentName('Results');
 
   // Stable data loader function that loads specific experiment if provided
   const dataLoader = useCallback(async () => {
-    // If a specific experiment is requested, load it first
+    // If a specific experiment is requested, load it first and get its name
     if (experimentFilename) {
-      try {
-        logInfo(`Loading specific experiment: ${experimentFilename}`, {
-          component: 'Results',
-          action: 'LOAD_SPECIFIC_EXPERIMENT',
-          data: { experiment_filename: experimentFilename }
-        });
-        
-        await experimentsApi.load(experimentFilename);
-        
-        logSuccess(`Experiment loaded: ${experimentFilename}`, {
-          component: 'Results',
-          action: 'EXPERIMENT_LOADED',
-          data: { experiment_filename: experimentFilename }
-        });
-      } catch (error: any) {
-        logError(`Failed to load experiment ${experimentFilename}: ${error?.message || 'Unknown error'}`, {
-          component: 'Results',
-          action: 'LOAD_EXPERIMENT_ERROR',
-          data: { experiment_filename: experimentFilename, error: error?.message }
-        });
-        // Continue with current results if loading fails
-      }
+      await loadExperimentName(experimentFilename);
     }
     
     // Get the analysis results
     return resultsApi.getAnalysis();
-  }, [experimentFilename]);
+  }, [experimentFilename, loadExperimentName]);
 
   // Data loading with standard pattern
   const { data: results, loading, error, reload } = usePageData<AnalysisResultsType>(
@@ -271,6 +255,13 @@ const AnalysisResults: React.FC = () => {
       {results && (
       <div className="card">
         <h2>📊 Analysis Results Dashboard</h2>
+        {experimentFilename && (
+          <ExperimentBanner 
+            experimentFilename={experimentFilename}
+            experimentName={experimentName}
+            variant="results"
+          />
+        )}
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
           3-Level infographic analysis results
         </p>

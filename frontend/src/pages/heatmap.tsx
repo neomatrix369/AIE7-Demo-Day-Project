@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import usePageNavigation from '../hooks/usePageNavigation';
 import usePageData from '../hooks/usePageData';
 import { resultsApi, corpusApi } from '../services/api';
@@ -12,6 +13,8 @@ import { HeatmapPoint } from '../utils/heatmapData';
 import useApiCache from '../hooks/useApiCache';
 import { DEFAULT_CACHE_TTL_MS, DEFAULT_CACHE_MAX_SIZE, LABEL_DASHBOARD, LABEL_RESULTS } from '../utils/constants';
 import QuickActions from '../components/ui/QuickActions';
+import ExperimentBanner from '../components/ui/ExperimentBanner';
+import { useExperimentName } from '../hooks/useExperimentName';
 
 const InteractiveHeatmapVisualization: React.FC = () => {
   // Complex UI state (kept separate from usePageData)
@@ -29,9 +32,24 @@ const InteractiveHeatmapVisualization: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState<number>(0);
   
   const { goTo } = usePageNavigation('Heatmap');
+  const router = useRouter();
 
-  // Stable data loader function
-  const dataLoader = useCallback(() => resultsApi.getAnalysis(), []);
+  // Get experiment filename from query parameter
+  const experimentFilename = router.query.experiment as string;
+  
+  // Use shared hook for experiment name fetching
+  const { experimentName, loadExperimentName } = useExperimentName('Heatmap');
+
+  // Stable data loader function that loads specific experiment if provided
+  const dataLoader = useCallback(async () => {
+    // If a specific experiment is requested, load it first and get its name
+    if (experimentFilename) {
+      await loadExperimentName(experimentFilename);
+    }
+    
+    // Get the analysis results
+    return resultsApi.getAnalysis();
+  }, [experimentFilename, loadExperimentName]);
 
   // Main data loading with standard pattern
   const { data: results, loading, error, reload } = usePageData<AnalysisResultsType>(
@@ -345,6 +363,13 @@ const InteractiveHeatmapVisualization: React.FC = () => {
       {results && (
       <div className="card">
         <h2>🗺️ Interactive Data Visualization</h2>
+        {experimentFilename && (
+          <ExperimentBanner 
+            experimentFilename={experimentFilename}
+            experimentName={experimentName}
+            variant="heatmap"
+          />
+        )}
         <p style={{ color: '#666', fontSize: '16px', marginBottom: '30px' }}>
           Explore multi-dimensional RAG relationships through interactive scatter plot heatmaps with three distinct perspectives: document clustering, role-based access patterns, and chunk retrieval analysis
         </p>

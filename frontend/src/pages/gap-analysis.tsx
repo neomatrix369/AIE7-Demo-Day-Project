@@ -5,8 +5,8 @@ import { LABEL_RESULTS, LABEL_HEATMAP, LABEL_DASHBOARD } from '../utils/constant
 import GapAnalysisDashboard from '../components/gap-analysis/GapAnalysisDashboard';
 import PageWrapper from '../components/ui/PageWrapper';
 import QuickActions from '../components/ui/QuickActions';
-import { experimentsApi } from '../services/api';
-import { logInfo, logError, logSuccess } from '../utils/logger';
+import ExperimentBanner from '../components/ui/ExperimentBanner';
+import { useExperimentName } from '../hooks/useExperimentName';
 
 const GapAnalysisPage: React.FC = () => {
   const { goTo } = usePageNavigation('Gap Analysis');
@@ -14,34 +14,16 @@ const GapAnalysisPage: React.FC = () => {
 
   // Get experiment filename from query parameter
   const experimentFilename = router.query.experiment as string;
+  
+  // Use shared hook for experiment name fetching
+  const { experimentName, loadExperimentName } = useExperimentName('GapAnalysis');
 
   // Load specific experiment if provided in URL
   const loadSpecificExperiment = useCallback(async () => {
     if (experimentFilename && experimentFilename !== 'undefined') {
-      try {
-        logInfo(`Loading experiment for gap analysis: ${experimentFilename}`, {
-          component: 'GapAnalysis',
-          action: 'LOAD_SPECIFIC_EXPERIMENT',
-          data: { experiment_filename: experimentFilename }
-        });
-        
-        await experimentsApi.load(experimentFilename);
-        
-        logSuccess(`Experiment loaded for gap analysis: ${experimentFilename}`, {
-          component: 'GapAnalysis',
-          action: 'EXPERIMENT_LOADED',
-          data: { experiment_filename: experimentFilename }
-        });
-      } catch (error: any) {
-        logError(`Failed to load experiment for gap analysis ${experimentFilename}: ${error?.message || 'Unknown error'}`, {
-          component: 'GapAnalysis',
-          action: 'LOAD_EXPERIMENT_ERROR',
-          data: { experiment_filename: experimentFilename, error: error?.message }
-        });
-        // Continue with current results if loading fails
-      }
+      await loadExperimentName(experimentFilename);
     }
-  }, [experimentFilename]);
+  }, [experimentFilename, loadExperimentName]);
 
   // Load experiment when component mounts or experiment changes
   React.useEffect(() => {
@@ -51,6 +33,15 @@ const GapAnalysisPage: React.FC = () => {
   return (
     <PageWrapper currentPage="gap-analysis">
       <div className="card">
+        {/* Experiment Name Banner */}
+        {experimentFilename && (
+          <ExperimentBanner 
+            experimentFilename={experimentFilename}
+            experimentName={experimentName}
+            variant="gap-analysis"
+          />
+        )}
+
         {/* Quick Actions */}
         <QuickActions
           actions={[

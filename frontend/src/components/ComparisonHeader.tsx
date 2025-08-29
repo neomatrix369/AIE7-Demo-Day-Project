@@ -32,6 +32,16 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
     // Use experimentId (filename) for the API, which is what the backend expects
     router.push(`/gap-analysis?experiment=${encodeURIComponent(experimentId)}`);
   };
+
+  const handleNavigateToHeatmap = (experimentName: string, experimentId: string) => {
+    logNavigation('compare', 'heatmap', {
+      component: 'ComparisonHeader',
+      action: 'NAVIGATE_TO_HEATMAP',
+      data: { experimentId, experimentName }
+    });
+    // Use experimentId (filename) for the API, which is what the backend expects
+    router.push(`/heatmap?experiment=${encodeURIComponent(experimentId)}`);
+  };
   
   // Get background color based on theme
   const getBadgeBackgroundColor = (theme: 'positive' | 'negative' | 'neutral') => {
@@ -256,6 +266,31 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
             >
               🎯 Gap Analysis
             </button>
+            <button
+              onClick={() => handleNavigateToHeatmap(data.experimentA.name, data.experimentA.id)}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              🗺️ Heatmap
+            </button>
           </div>
         </div>
 
@@ -347,6 +382,31 @@ const ComparisonHeader: React.FC<ComparisonHeaderProps> = ({ data }) => {
               }}
             >
               🎯 Gap Analysis
+            </button>
+            <button
+              onClick={() => handleNavigateToHeatmap(data.experimentB.name, data.experimentB.id)}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              🗺️ Heatmap
             </button>
           </div>
         </div>

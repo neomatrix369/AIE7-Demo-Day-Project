@@ -166,6 +166,23 @@ class Logger {
   }
 
   private getUserFriendlyErrorMessage(error: any): string {
+    // Check for application-level errors in successful HTTP responses
+    if (error?.response?.data?.error_message) {
+      const errorMsg = error.response.data.error_message;
+      // Make common errors more user-friendly
+      if (errorMsg === "No documents loaded or database not connected") {
+        return "No documents have been loaded yet. Please upload and process documents first.";
+      }
+      if (errorMsg === "No documents loaded") {
+        return "Document corpus is empty. Please upload documents to get started.";
+      }
+      return errorMsg;
+    }
+    
+    if (error?.response?.data?.message) {
+      return error.response.data.message;
+    }
+    
     // Network errors
     if (error?.code === 'NETWORK_ERROR' || error?.message?.includes('Network Error')) {
       return 'Unable to connect to the analysis service. Please check your connection.';

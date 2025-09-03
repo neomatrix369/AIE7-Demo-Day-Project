@@ -12,6 +12,9 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Source shared cleanup function
+source ./scripts/docker-cleanup.sh
+
 echo -e "${BLUE}🛑 Stopping RagCheck Services${NC}"
 echo "=================================="
 
@@ -57,6 +60,8 @@ case $choice in
     1)
         echo -e "${BLUE}🛑 Stopping and removing containers...${NC}"
         ${DOCKER_COMPOSE_COMMAND} down
+        # Run standard cleanup after stopping
+        docker_cleanup "silent"
         ;;
     2)
         echo -e "${BLUE}⏸️  Stopping containers (keeping for quick restart)...${NC}"
@@ -66,38 +71,14 @@ case $choice in
         echo -e "${BLUE}🧹 Force stopping and cleaning up...${NC}"
         ${DOCKER_COMPOSE_COMMAND} down --remove-orphans --volumes
         echo -e "${YELLOW}⚠️  Note: This removed volumes too. Data might be lost.${NC}"
+        # Run aggressive cleanup after force stop
+        docker_cleanup "aggressive"
         ;;
     4)
         echo -e "${BLUE}🔧 Stopping containers with cleanup...${NC}"
         ${DOCKER_COMPOSE_COMMAND} down
-        
-        echo -e "${BLUE}🧹 Cleaning up Docker resources...${NC}"
-        
-        # Remove exited containers
-        EXITED_CONTAINERS=$(docker ps -aq --filter "status=exited" 2>/dev/null)
-        if [ -n "$EXITED_CONTAINERS" ]; then
-            echo "  🗑️ Removing exited containers..."
-            docker rm $EXITED_CONTAINERS > /dev/null 2>&1 || true
-            echo -e "  ${GREEN}✅ Cleaned up exited containers${NC}"
-        fi
-        
-        # Remove dangling images
-        DANGLING_IMAGES=$(docker images --filter "dangling=true" -q 2>/dev/null)
-        if [ -n "$DANGLING_IMAGES" ]; then
-            echo "  🗑️ Removing dangling images..."
-            docker rmi $DANGLING_IMAGES > /dev/null 2>&1 || true
-            echo -e "  ${GREEN}✅ Cleaned up dangling images${NC}"
-        fi
-        
-        # Remove unused networks
-        echo "  🗑️ Pruning unused networks..."
-        docker network prune -f > /dev/null 2>&1 || true
-        echo -e "  ${GREEN}✅ Cleaned up unused networks${NC}"
-        
-        # Remove unused volumes (but preserve named volumes)
-        echo "  🗑️ Pruning unused anonymous volumes..."
-        docker volume prune -f > /dev/null 2>&1 || true
-        echo -e "  ${GREEN}✅ Cleaned up unused volumes${NC}"
+        # Run aggressive cleanup after stopping
+        docker_cleanup "aggressive"
         ;;
     *)
         echo -e "${RED}❌ Invalid choice. Using default.${NC}"

@@ -54,35 +54,11 @@ if grep -q "your_openai_api_key_here" .env; then
     read
 fi
 
-# Clean up Docker before starting
-echo -e "${BLUE}🧹 Cleaning up Docker resources...${NC}"
+# Source shared cleanup function
+source ./scripts/docker-cleanup.sh
 
-# Remove exited containers
-EXITED_CONTAINERS=$(docker ps -aq --filter "status=exited" 2>/dev/null)
-if [ -n "$EXITED_CONTAINERS" ]; then
-    echo "  🗑️ Removing exited containers..."
-    docker rm $EXITED_CONTAINERS > /dev/null 2>&1 || true
-    echo -e "  ${GREEN}✅ Cleaned up exited containers${NC}"
-else
-    echo "  ✅ No exited containers to clean"
-fi
-
-# Remove dangling images
-DANGLING_IMAGES=$(docker images --filter "dangling=true" -q 2>/dev/null)
-if [ -n "$DANGLING_IMAGES" ]; then
-    echo "  🗑️ Removing dangling images..."
-    docker rmi $DANGLING_IMAGES > /dev/null 2>&1 || true
-    echo -e "  ${GREEN}✅ Cleaned up dangling images${NC}"
-else
-    echo "  ✅ No dangling images to clean"
-fi
-
-# Prune unused networks
-echo "  🗑️ Pruning unused networks..."
-docker network prune -f > /dev/null 2>&1 || true
-echo -e "  ${GREEN}✅ Cleaned up unused networks${NC}"
-
-echo ""
+# Clean up Docker before starting (by default)
+docker_cleanup "standard"
 
 # Check for port conflicts
 echo -e "${BLUE}🔍 Checking for port conflicts...${NC}"

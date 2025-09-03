@@ -155,7 +155,11 @@ ingestionApi.interceptors.response.use(
 
 export const corpusApi = {
   getStatus: (): Promise<CorpusStatus> =>
-    api.get('/corpus/status').then(res => res.data),
+    api.get('/corpus/status').then(res => {
+      // Always return the data, even if status is "error"
+      // Let the component handle application-level errors
+      return res.data;
+    }),
   
   getAllChunks: (): Promise<{chunks: Array<{
     chunk_id: string;

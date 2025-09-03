@@ -34,10 +34,12 @@ services:
     volumes:
       - ./backend/data:/app/data  # Mount data directory
       - ./backend/cache:/app/cache  # Mount cache directory
+      - ./experiments:/app/experiments  # Mount experiments directory
     environment:
       - QDRANT_URL=http://qdrant:6333  # Internal Docker network
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATA_FOLDER=data/
+      - EXPERIMENTS_FOLDER=experiments/
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - BACKEND_HOST=0.0.0.0
       - BACKEND_PORT=8000

@@ -36,7 +36,12 @@ class ExperimentService:
     """Service for experiment data management and processing."""
     
     def __init__(self):
-        self.experiments_folder = os.path.join(os.path.dirname(__file__), '..', '..', 'experiments')
+        # Use environment variable for experiments folder, fallback to relative path
+        experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+        if experiments_folder.startswith("/"):
+            self.experiments_folder = experiments_folder
+        else:
+            self.experiments_folder = os.path.join(os.getcwd(), experiments_folder)
         
     def _get_environment_info(self) -> Dict[str, Any]:
         """Get environment information for reproducibility."""

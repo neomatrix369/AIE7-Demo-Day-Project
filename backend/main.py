@@ -668,7 +668,12 @@ async def load_experiment(filename: str):
         # Load the full experiment data to get metadata
         import os
         import json
-        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        # Use environment variable for experiments folder, fallback to relative path
+        experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+        if experiments_folder.startswith("/"):
+            experiments_folder = experiments_folder
+        else:
+            experiments_folder = os.path.join(os.getcwd(), experiments_folder)
         filepath = os.path.join(experiments_folder, filename)
         
         if not os.path.exists(filepath):
@@ -716,7 +721,12 @@ async def get_experiment_data(filename: str):
         # Load the experiment file directly
         import os
         import json
-        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        # Use environment variable for experiments folder, fallback to relative path
+        experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+        if experiments_folder.startswith("/"):
+            experiments_folder = experiments_folder
+        else:
+            experiments_folder = os.path.join(os.getcwd(), experiments_folder)
         filepath = os.path.join(experiments_folder, filename)
         
         if not os.path.exists(filepath):
@@ -747,7 +757,12 @@ async def delete_experiment(filename: str):
     """Delete a specific experiment file."""
     try:
         import os
-        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        # Use environment variable for experiments folder, fallback to relative path
+        experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+        if experiments_folder.startswith("/"):
+            experiments_folder = experiments_folder
+        else:
+            experiments_folder = os.path.join(os.getcwd(), experiments_folder)
         filepath = os.path.join(experiments_folder, filename)
         
         if os.path.exists(filepath):
@@ -824,7 +839,12 @@ async def websocket_experiment_stream(websocket: WebSocket):
         try:
             import os
             import json
-            experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+            # Use environment variable for experiments folder, fallback to relative path
+            experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+            if experiments_folder.startswith("/"):
+                experiments_folder = experiments_folder
+            else:
+                experiments_folder = os.path.join(os.getcwd(), experiments_folder)
             saved_filepath = os.path.join(experiments_folder, saved_filename)
             
             if os.path.exists(saved_filepath):

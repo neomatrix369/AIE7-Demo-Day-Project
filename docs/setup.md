@@ -1,62 +1,34 @@
-# Setup Guide ✅ AUTO-MANAGED
+# Setup Guide
 
-## Prerequisites
-1. **Docker & Docker Compose** - Qdrant vector database
-2. **OpenAI API Key** - Document embeddings ([Get API key](https://platform.openai.com/api-keys))  
-3. **Data Files** - CSV/PDF/MD/TXT files in `./backend/data/`
+> **🚀 Quick Start**: See the [main README](../README.md) for service startup with `./start-services.sh`
 
-*Python 3.12.2 & Node.js v22.16.0 auto-managed via pyenv/nvm*
+## Docker vs Manual Setup
 
-## Quick Start
+### Docker (Recommended)
+- **Simple**: One command setup
+- **Consistent**: Works on all platforms
+- **Fast**: Pre-configured with dependencies
+
+### Manual Setup
+- **Flexible**: Individual component control  
+- **Development**: Direct code access
+- **Debugging**: Easier to troubleshoot individual services
+
+## Advanced Configuration
+
+### Environment Variables
 ```bash
-cp .env.example .env  # Add OPENAI_API_KEY
-./scripts/setup_qdrant.sh && ./setup.sh
+# Required in .env file
+OPENAI_API_KEY=your_key_here
+
+# Optional (with defaults)
+QDRANT_URL=http://localhost:6333
+LOG_LEVEL=INFO
 ```
 
-## Manual Setup
-
-### Qdrant Database
-```bash
-# Start Qdrant container
-docker-compose up -d qdrant
-
-# Check container health status
-docker ps  # Shows (healthy) status
-
-# Verify connection
-curl http://localhost:6333/
-
-# View web UI (optional)
-open http://localhost:6333/dashboard
-```
-
-### Backend
-```bash
-cd backend
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-
-# Test Qdrant connection (optional)
-uv run python test_qdrant.py
-
-# Start server
-uvicorn main:app --reload
-```
-
-### Frontend
-```bash
-# Ensure correct Node version
-source ~/.zshrc && nvm use default && nvm use default
-node --version  # Should show 18+ or 22+
-
-cd frontend
-npm install
-npm run dev
-```
-
-## Services
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **Qdrant Database**: http://localhost:6333
-- **Qdrant Web UI**: http://localhost:6333/dashboard
+### Data Files
+Place documents in `./backend/data/`:
+- CSV files (generic or domain-specific)
+- PDF documents  
+- Markdown/text files
+- Subdirectories supported

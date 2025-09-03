@@ -1,9 +1,10 @@
-version: '3.8'
+name: ${COMPOSE_PROJECT_NAME:-ragcheck}
 
 services:
+  # Vector Database - Foundation Layer
   qdrant:
-    image: qdrant/qdrant:latest
-    container_name: qdrant-ragcheck
+    image: ${QDRANT_IMAGE:-qdrant/qdrant:latest}
+    container_name: ${QDRANT_CONTAINER_NAME:-ragcheck-qdrant}
     ports:
       - "6333:6333"  # REST API
       - "6334:6334"  # gRPC API (optional)
@@ -20,6 +21,59 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  # Backend API - Business Logic Layer
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE_NAME:-ragcheck-backend}
+    container_name: ${BACKEND_CONTAINER_NAME:-ragcheck-backend}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data  # Mount data directory
+      - ./backend/cache:/app/cache  # Mount cache directory
+    environment:
+      - QDRANT_URL=http://qdrant:6333  # Internal Docker network
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATA_FOLDER=data/
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8000
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Frontend - Presentation Layer
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: ${FRONTEND_IMAGE_NAME:-ragcheck-frontend}
+    container_name: ${FRONTEND_CONTAINER_NAME:-ragcheck-frontend}
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000  # External access for browser
+      - NEXT_PUBLIC_DEPLOYMENT_ENV=docker
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
 volumes:
   qdrant_storage:

@@ -6,7 +6,6 @@ Welcome to the RagCheck documentation! This directory contains comprehensive gui
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| 📋 [Setup Guide](setup.md) | Prerequisites, installation, and configuration | Developers, DevOps |
 | 🏗️ [Architecture](architecture.md) | Technical architecture and system design | Developers, Architects |
 | ⭐ [Features](features.md) | Complete feature overview and capabilities | Users, Product Managers |
 | 🔌 [API Reference](api.md) | REST endpoints, WebSocket API, and technologies | Developers, Integrators |
@@ -15,11 +14,12 @@ Welcome to the RagCheck documentation! This directory contains comprehensive gui
 | 🚀 [Cloud Deployment](deployment.md) | Vercel, Railway deployment guides | DevOps, SRE |
 | 🔧 [Troubleshooting](troubleshooting.md) | Common issues and debugging tips | Support, Developers |
 | 📁 [Project Structure](project-structure.md) | Codebase organization and file structure | Developers |
+| 🔧 [Setup Guide](setup.md) | Advanced configuration options | Developers |
 
 ## 🚀 Quick Navigation
 
 ### For Developers
-1. Start with [Setup Guide](setup.md) for local development
+1. Start with [main README](../README.md) for service startup
 2. Review [Architecture](architecture.md) to understand the system
 3. Check [Project Structure](project-structure.md) for codebase navigation
 4. Use [API Reference](api.md) for integration
@@ -31,7 +31,7 @@ Welcome to the RagCheck documentation! This directory contains comprehensive gui
 
 ### For Product/Users
 1. Start with [Features](features.md) for capability overview
-2. Review [Setup Guide](setup.md) for getting started
+2. Review [main README](../README.md) for getting started
 3. Use [Troubleshooting](troubleshooting.md) for common issues
 
 ## 📝 Contributing to Documentation

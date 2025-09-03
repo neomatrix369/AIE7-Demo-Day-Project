@@ -58,7 +58,10 @@
 │   │   └── usePageNavigation.ts # Navigation helper with structured logging
 │   └── src/types/index.ts     # TypeScript interfaces
 ├── scripts/                    # Setup and utility scripts
-│   └── setup_qdrant.sh        # Qdrant startup and health check
+│   └── health-check.sh        # Comprehensive service health monitoring
+├── start-services.sh          # Main service startup script (Docker-based)
+├── stop-services.sh           # Interactive service shutdown script
+├── setup.sh                   # Intelligent setup routing (Docker-first with manual fallback)
 ├── docs/                       # Documentation files
 │   ├── setup.md               # Setup and installation guide
 │   ├── architecture.md        # Technical architecture overview

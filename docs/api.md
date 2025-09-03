@@ -3,8 +3,8 @@
 ## REST Endpoints
 
 - `GET /api/corpus/status` - Real corpus metadata from processed documents
-- `GET /api/questions/llm` - LLM generated questions
-- `GET /api/questions/ragas` - RAGAS generated questions
+- `GET /api/questions/llm` - Client-provided/approved queries (LLM support when necessary)
+- `GET /api/questions/ragas` - Client-provided/approved queries (RAGAS support when necessary)
 - `POST /api/experiment/run` - Run vector similarity experiment
 - `GET /api/results/analysis` - Analysis results with similarity scores
 - `GET /api/v1/analysis/gaps` - **NEW!** Domain-agnostic gap analysis with practical improvement strategies

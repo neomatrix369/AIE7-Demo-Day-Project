@@ -103,13 +103,10 @@ src/
 
 ## Setup
 
-### Prerequisites
-- Node.js 18+ or 22+ (with nvm recommended for version management)
-- NPM or Yarn package manager
-- Backend API running on `http://localhost:8000`
-- Qdrant vector database running on `http://localhost:6333`
+### Docker Setup (Recommended)
+See the [main README](../README.md) for service startup with `./start-services.sh`
 
-### Installation
+### Manual Setup
 ```bash
 cd frontend
 
@@ -118,21 +115,6 @@ npm install
 
 # Start development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
-
-### Node.js Version Management
-```bash
-# Ensure correct Node.js version (important!)
-source ~/.zshrc  # or ~/.bashrc
-nvm use default  # Run twice for proper activation
-nvm use default
-node --version   # Should show 18+ or 22+
 ```
 
 ## Features
@@ -146,20 +128,20 @@ node --version   # Should show 18+ or 22+
 - **Loading States**: Progress indicators for slow operations with helpful context messages
 
 ### 2. Questions (Screen 2)  
-- **Side-by-side Comparison**: LLM vs RAGAS questions
+- **Side-by-side Comparison**: Client-provided/approved queries (with LLM vs RAGAS question support when necessary)
 - **Category Breakdown**: Role types and sample previews
 - **Statistics**: Question counts and generation status
 - **Navigation**: Smooth transitions between screens
 
 ### 3. Experiment (Screen 3)
-- **Interactive Configuration**: Question group selection (LLM/RAGAS) and vector search parameters
+- **Interactive Configuration**: Query group selection (client-provided/approved with LLM/RAGAS support) and vector search parameters
 - **Real-time Streaming**: WebSocket connection for live experiment progress with detailed logging
 - **Progress Tracking**: Visual progress bar with real-time question processing updates
 - **Experiment Control**: Start/stop functionality with proper state management and error handling
 - **Parameter Configuration**: Top-K results and similarity threshold selection
 
 ### 4. Results (Screen 4)
-- **3-Level Analysis**: Overall corpus health → Group performance (LLM vs RAGAS) → Individual question analysis
+- **3-Level Analysis**: Overall corpus health → Group performance (client queries with LLM vs RAGAS support) → Individual query analysis
 - **Interactive Features**: Real-time sorting, filtering by status (good/developing/poor), question detail expansion
 - **Visual Elements**: Similarity score bars, health indicators, status badges, distribution charts
 - **Custom Tooltips**: BalloonTooltip components for chunk IDs (with copy functionality) and document content
@@ -269,28 +251,9 @@ logNavigation('Dashboard', 'Questions');
 - **ESLint**: Code linting and style enforcement
 - **Next Config**: Build and development configuration
 
-## Performance Considerations
+## Performance Features
 
-### API Optimization
-- **30-second timeout** for slow backend operations  
-- **Advanced Caching**: API request caching with TTL (10min) and size limits via useApiCache hook
-- **Request deduplication** via React hooks with proper dependency management
-- **Cache Statistics**: Automatic cleanup and cache hit/miss tracking for performance monitoring
-
-### UI Optimization  
-- **D3.js Rendering**: Optimized data binding patterns with enter/update/exit cycles (~80% faster rendering)
-- **React State Management**: Improved useCallback dependencies and auto-save timeout cleanup  
-- **Responsive design** with mobile-first approach and enhanced visual indicators
-- **Progressive enhancement** with loading states and database connectivity feedback
-- **Efficient re-renders** with proper React patterns and memoization
-
-### Real-time Features
-- **WebSocket connection management** with reconnection and comprehensive error handling
-- **Progress tracking** without UI blocking and fallback mechanisms
-- **Memory management** for large result sets with automatic cleanup
-- **Database Integration**: Real-time connectivity monitoring with fallback displays and recovery instructions
-
-### Custom UI Components
-- **BalloonTooltip Performance**: Smart positioning algorithms with viewport boundary detection
-- **Cursor Optimization**: Context-aware cursor indicators (help vs pointer) for better UX
-- **Rendering Efficiency**: Optimized tooltip positioning with requestAnimationFrame for smooth animations
+- **API Caching**: 10-minute TTL with automatic cleanup
+- **D3.js Optimization**: Efficient data binding and rendering  
+- **WebSocket Management**: Real-time updates with reconnection
+- **Smart UI**: Custom tooltips and responsive design

@@ -1,7 +1,7 @@
 # Architecture Overview
 
 ## Application Structure
-This is **RagCheck** - a **6-screen wizard application** for RAG quality assessment that compares LLM-generated vs RAGAS-generated questions against a corpus:
+This is **RagCheck** - a **6-screen wizard application** for RAG quality assessment using client-provided/approved queries (with support for LLM-generated vs RAGAS-generated questions when necessary) against a corpus:
 
 1. **Screen 1 (Dashboard)**: Corpus overview with metadata and health metrics
 2. **Screen 2 (Questions)**: Side-by-side comparison of question groups 

@@ -124,15 +124,59 @@ app.add_middleware(
     allow_headers=CORS_CONFIG['ALLOW_HEADERS'],
 )
 
-# Health check endpoint for CORS testing
+# Health check endpoint for Docker and service monitoring
 @app.get("/health")
 async def health_check():
-    """Simple health check endpoint to test CORS configuration."""
-    return {
+    """Comprehensive health check endpoint for Docker service monitoring."""
+    health_status = {
         "status": "healthy",
-        "cors_origins": cors_origins,
-        "timestamp": "2025-08-18T00:53:19Z"
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "services": {}
     }
+    
+    # Check Qdrant connection
+    try:
+        # Use the existing method to test connection
+        collection_info = unified_doc_processor.qdrant_manager.get_collection_info()
+        vector_count = collection_info.get('vector_count', 0)
+        
+        health_status["services"]["qdrant"] = {
+            "status": "healthy",
+            "connected": True,
+            "vector_count": vector_count,
+            "collection": unified_doc_processor.qdrant_manager.collection_name
+        }
+    except Exception as e:
+        health_status["services"]["qdrant"] = {
+            "status": "unhealthy", 
+            "connected": False,
+            "error": str(e)
+        }
+        health_status["status"] = "unhealthy"
+    
+    # Check OpenAI API key availability
+    openai_key = os.getenv("OPENAI_API_KEY")
+    health_status["services"]["openai"] = {
+        "status": "configured" if openai_key and openai_key != "your_openai_api_key_here" else "not_configured",
+        "has_key": bool(openai_key and openai_key != "your_openai_api_key_here")
+    }
+    
+    # Check data folder
+    data_path = os.path.join(os.path.dirname(__file__), data_folder)
+    health_status["services"]["data"] = {
+        "status": "available" if os.path.exists(data_path) else "missing",
+        "path": data_path,
+        "exists": os.path.exists(data_path)
+    }
+    
+    # Overall status determination
+    service_statuses = [service["status"] for service in health_status["services"].values()]
+    if "unhealthy" in service_statuses or "missing" in service_statuses:
+        health_status["status"] = "unhealthy"
+    elif "not_configured" in service_statuses:
+        health_status["status"] = "degraded"
+    
+    return health_status
 
 import json
 

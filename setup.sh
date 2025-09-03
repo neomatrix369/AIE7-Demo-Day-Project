@@ -10,6 +10,18 @@ if [ ! -f "README.md" ]; then
     exit 1
 fi
 
+# Check for Docker and prefer it
+if command -v docker &> /dev/null && [[ "$1" != "--manual" ]]; then
+    echo "🐳 Docker detected - using service startup (faster and more reliable)"
+    echo "💡 Use './setup.sh --manual' if you prefer manual setup"
+    echo ""
+    exec ./start-services.sh
+fi
+
+echo "🔧 Using manual setup..."
+echo "⚠️  Note: Docker setup is recommended for easier management"
+echo ""
+
 # Setup backend
 echo "🔧 Setting up backend..."
 cd backend
@@ -39,11 +51,15 @@ cd ..
 echo ""
 echo "=================================================="
 echo ""
-echo "🎉 Setup complete! ✅ AUTO-MANAGED"
+echo "🎉 Manual setup complete! ✅"
 echo ""
-echo "Versions auto-switched: Python 3.12.2, Node.js v22.16.0"
+echo "⚠️  Remember to start Qdrant separately:"
+echo "   docker-compose up -d qdrant"
 echo ""
 echo "Services available at:"
 echo "   Frontend: http://localhost:3000"
 echo "   Backend:  http://localhost:8000"
 echo "   Docs:     http://localhost:8000/docs"
+echo ""
+echo "💡 For easier management, try service startup next time:"
+echo "   ./start-services.sh"

@@ -16,26 +16,42 @@ const VectorDbStatusIndicator: React.FC<VectorDbStatusIndicatorProps> = ({
   useEffect(() => {
     const checkVectorDbConnection = async () => {
       try {
-        const status = await corpusApi.getStatus();
-        console.log('VectorDb Status Check:', status); // Debug log
-        // Check if the response indicates successful database connection
-        const connected = status && (
-          status.corpus_loaded === true &&
-          status.chunk_count > 0 &&
-          status.document_count > 0
-        );
+        const dbStatus = await corpusApi.getDatabaseStatus();
+        console.log('VectorDb Database Status Check:', dbStatus); // Debug log
+        
+        // Check if the database is connected (regardless of corpus status)
+        const connected = dbStatus && dbStatus.database_connected === true;
         setIsConnected(connected);
+        
+        if (!connected && dbStatus?.error) {
+          console.log('VectorDb Connection Error:', dbStatus.error);
+        }
+        
+        // If database is offline, retry more frequently
+        if (!connected) {
+          // Retry after 5 seconds if database is offline
+          setTimeout(checkVectorDbConnection, 5000);
+        }
       } catch (error) {
         console.log('VectorDb Status Error:', error); // Debug log
+        
+        // Distinguish between backend not running vs database connection issues
+        if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+          console.log('Backend service appears to be offline');
+        }
+        
         // If API fails, assume no connection
         setIsConnected(false);
+        
+        // Retry after 5 seconds if there's an error
+        setTimeout(checkVectorDbConnection, 5000);
       }
     };
 
     checkVectorDbConnection();
     
-    // Recheck every 2 minutes to maintain connection status (reduced frequency)
-    const interval = setInterval(checkVectorDbConnection, 120000);
+    // Recheck every 30 seconds to maintain responsive connection status
+    const interval = setInterval(checkVectorDbConnection, 30000);
     
     return () => clearInterval(interval);
   }, []);
@@ -97,9 +113,9 @@ const VectorDbStatusIndicator: React.FC<VectorDbStatusIndicatorProps> = ({
 
   const getTooltipText = () => {
     if (isConnected) {
-      return 'Connected to Qdrant Vector Database with corpus loaded - All document embeddings and search functionality available';
+      return 'Connected to Qdrant Vector Database - Database is running and accessible';
     } else {
-      return 'Vector Database not ready - Check if Qdrant is running and corpus is loaded. Start with: ./scripts/setup_qdrant.sh';
+      return 'Vector Database not accessible - Check if Qdrant is running. For Docker: ensure qdrant service is up. For local: check if Qdrant is running on port 6333';
     }
   };
 

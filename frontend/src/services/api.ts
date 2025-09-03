@@ -161,6 +161,17 @@ export const corpusApi = {
       return res.data;
     }),
   
+  getDatabaseStatus: (): Promise<{
+    success: boolean;
+    database_connected: boolean;
+    qdrant_status: string;
+    vector_count: number;
+    collection: string;
+    timestamp: string;
+    error?: string;
+  }> =>
+    api.get('/database/status').then(res => res.data),
+  
   getAllChunks: (): Promise<{chunks: Array<{
     chunk_id: string;
     doc_id: string;

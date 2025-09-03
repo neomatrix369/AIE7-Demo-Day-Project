@@ -932,6 +932,18 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
               <div style={{ fontSize: '12px', color: '#666' }}>Deselected</div>
             </div>
             <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#ffc107' }}>
+                {currentStats?.selection_summary?.ingested_documents || 0}
+              </div>
+              <div style={{ fontSize: '12px', color: '#666' }}>Ingested</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fd7e14' }}>
+                {currentStats?.selection_summary?.needing_ingestion || 0}
+              </div>
+              <div style={{ fontSize: '12px', color: '#666' }}>Need Ingestion</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
                 {currentStats?.qdrant_statistics?.total_chunks || 0}
               </div>
@@ -953,7 +965,21 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
 
           {/* Document List - Compact */}
           <div style={{ marginBottom: '15px' }}>
-            <h4 style={{ marginBottom: '10px', fontSize: '16px' }}>📄 Document List</h4>
+            <h4 style={{ marginBottom: '10px', fontSize: '16px' }}>
+              📄 Document List 
+              <span style={{ 
+                fontSize: '14px', 
+                fontWeight: 'normal', 
+                color: '#666',
+                marginLeft: '10px'
+              }}>
+                ({currentStats?.selection_summary?.total_documents || 0} documents, 
+                {currentStats?.selection_summary?.selected_documents || 0} selected, 
+                {currentStats?.selection_summary?.deselected_documents || 0} deselected, 
+                {currentStats?.selection_summary?.ingested_documents || 0} ingested, 
+                {currentStats?.selection_summary?.needing_ingestion || 0} need ingestion)
+              </span>
+            </h4>
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {documentStatus?.documents?.sort((a, b) => {
                 // Sort priority: deselected first, then not-ingested, then selected & ingested

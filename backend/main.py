@@ -178,6 +178,32 @@ async def health_check():
     
     return health_status
 
+@app.get("/api/database/status")
+async def get_database_status():
+    """Get database connectivity status specifically for the frontend status indicator."""
+    try:
+        # Check Qdrant connection
+        collection_info = unified_doc_processor.qdrant_manager.get_collection_info()
+        vector_count = collection_info.get('vector_count', 0)
+        
+        return {
+            "success": True,
+            "database_connected": True,
+            "qdrant_status": "connected",
+            "vector_count": vector_count,
+            "collection": unified_doc_processor.qdrant_manager.collection_name,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+    except Exception as e:
+        logger.warning(f"⚠️ Database connectivity check failed: {e}")
+        return {
+            "success": True,
+            "database_connected": False,
+            "qdrant_status": "disconnected",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+
 import json
 
 # Fallback mock data

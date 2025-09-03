@@ -81,6 +81,32 @@ const DataLoadingDashboard: React.FC = () => {
     );
   }
 
+  // Handle partial status (documents tracked but not yet ingested)
+  if (corpusStatus.status === 'partial' || corpusStatus.documents_tracked) {
+    return (
+      <div>
+        <NavigationHeader currentPage="dashboard" />
+        <VectorDbStatusIndicator position="top-left" />
+        <ExperimentStatusIndicator />
+        <DocumentManagement onCorpusUpdate={setData} />
+        <div className="card">
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <h2 style={{ color: '#856404', marginBottom: '20px' }}>📋 Documents Tracked - Ready for Ingestion</h2>
+            <div style={{ fontSize: '16px', color: '#666', marginBottom: '20px' }}>
+              {corpusStatus.document_count} documents have been selected and are ready for processing
+            </div>
+            <div style={{ fontSize: '14px', color: '#856404', backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
+              <strong>Next Step:</strong> Use the Document Management section above to ingest your selected documents into the vector database.
+            </div>
+            <div style={{ fontSize: '12px', color: '#999' }}>
+              Once documents are ingested, you&apos;ll be able to run experiments and analyze your corpus.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <NavigationHeader currentPage="dashboard" />

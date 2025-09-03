@@ -36,7 +36,9 @@ const VectorDbStatusIndicator: React.FC<VectorDbStatusIndicatorProps> = ({
         console.log('VectorDb Status Error:', error); // Debug log
         
         // Distinguish between backend not running vs database connection issues
-        if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ERR_NETWORK') {
+          console.log('Backend service appears to be offline');
+        } else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('Network Error')) {
           console.log('Backend service appears to be offline');
         }
         

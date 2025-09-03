@@ -67,7 +67,6 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
     
     const dynamicStats = calculateDynamicStats(documentStatus.documents);
     
-    
     return {
       ...documentStatus,
       selection_summary: dynamicStats.selection_summary,
@@ -761,6 +760,16 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                     , {currentStats.selection_summary.deselected_documents} deselected
                   </span>
                 )}
+                {currentStats.selection_summary.ingested_documents > 0 && (
+                  <span style={{ color: '#17a2b8' }}>
+                    , {currentStats.selection_summary.ingested_documents} ingested
+                    <span style={{ fontSize: '12px', marginLeft: '4px' }}>
+                      ({(currentStats.selection_summary.total_documents > 0 
+                        ? Math.round(currentStats.selection_summary.ingested_documents / currentStats.selection_summary.total_documents * 100)
+                        : 0)}%)
+                    </span>
+                  </span>
+                )}
                 <span style={{ color: '#28a745' }}>)</span>
               </>
             ) : 'Loading...'}
@@ -932,17 +941,19 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
               <div style={{ fontSize: '12px', color: '#666' }}>Deselected</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#ffc107' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
                 {currentStats?.selection_summary?.ingested_documents || 0}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Ingested</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fd7e14' }}>
-                {currentStats?.selection_summary?.needing_ingestion || 0}
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Ingested
+                <br />
+                <span style={{ fontSize: '10px', color: '#999' }}>
+                  of {currentStats?.selection_summary?.total_documents || 0}
+                </span>
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Need Ingestion</div>
             </div>
+
+
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
                 {currentStats?.qdrant_statistics?.total_chunks || 0}
@@ -973,11 +984,13 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                 color: '#666',
                 marginLeft: '10px'
               }}>
-                ({currentStats?.selection_summary?.total_documents || 0} documents, 
-                {currentStats?.selection_summary?.selected_documents || 0} selected, 
+                {currentStats?.selection_summary?.total_documents || 0} documents
+                ({currentStats?.selection_summary?.selected_documents || 0} selected, 
                 {currentStats?.selection_summary?.deselected_documents || 0} deselected, 
-                {currentStats?.selection_summary?.ingested_documents || 0} ingested, 
-                {currentStats?.selection_summary?.needing_ingestion || 0} need ingestion)
+                {currentStats?.selection_summary?.ingested_documents || 0} ingested 
+                ({(currentStats?.selection_summary?.total_documents || 0) > 0 
+                  ? Math.round((currentStats?.selection_summary?.ingested_documents || 0) / (currentStats?.selection_summary?.total_documents || 1) * 100)
+                  : 0}%))
               </span>
             </h4>
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>

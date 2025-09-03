@@ -350,26 +350,54 @@ async def get_corpus_status():
                     "database_connected": False,
                     "database_error": str(e)
                 }
-    else:
-        # Return error status instead of mock data
-        logger.warning("⚠️ No documents loaded or database not connected - returning error status")
-        return {
-            "corpus_loaded": False,
-            "document_count": 0,
-            "chunk_count": 0,
-            "embedding_model": "unknown",
-            "corpus_metadata": {
-                "error": "No documents loaded",
-                "message": "Please load documents first or check database connection",
-                "database_connected": database_connected,
-                "database_error": database_error if database_error else None
-            },
+    elif database_connected:
+        # Database is connected but documents aren't fully loaded yet
+        # Check if we have tracked documents (even if not ingested)
+        try:
+            # Try to get document status even if corpus isn't fully loaded
+            document_status = unified_doc_processor.get_document_status()
+            if document_status and document_status.get("documents"):
+                # We have tracked documents, return their status
+                logger.info(f"📋 Database connected, returning tracked document status: {len(document_status.get('documents', []))} documents")
+                return {
+                    "corpus_loaded": False,  # Not fully loaded yet
+                    "document_count": len(document_status.get("documents", [])),
+                    "chunk_count": 0,  # No chunks yet
+                    "embedding_model": "unknown",
+                    "corpus_metadata": {
+                        "message": "Documents tracked but not yet ingested. Use the ingest function to process documents.",
+                        "database_connected": True,
+                        "database_error": None
+                    },
+                    "selected_chunks": 0,
+                    "deselected_chunks": 0,
+                    "database_connected": True,
+                    "database_error": None,
+                    "status": "partial",
+                    "documents_tracked": True
+                }
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get document status: {e}")
+    
+    # Return error status if neither condition is met
+    logger.warning("⚠️ No documents loaded or database not connected - returning error status")
+    return {
+        "corpus_loaded": False,
+        "document_count": 0,
+        "chunk_count": 0,
+        "embedding_model": "unknown",
+        "corpus_metadata": {
+            "error": "No documents loaded",
+            "message": "Please load documents first or check database connection",
             "database_connected": database_connected,
-            "database_error": database_error,
-            "documents_loaded": documents_loaded,
-            "status": "error",
-            "error_message": "No documents loaded or database not connected"
-        }
+            "database_error": database_error if database_error else None
+        },
+        "database_connected": database_connected,
+        "database_error": database_error,
+        "documents_loaded": documents_loaded,
+        "status": "error",
+        "error_message": "No documents loaded or database not connected"
+    }
 
 @app.get("/api/v1/experiment/config")
 async def get_experiment_config():

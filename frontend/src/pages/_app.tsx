@@ -12,6 +12,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="App">
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <header className="App-header">
           <h1>🔍 RagCheck</h1>
           <p style={{ 
@@ -23,7 +24,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <span className="tagline-validate">Validate your RAG before you build (pre-retrieval checks)</span> | <span className="tagline-save">Save on expensive evaluation time and costs</span> | <span className="tagline-generate">As retrieved, so generated!</span>
           </p>
         </header>
-        <main className="App-main">
+        <main className="App-main" id="main-content">
           <Component {...pageProps} />
         </main>
       </div>

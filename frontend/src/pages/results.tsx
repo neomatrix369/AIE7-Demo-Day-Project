@@ -502,10 +502,10 @@ const AnalysisResults: React.FC = () => {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Role</th>
-                    <th>Avg Quality Score</th>
-                    <th>High Quality Scores (≥7.0)</th>
-                    <th>Score Distribution</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Avg Quality Score</th>
+                    <th scope="col">High Quality Scores (≥7.0)</th>
+                    <th scope="col">Score Distribution</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -792,19 +792,19 @@ const AnalysisResults: React.FC = () => {
             <table className="table" style={{ margin: 0 }}>
             <thead>
               <tr>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('source')}>
+                <th scope="col" style={{ cursor: 'pointer' }} onClick={() => handleSort('source')} aria-label="Sort by source">
                   Source {sortField === 'source' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th>Role</th>
-                <th>Question</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('quality_score')}>
+                <th scope="col">Role</th>
+                <th scope="col">Question</th>
+                <th scope="col" style={{ cursor: 'pointer' }} onClick={() => handleSort('quality_score')} aria-label="Sort by quality score">
                   Quality Score {sortField === 'quality_score' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('status')}>
+                <th scope="col" style={{ cursor: 'pointer' }} onClick={() => handleSort('status')} aria-label="Sort by status">
                   Status {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th>Retrieved Docs</th>
-                <th>Actions</th>
+                <th scope="col">Retrieved Docs</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -865,6 +865,7 @@ const AnalysisResults: React.FC = () => {
                           className="button"
                           style={{ padding: '4px 8px', fontSize: '0.8rem', backgroundColor: '#ccc', cursor: 'not-allowed' }}
                           disabled
+                          aria-label="No documents available for this question"
                         >
                           No Docs
                         </button>
@@ -888,6 +889,7 @@ const AnalysisResults: React.FC = () => {
                               expandedQuestion === question.id ? null : question.id
                             );
                           }}
+                          aria-label={`${expandedQuestion === question.id ? 'Hide' : 'View'} documents for question ${question.id}`}
                         >
                           {expandedQuestion === question.id ? 'Hide' : 'View'} Docs
                         </button>

@@ -19,11 +19,12 @@ export interface CorpusStatus {
   selected_chunks?: number;
   deselected_chunks?: number;
   // Error status fields (optional, for error states)
-  status?: 'error' | 'success';
+  status?: 'error' | 'success' | 'partial';
   error_message?: string;
   database_connected?: boolean;
   database_error?: string;
   documents_loaded?: boolean;
+  documents_tracked?: boolean;
 }
 
 export interface Question {

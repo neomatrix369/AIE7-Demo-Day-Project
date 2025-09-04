@@ -2,7 +2,7 @@
 
 ## 🎯 6-Screen Wizard Application
 1. **📊 Data Loading Dashboard**: Real-time corpus overview with document statistics, health metrics, and vector database status
-2. **❓ Question Groups Overview**: Side-by-side comparison of LLM-generated vs RAGAS-generated questions with role breakdown
+2. **❓ Question Groups Overview**: Side-by-side comparison of client-provided/approved queries (with support for LLM-generated vs RAGAS-generated questions when necessary) with role breakdown
 3. **⚙️ Experiment Configuration**: Interactive experiment setup with real-time WebSocket streaming and progress tracking
 4. **📈 Analysis Results Dashboard**: Enhanced 3-level analysis with collapsible sections, quick actions, role-based insights, and comprehensive filtering
 5. **🔍 Gap Analysis Dashboard**: **NEW!** Domain-agnostic content gap detection with practical improvement strategies, role-specific recommendations, and implementation tracking

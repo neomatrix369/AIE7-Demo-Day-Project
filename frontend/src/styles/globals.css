@@ -8,6 +8,36 @@ body {
   background-color: #f5f5f5;
 }
 
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #007bff;
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 1000;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Focus styles for navigation buttons */
+button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Focus styles for interactive elements */
+[role="button"]:focus,
+[tabindex]:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -52,7 +82,7 @@ body {
 }
 
 .card h3 {
-  color: #555;
+  color: #333;
   margin-bottom: 10px;
 }
 
@@ -71,6 +101,11 @@ body {
   background-color: #0056b3;
 }
 
+.button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
 .button:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
@@ -82,6 +117,11 @@ body {
 
 .button-secondary:hover {
   background-color: #545b62;
+}
+
+.button-secondary:focus {
+  outline: 2px solid #6c757d;
+  outline-offset: 2px;
 }
 
 .stats-grid {
@@ -106,7 +146,7 @@ body {
 }
 
 .stat-label {
-  color: #666;
+  color: #444;
   margin-top: 5px;
   font-size: 0.9rem;
 }
@@ -222,6 +262,12 @@ body {
   font-size: 16px;
 }
 
+.form-control:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+  border-color: #007bff;
+}
+
 .checkbox {
   display: flex;
   align-items: center;
@@ -283,8 +329,9 @@ body {
 }
 
 .table th {
-  background-color: #f8f9fa;
+  background-color: #e9ecef;
   font-weight: bold;
+  color: #333;
 }
 
 .table tr:hover {
@@ -341,21 +388,22 @@ body {
 .questions-scroll-container .table thead th {
   position: sticky;
   top: 0;
-  background-color: #f8f9fa;
+  background-color: #e9ecef;
   z-index: 10;
   border-bottom: 2px solid #dee2e6;
   box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+  color: #333;
 }
 
-/* Tagline color classes */
+/* Tagline color classes - Improved contrast */
 .tagline-validate {
-  color: #4ECDC4;
+  color: #008B8B;
 }
 
 .tagline-save {
-  color: #F39C12;
+  color: #D2691E;
 }
 
 .tagline-generate {
-  color: #E74C3C;
+  color: #B22222;
 }

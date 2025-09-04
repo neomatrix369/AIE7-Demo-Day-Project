@@ -1,6 +1,6 @@
 # RagCheck
 
-A 6-screen wizard application for comprehensive RAG system quality assessment using AI-generated and RAGAS-generated questions with real document processing, vector similarity search, advanced gap analysis, and interactive data visualization.
+A 6-screen wizard application for comprehensive RAG system quality assessment using client-provided/approved queries (with support for AI-generated and RAGAS-generated questions when necessary) with real document processing, vector similarity search, advanced gap analysis, and interactive data visualization.
 
 ## Visuals
 
@@ -11,14 +11,14 @@ A 6-screen wizard application for comprehensive RAG system quality assessment us
 |: ![RagCheck Heatmap](./screenshots/rag-check-heatmap.png) :|
 |:----:|
 
-## Quick Start ✅ AUTO-MANAGED
+## 🚀 Quick Start (Docker - Recommended)
 
 ```bash
 # 1. Set up environment
-cp .env.example .env  # Add OPENAI_API_KEY
+cp .env.example .env  # Add your OPENAI_API_KEY
 
-# 2. Start application (versions auto-switch: Python 3.12.2, Node.js v22.16.0)
-./scripts/setup_qdrant.sh && ./setup.sh
+# 2. Start all services with one command
+./start-services.sh
 ```
 
 **Services:**
@@ -26,25 +26,50 @@ cp .env.example .env  # Add OPENAI_API_KEY
 - Backend API: http://localhost:8000  
 - Qdrant Database: http://localhost:6333
 
+### Alternative Startup Options
+
+**Service Management:**
+```bash
+./start-services.sh               # Start all services (recommended)
+./stop-services.sh                # Stop all services interactively
+./scripts/health-check.sh         # Monitor service health
+```
+
+**Individual Services** (advanced):
+```bash
+docker-compose up qdrant          # Just vector database
+docker-compose up backend         # Backend + Qdrant (auto-starts)
+docker-compose up frontend        # Full stack (auto-starts all)
+```
+
+### Manual Setup (Fallback)
+```bash
+# If Docker isn't available (versions auto-switch: Python 3.12.2, Node.js v22.16.0)
+./setup.sh --manual
+```
+
 ## Documentation
 
 | Documentation | Description |
 |---------------|-------------|
-| 📋 [Setup Guide](docs/setup.md) | Prerequisites, installation, and configuration |
 | 🏗️ [Architecture](docs/architecture.md) | Technical architecture and system design |
 | ⭐ [Features](docs/features.md) | Complete feature overview and capabilities |
 | 🔌 [API Reference](docs/api.md) | REST endpoints, WebSocket API, and technologies |
 | 🚀 [Cloud Deployment](docs/deployment.md) | Vercel, Railway deployment guides |
 | 🔧 [Troubleshooting](docs/troubleshooting.md) | Common issues and debugging tips |
-| 📁 [Project Structure](docs/project-structure.md) | Codebase organization and file structure |
 
 ## Prerequisites
 
-1. **Docker & Docker Compose** - Qdrant vector database
+### Docker Setup (Recommended)
+1. **Docker & Docker Compose** - For containerized environment
 2. **OpenAI API Key** - Document embeddings ([Get API key](https://platform.openai.com/api-keys))
 3. **Data Files** - CSV/PDF files in `./backend/data/`
 
-*Python/Node.js versions auto-managed via pyenv/nvm*
+### Manual Setup (Fallback)
+1. **Docker & Docker Compose** - Qdrant vector database only
+2. **Python 3.12+ & Node.js 22+** - Auto-managed via pyenv/nvm
+3. **OpenAI API Key** - Document embeddings
+4. **Data Files** - CSV/PDF files in `./backend/data/`
 
 ## Key Features
 
@@ -101,6 +126,43 @@ cp .env.example .env  # Add OPENAI_API_KEY
 - **UI/UX Enhancement**: Custom BalloonTooltip components with smart positioning and consistent styling
 - **Responsive Design**: Mobile-friendly CSS Grid and Flexbox layouts with enhanced visual indicators
 - **Cross-platform Storage**: Adapters for local development and cloud deployment with auto-save functionality
+
+## 🐛 Troubleshooting
+
+### Service Issues
+```bash
+# Check service health
+./scripts/health-check.sh
+
+# Stop and restart services
+./stop-services.sh
+./start-services.sh
+
+# View container logs  
+docker-compose logs backend
+docker-compose logs frontend
+docker-compose logs qdrant
+```
+
+### Port Conflicts
+```bash
+# Check what's using ports
+sudo lsof -i :3000
+sudo lsof -i :8000  
+sudo lsof -i :6333
+
+# Kill conflicting processes
+sudo lsof -ti:3000 | xargs kill -9
+```
+
+### Environment Issues
+```bash
+# Verify OpenAI API key is set
+grep OPENAI_API_KEY .env
+
+# Check Docker container environment
+docker-compose exec backend env | grep OPENAI
+```
 
 ## Contributing
 

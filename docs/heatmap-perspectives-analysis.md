@@ -151,8 +151,8 @@ export type HeatmapPerspective =
 ### Core Concepts in Heatmap System:
 1. **Documents**: Source files (CSV, PDF, MD, TXT)
 2. **Chunks**: Document segments (750 chars, 100 overlap)
-3. **Questions**: Queries (LLM-generated, RAGAS-generated)
-4. **Question Groups**: LLM vs RAGAS categorization
+3. **Questions**: Client-provided/approved queries (with LLM-generated, RAGAS-generated support when necessary)
+4. **Question Groups**: Client vs AI-assisted categorization
 5. **Question Roles**: User personas/contexts within questions
 6. **Quality Scores**: 0-10 scale (GOOD ≥7.0, DEVELOPING ≥5.0, POOR <5.0)
 7. **Coverage**: Chunk retrieval frequency and distribution

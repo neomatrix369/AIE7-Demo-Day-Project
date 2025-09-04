@@ -124,15 +124,85 @@ app.add_middleware(
     allow_headers=CORS_CONFIG['ALLOW_HEADERS'],
 )
 
-# Health check endpoint for CORS testing
+# Health check endpoint for Docker and service monitoring
 @app.get("/health")
 async def health_check():
-    """Simple health check endpoint to test CORS configuration."""
-    return {
+    """Comprehensive health check endpoint for Docker service monitoring."""
+    health_status = {
         "status": "healthy",
-        "cors_origins": cors_origins,
-        "timestamp": "2025-08-18T00:53:19Z"
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "services": {}
     }
+    
+    # Check Qdrant connection
+    try:
+        # Use the existing method to test connection
+        collection_info = unified_doc_processor.qdrant_manager.get_collection_info()
+        vector_count = collection_info.get('vector_count', 0)
+        
+        health_status["services"]["qdrant"] = {
+            "status": "healthy",
+            "connected": True,
+            "vector_count": vector_count,
+            "collection": unified_doc_processor.qdrant_manager.collection_name
+        }
+    except Exception as e:
+        health_status["services"]["qdrant"] = {
+            "status": "unhealthy", 
+            "connected": False,
+            "error": str(e)
+        }
+        health_status["status"] = "unhealthy"
+    
+    # Check OpenAI API key availability
+    openai_key = os.getenv("OPENAI_API_KEY")
+    health_status["services"]["openai"] = {
+        "status": "configured" if openai_key and openai_key != "your_openai_api_key_here" else "not_configured",
+        "has_key": bool(openai_key and openai_key != "your_openai_api_key_here")
+    }
+    
+    # Check data folder
+    data_path = os.path.join(os.path.dirname(__file__), data_folder)
+    health_status["services"]["data"] = {
+        "status": "available" if os.path.exists(data_path) else "missing",
+        "path": data_path,
+        "exists": os.path.exists(data_path)
+    }
+    
+    # Overall status determination
+    service_statuses = [service["status"] for service in health_status["services"].values()]
+    if "unhealthy" in service_statuses or "missing" in service_statuses:
+        health_status["status"] = "unhealthy"
+    elif "not_configured" in service_statuses:
+        health_status["status"] = "degraded"
+    
+    return health_status
+
+@app.get("/api/database/status")
+async def get_database_status():
+    """Get database connectivity status specifically for the frontend status indicator."""
+    try:
+        # Check Qdrant connection
+        collection_info = unified_doc_processor.qdrant_manager.get_collection_info()
+        vector_count = collection_info.get('vector_count', 0)
+        
+        return {
+            "success": True,
+            "database_connected": True,
+            "qdrant_status": "connected",
+            "vector_count": vector_count,
+            "collection": unified_doc_processor.qdrant_manager.collection_name,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+    except Exception as e:
+        logger.warning(f"⚠️ Database connectivity check failed: {e}")
+        return {
+            "success": True,
+            "database_connected": False,
+            "qdrant_status": "disconnected",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
 
 import json
 
@@ -280,26 +350,54 @@ async def get_corpus_status():
                     "database_connected": False,
                     "database_error": str(e)
                 }
-    else:
-        # Return error status instead of mock data
-        logger.warning("⚠️ No documents loaded or database not connected - returning error status")
-        return {
-            "corpus_loaded": False,
-            "document_count": 0,
-            "chunk_count": 0,
-            "embedding_model": "unknown",
-            "corpus_metadata": {
-                "error": "No documents loaded",
-                "message": "Please load documents first or check database connection",
-                "database_connected": database_connected,
-                "database_error": database_error if database_error else None
-            },
+    elif database_connected:
+        # Database is connected but documents aren't fully loaded yet
+        # Check if we have tracked documents (even if not ingested)
+        try:
+            # Try to get document status even if corpus isn't fully loaded
+            document_status = unified_doc_processor.get_document_status()
+            if document_status and document_status.get("documents"):
+                # We have tracked documents, return their status
+                logger.info(f"📋 Database connected, returning tracked document status: {len(document_status.get('documents', []))} documents")
+                return {
+                    "corpus_loaded": False,  # Not fully loaded yet
+                    "document_count": len(document_status.get("documents", [])),
+                    "chunk_count": 0,  # No chunks yet
+                    "embedding_model": "unknown",
+                    "corpus_metadata": {
+                        "message": "Documents tracked but not yet ingested. Use the ingest function to process documents.",
+                        "database_connected": True,
+                        "database_error": None
+                    },
+                    "selected_chunks": 0,
+                    "deselected_chunks": 0,
+                    "database_connected": True,
+                    "database_error": None,
+                    "status": "partial",
+                    "documents_tracked": True
+                }
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get document status: {e}")
+    
+    # Return error status if neither condition is met
+    logger.warning("⚠️ No documents loaded or database not connected - returning error status")
+    return {
+        "corpus_loaded": False,
+        "document_count": 0,
+        "chunk_count": 0,
+        "embedding_model": "unknown",
+        "corpus_metadata": {
+            "error": "No documents loaded",
+            "message": "Please load documents first or check database connection",
             "database_connected": database_connected,
-            "database_error": database_error,
-            "documents_loaded": documents_loaded,
-            "status": "error",
-            "error_message": "No documents loaded or database not connected"
-        }
+            "database_error": database_error if database_error else None
+        },
+        "database_connected": database_connected,
+        "database_error": database_error,
+        "documents_loaded": documents_loaded,
+        "status": "error",
+        "error_message": "No documents loaded or database not connected"
+    }
 
 @app.get("/api/v1/experiment/config")
 async def get_experiment_config():
@@ -624,7 +722,12 @@ async def load_experiment(filename: str):
         # Load the full experiment data to get metadata
         import os
         import json
-        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        # Use environment variable for experiments folder, fallback to relative path
+        experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+        if experiments_folder.startswith("/"):
+            experiments_folder = experiments_folder
+        else:
+            experiments_folder = os.path.join(os.getcwd(), experiments_folder)
         filepath = os.path.join(experiments_folder, filename)
         
         if not os.path.exists(filepath):
@@ -672,7 +775,12 @@ async def get_experiment_data(filename: str):
         # Load the experiment file directly
         import os
         import json
-        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        # Use environment variable for experiments folder, fallback to relative path
+        experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+        if experiments_folder.startswith("/"):
+            experiments_folder = experiments_folder
+        else:
+            experiments_folder = os.path.join(os.getcwd(), experiments_folder)
         filepath = os.path.join(experiments_folder, filename)
         
         if not os.path.exists(filepath):
@@ -703,7 +811,12 @@ async def delete_experiment(filename: str):
     """Delete a specific experiment file."""
     try:
         import os
-        experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+        # Use environment variable for experiments folder, fallback to relative path
+        experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+        if experiments_folder.startswith("/"):
+            experiments_folder = experiments_folder
+        else:
+            experiments_folder = os.path.join(os.getcwd(), experiments_folder)
         filepath = os.path.join(experiments_folder, filename)
         
         if os.path.exists(filepath):
@@ -780,7 +893,12 @@ async def websocket_experiment_stream(websocket: WebSocket):
         try:
             import os
             import json
-            experiments_folder = os.path.join(os.path.dirname(__file__), '..', 'experiments')
+            # Use environment variable for experiments folder, fallback to relative path
+            experiments_folder = os.getenv("EXPERIMENTS_FOLDER", "experiments/")
+            if experiments_folder.startswith("/"):
+                experiments_folder = experiments_folder
+            else:
+                experiments_folder = os.path.join(os.getcwd(), experiments_folder)
             saved_filepath = os.path.join(experiments_folder, saved_filename)
             
             if os.path.exists(saved_filepath):

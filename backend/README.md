@@ -37,12 +37,10 @@ FastAPI backend with real document processing, vector embeddings, and persistent
 
 ## Setup
 
-### Prerequisites
-- Python 3.8+
-- Qdrant database running on `http://localhost:6333`
-- OpenAI API key for embeddings
+### Docker Setup (Recommended)
+See the [main README](../README.md) for service startup with `./start-services.sh`
 
-### Installation
+### Manual Setup
 ```bash
 cd backend
 
@@ -53,14 +51,6 @@ source .venv/bin/activate
 # Install dependencies
 uv pip install -r requirements.txt
 
-# Environment variables are automatically loaded from root .env file
-# No manual export needed - the application reads from ../env
-# Make sure you have copied .env.example to .env in the project root:
-# cp .env.example .env (from project root)
-```
-
-### Testing
-```bash
 # Test Qdrant connection
 uv run python test_qdrant.py
 
@@ -73,8 +63,8 @@ uvicorn main:app --reload
 ### REST Endpoints
 - `GET /api/corpus/status` - Get corpus metadata and statistics with real-time chunk counts from Qdrant
 - `GET /api/corpus/chunks` - Get all chunks from Qdrant database with pagination support
-- `GET /api/questions/llm` - Get LLM-generated questions by role and category
-- `GET /api/questions/ragas` - Get RAGAS-generated questions with metadata
+- `GET /api/questions/llm` - Get client-provided/approved queries (LLM support available when necessary) by role and category
+- `GET /api/questions/ragas` - Get client-provided/approved queries (RAGAS support available when necessary) with metadata
 - `POST /api/experiment/run` - Start vector similarity experiment with configurable parameters
 - `GET /api/results/analysis` - Get comprehensive experiment analysis results with quality scoring
 - `GET /api/v1/analysis/gaps` - NEW! Get gap analysis and actionable recommendations based on experiment results
@@ -85,27 +75,9 @@ uvicorn main:app --reload
 
 ## Configuration
 
-### Environment Variables
-Environment variables are loaded from the project root `.env` file. Copy `.env.example` to `.env` and configure:
-
-```bash
-# Required
-OPENAI_API_KEY=your_openai_api_key
-
-# Qdrant Configuration (with defaults)
-QDRANT_URL=http://localhost:6333
-QDRANT_API_KEY=                              # Optional for local instances
-QDRANT_COLLECTION_NAME=student_loan_corpus
-
-# Logging
-LOG_LEVEL=INFO
-
-# Development (Optional)
-FRONTEND_URL=http://localhost:3000
-BACKEND_HOST=0.0.0.0
-BACKEND_PORT=8000
-DEBUG=false
-```
+See [main README](../README.md) for environment setup. Key variables:
+- `OPENAI_API_KEY` - Required
+- `QDRANT_URL` - Vector database URL (default: http://localhost:6333)
 
 ### Data Folder Structure
 ```

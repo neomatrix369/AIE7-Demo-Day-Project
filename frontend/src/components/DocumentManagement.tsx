@@ -26,6 +26,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
   const [ingestionProgress, setIngestionProgress] = useState<IngestionProgress | null>(null);
   const [documentConfig, setDocumentConfig] = useState<DocumentConfig | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  const [isIngesting, setIsIngesting] = useState(false); // Global ingestion state
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate dynamic statistics based on current document states
@@ -65,7 +66,6 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
     }
     
     const dynamicStats = calculateDynamicStats(documentStatus.documents);
-    
     
     return {
       ...documentStatus,
@@ -262,7 +262,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
             <div style={{ fontWeight: 'bold', color: '#333' }}>
               {progress.filename}
             </div>
-            <div style={{ color: '#666', fontSize: '14px' }}>
+            <div style={{ color: '#444', fontSize: '14px' }}>
               {progress.message}
             </div>
           </div>
@@ -277,7 +277,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
             overflow: 'hidden'
           }}>
             <div style={{
-              width: `${progress.percentage}%`,
+              width: `${Math.round(progress.percentage)}%`,
               height: '100%',
               backgroundColor: getStageColor(progress.stage),
               transition: 'width 0.3s ease-in-out',
@@ -287,10 +287,10 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
         </div>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ color: '#666', fontSize: '12px' }}>
-            {progress.percentage}% complete
+          <div style={{ color: '#444', fontSize: '12px' }}>
+            {Math.round(progress.percentage)}% complete
           </div>
-          <div style={{ color: '#999', fontSize: '12px' }}>
+          <div style={{ color: '#666', fontSize: '12px' }}>
             {new Date(progress.timestamp).toLocaleTimeString()}
           </div>
         </div>
@@ -300,6 +300,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
 
   useEffect(() => {
     let progressInterval: NodeJS.Timeout | null = null;
+    let safetyTimeout: NodeJS.Timeout | null = null;
     
     const checkProgress = async () => {
       try {
@@ -326,6 +327,13 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                 clearInterval(progressInterval);
                 progressInterval = null;
               }
+              if (safetyTimeout) {
+                clearTimeout(safetyTimeout);
+                safetyTimeout = null;
+              }
+              
+              // Clear global ingestion state
+              setIsIngesting(false);
               
               setTimeout(() => {
                 setIngestionProgress(null);
@@ -338,9 +346,15 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
         } else {
           // No active progress, clear any existing progress
           setIngestionProgress(null);
+          // Also clear global ingestion state if no progress
+          setIsIngesting(false);
         }
       } catch (err) {
         logError(`Failed to check progress: ${err}`, { component: 'DocumentManagement' });
+        // On error, clear global ingestion state after a delay
+        safetyTimeout = setTimeout(() => {
+          setIsIngesting(false);
+        }, 10000);
       }
     };
     
@@ -352,6 +366,11 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
       if (progressInterval) {
         clearInterval(progressInterval);
       }
+      if (safetyTimeout) {
+        clearTimeout(safetyTimeout);
+      }
+      // Ensure global ingestion state is cleared on unmount
+      setIsIngesting(false);
     };
   }, [loadDocumentStatus]);
 
@@ -424,6 +443,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
   const handleIngestDocument = async (filename: string) => {
     try {
       setActionLoading(`ingest-${filename}`);
+      setIsIngesting(true); // Set global ingestion state
       setError(null);
       
       // Initialize progress display
@@ -458,6 +478,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
       });
       logError(`Failed to start ingestion for ${filename}: ${err.message}`, { component: 'DocumentManagement' });
       setTimeout(() => setIngestionProgress(null), 5000);
+      setIsIngesting(false); // Clear global ingestion state on error
     } finally {
       setActionLoading(null);
     }
@@ -466,6 +487,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
   const handleIngestPending = async () => {
     try {
       setActionLoading('ingest-pending');
+      setIsIngesting(true); // Set global ingestion state
       const response = await documentsApi.ingestPending();
       if (response.success) {
         await loadDocumentStatus();
@@ -477,6 +499,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
     } catch (err: any) {
       setError(err.message || 'Failed to ingest pending documents');
       logError(`Failed to ingest pending documents: ${err.message}`, { component: 'DocumentManagement' });
+      setIsIngesting(false); // Clear global ingestion state on error
     } finally {
       setActionLoading(null);
     }
@@ -485,6 +508,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
   const handleReingestChanged = async () => {
     try {
       setActionLoading('reingest-changed');
+      setIsIngesting(true); // Set global ingestion state
       const response = await documentsApi.reingestChanged();
       if (response.success) {
         await loadDocumentStatus();
@@ -496,6 +520,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
     } catch (err: any) {
       setError(err.message || 'Failed to re-ingest changed documents');
       logError(`Failed to re-ingest changed documents: ${err.message}`, { component: 'DocumentManagement' });
+      setIsIngesting(false); // Clear global ingestion state on error
     } finally {
       setActionLoading(null);
     }
@@ -614,9 +639,9 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
   if (loading) {
     return (
       <div className="card">
-        <h3>📁 Document Management</h3>
+        <h2>📁 Document Management</h2>
         <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#666' }}>Loading document status...</div>
+          <div style={{ fontSize: '18px', color: '#444' }}>Loading document status...</div>
         </div>
       </div>
     );
@@ -625,7 +650,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
   if (error) {
     return (
       <div className="card">
-        <h3>📁 Document Management</h3>
+        <h2>📁 Document Management</h2>
         <div style={{ padding: '20px' }}>
           <div style={{ 
             backgroundColor: '#f8d7da', 
@@ -672,15 +697,15 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
   if (!documentStatus) {
     return (
       <div className="card">
-        <h3>📁 Document Management</h3>
+        <h2>📁 Document Management</h2>
         <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '18px', color: '#666', marginBottom: '10px' }}>
+          <div style={{ fontSize: '18px', color: '#444', marginBottom: '10px' }}>
             📋 No Document Status Available
           </div>
-          <div style={{ fontSize: '14px', color: '#999', marginBottom: '20px' }}>
-            Document information could not be loaded. This may be due to:
-          </div>
-          <div style={{ fontSize: '12px', color: '#666', textAlign: 'left', maxWidth: '400px', margin: '0 auto' }}>
+                      <div style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+              Document information could not be loaded. This may be due to:
+            </div>
+          <div style={{ fontSize: '12px', color: '#444', textAlign: 'left', maxWidth: '400px', margin: '0 auto' }}>
             <ul style={{ margin: '0', paddingLeft: '20px' }}>
               <li>No documents have been loaded yet</li>
               <li>Backend service is not running</li>
@@ -721,9 +746,9 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
         }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <h3 style={{ margin: 0 }}>📁 Document Management</h3>
+        <h2 style={{ margin: 0 }}>📁 Document Management</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '14px', color: '#666' }}>
+          <span style={{ fontSize: '14px', color: '#444' }}>
             {currentStats?.selection_summary?.total_documents ? (
               <>
                 {currentStats.selection_summary.total_documents} documents
@@ -733,6 +758,16 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                 {currentStats.selection_summary.deselected_documents > 0 && (
                   <span style={{ color: '#dc3545' }}>
                     , {currentStats.selection_summary.deselected_documents} deselected
+                  </span>
+                )}
+                {currentStats.selection_summary.ingested_documents > 0 && (
+                  <span style={{ color: '#17a2b8' }}>
+                    , {currentStats.selection_summary.ingested_documents} ingested
+                    <span style={{ fontSize: '12px', marginLeft: '4px' }}>
+                      ({(currentStats.selection_summary.total_documents > 0 
+                        ? Math.round(currentStats.selection_summary.ingested_documents / currentStats.selection_summary.total_documents * 100)
+                        : 0)}%)
+                    </span>
                   </span>
                 )}
                 <span style={{ color: '#28a745' }}>)</span>
@@ -749,6 +784,33 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
         </div>
       </div>
 
+      {/* Global Ingestion Status */}
+      {isIngesting && (
+        <div style={{
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffeaa7',
+          borderRadius: '8px',
+          padding: '12px',
+          marginBottom: '15px',
+          textAlign: 'center',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            gap: '8px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#856404'
+          }}>
+            <span>🔄</span>
+            <span>Document ingestion in progress - All buttons are disabled</span>
+            <span>🔄</span>
+          </div>
+        </div>
+      )}
+
       {/* Progress Display */}
       {ingestionProgress && (
         <ProgressDisplay progress={ingestionProgress} />
@@ -764,7 +826,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                     e.stopPropagation();
                     handleLoadDocuments();
                   }}
-                  disabled={actionLoading === 'upload'}
+                  disabled={actionLoading === 'upload' || isIngesting}
+                  aria-label={actionLoading === 'upload' ? 'Uploading documents' : 'Load documents from file system'}
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#007bff',
@@ -772,8 +835,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '12px',
-                    cursor: actionLoading === 'upload' ? 'not-allowed' : 'pointer',
-                    opacity: actionLoading === 'upload' ? 0.6 : 1
+                    cursor: (actionLoading === 'upload' || isIngesting) ? 'not-allowed' : 'pointer',
+                    opacity: (actionLoading === 'upload' || isIngesting) ? 0.6 : 1
                   }}
                 >
                   {actionLoading === 'upload' ? '🔄 Uploading...' : '📁 Load Documents'}
@@ -785,7 +848,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                     e.stopPropagation();
                     handleReingestChanged();
                   }}
-                  disabled={actionLoading === 'reingest-changed'}
+                  disabled={actionLoading === 'reingest-changed' || isIngesting}
+                  aria-label={actionLoading === 'reingest-changed' ? 'Re-ingesting changed documents' : `Re-ingest ${documentStatus.selection_summary.needing_reingestion} changed documents`}
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#ffc107',
@@ -793,8 +857,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '12px',
-                    cursor: actionLoading === 'reingest-changed' ? 'not-allowed' : 'pointer',
-                    opacity: actionLoading === 'reingest-changed' ? 0.6 : 1
+                    cursor: (actionLoading === 'reingest-changed' || isIngesting) ? 'not-allowed' : 'pointer',
+                    opacity: (actionLoading === 'reingest-changed' || isIngesting) ? 0.6 : 1
                   }}
                 >
                   {actionLoading === 'reingest-changed' ? '🔄 Re-ingesting...' : `🔄 Re-ingest Changed (${documentStatus.selection_summary.needing_reingestion})`}
@@ -805,7 +869,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                   e.stopPropagation();
                   handleClearCache();
                 }}
-                disabled={actionLoading === 'clear-cache'}
+                disabled={actionLoading === 'clear-cache' || isIngesting}
+                aria-label={actionLoading === 'clear-cache' ? 'Clearing cache' : 'Clear document cache and reset ingestion status'}
                 style={{
                   padding: '6px 12px',
                   backgroundColor: '#6c757d',
@@ -813,8 +878,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                   border: 'none',
                   borderRadius: '4px',
                   fontSize: '12px',
-                  cursor: actionLoading === 'clear-cache' ? 'not-allowed' : 'pointer',
-                  opacity: actionLoading === 'clear-cache' ? 0.6 : 1
+                  cursor: (actionLoading === 'clear-cache' || isIngesting) ? 'not-allowed' : 'pointer',
+                  opacity: (actionLoading === 'clear-cache' || isIngesting) ? 0.6 : 1
                 }}
               >
                 {actionLoading === 'clear-cache' ? '🔄 Clearing...' : '🗑️ Clear Cache'}
@@ -864,43 +929,73 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#007bff' }}>
                 {currentStats?.selection_summary?.total_documents || 0}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Total Docs</div>
+              <div style={{ fontSize: '12px', color: '#444' }}>Total Docs</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
                 {currentStats?.selection_summary?.selected_documents || 0}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Selected</div>
+              <div style={{ fontSize: '12px', color: '#444' }}>Selected</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#dc3545' }}>
                 {currentStats?.selection_summary?.deselected_documents || 0}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Deselected</div>
+              <div style={{ fontSize: '12px', color: '#444' }}>Deselected</div>
             </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
+                {currentStats?.selection_summary?.ingested_documents || 0}
+              </div>
+              <div style={{ fontSize: '12px', color: '#444' }}>
+                Ingested
+                <br />
+                <span style={{ fontSize: '10px', color: '#666' }}>
+                  of {currentStats?.selection_summary?.total_documents || 0}
+                </span>
+              </div>
+            </div>
+
+
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
                 {currentStats?.qdrant_statistics?.total_chunks || 0}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Total Chunks</div>
+              <div style={{ fontSize: '12px', color: '#444' }}>Total Chunks</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
                 {currentStats?.qdrant_statistics?.selected_chunks || 0}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Active Chunks</div>
+              <div style={{ fontSize: '12px', color: '#444' }}>Active Chunks</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#6c757d' }}>
                 {currentStats?.qdrant_statistics?.deselected_chunks || 0}
               </div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Retained Chunks</div>
+              <div style={{ fontSize: '12px', color: '#444' }}>Retained Chunks</div>
             </div>
           </div>
 
           {/* Document List - Compact */}
           <div style={{ marginBottom: '15px' }}>
-            <h4 style={{ marginBottom: '10px', fontSize: '16px' }}>📄 Document List</h4>
+            <h4 style={{ marginBottom: '10px', fontSize: '16px' }}>
+              📄 Document List 
+              <span style={{ 
+                fontSize: '14px', 
+                fontWeight: 'normal', 
+                color: '#444',
+                marginLeft: '10px'
+              }}>
+                {currentStats?.selection_summary?.total_documents || 0} documents
+                ({currentStats?.selection_summary?.selected_documents || 0} selected, 
+                {currentStats?.selection_summary?.deselected_documents || 0} deselected, 
+                {currentStats?.selection_summary?.ingested_documents || 0} ingested 
+                ({(currentStats?.selection_summary?.total_documents || 0) > 0 
+                  ? Math.round((currentStats?.selection_summary?.ingested_documents || 0) / (currentStats?.selection_summary?.total_documents || 1) * 100)
+                  : 0}%))
+              </span>
+            </h4>
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {documentStatus?.documents?.sort((a, b) => {
                 // Sort priority: deselected first, then not-ingested, then selected & ingested
@@ -970,7 +1065,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                         flexWrap: 'wrap',
                         gap: '12px', 
                         fontSize: '12px', 
-                        color: '#666' 
+                        color: '#444' 
                       }}>
                         <span>📊 {formatFileSize(doc.size_bytes)}</span>
                         <span>🔢 {doc.chunk_count} chunks</span>
@@ -989,7 +1084,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                                 e.stopPropagation();
                                 handleDeselectDocument(doc.filename);
                               }}
-                              disabled={actionLoading === `deselect-${doc.filename}`}
+                              disabled={actionLoading === `deselect-${doc.filename}` || isIngesting}
+                              aria-label={`Deselect document ${doc.filename}`}
                               style={{
                                 padding: '4px 8px',
                                 backgroundColor: '#dc3545',
@@ -997,8 +1093,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                                 border: 'none',
                                 borderRadius: '3px',
                                 fontSize: '11px',
-                                cursor: actionLoading === `deselect-${doc.filename}` ? 'not-allowed' : 'pointer',
-                                opacity: actionLoading === `deselect-${doc.filename}` ? 0.6 : 1
+                                cursor: (actionLoading === `deselect-${doc.filename}` || isIngesting) ? 'not-allowed' : 'pointer',
+                                opacity: (actionLoading === `deselect-${doc.filename}` || isIngesting) ? 0.6 : 1
                               }}
                             >
                               {actionLoading === `deselect-${doc.filename}` ? '🔄 Deselecting' : '❌ Deselect'}
@@ -1009,7 +1105,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                                 e.stopPropagation();
                                 handleSelectDocument(doc.filename);
                               }}
-                              disabled={actionLoading === `select-${doc.filename}`}
+                              disabled={actionLoading === `select-${doc.filename}` || isIngesting}
+                              aria-label={`Select document ${doc.filename}`}
                               style={{
                                 padding: '4px 8px',
                                 backgroundColor: '#28a745',
@@ -1017,8 +1114,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                                 border: 'none',
                                 borderRadius: '3px',
                                 fontSize: '11px',
-                                cursor: actionLoading === `select-${doc.filename}` ? 'not-allowed' : 'pointer',
-                                opacity: actionLoading === `select-${doc.filename}` ? 0.6 : 1
+                                cursor: (actionLoading === `select-${doc.filename}` || isIngesting) ? 'not-allowed' : 'pointer',
+                                opacity: (actionLoading === `select-${doc.filename}` || isIngesting) ? 0.6 : 1
                               }}
                             >
                               {actionLoading === `select-${doc.filename}` ? '🔄 Selecting' : '✅ Select'}
@@ -1033,7 +1130,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                               e.stopPropagation();
                               handleIngestDocument(doc.filename);
                             }}
-                            disabled={actionLoading === `ingest-${doc.filename}`}
+                            disabled={actionLoading === `ingest-${doc.filename}` || isIngesting}
+                            aria-label={`Ingest document ${doc.filename}`}
                             style={{
                               padding: '4px 8px',
                               backgroundColor: '#007bff',
@@ -1041,8 +1139,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                               border: 'none',
                               borderRadius: '3px',
                               fontSize: '11px',
-                              cursor: actionLoading === `ingest-${doc.filename}` ? 'not-allowed' : 'pointer',
-                              opacity: actionLoading === `ingest-${doc.filename}` ? 0.6 : 1
+                              cursor: (actionLoading === `ingest-${doc.filename}` || isIngesting) ? 'not-allowed' : 'pointer',
+                              opacity: (actionLoading === `ingest-${doc.filename}` || isIngesting) ? 0.6 : 1
                             }}
                           >
                             {actionLoading === `ingest-${doc.filename}` ? '🔄 Ingesting...' : '📥 Ingest'}
@@ -1053,7 +1151,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                               e.stopPropagation();
                               handleDeleteDocument(doc.filename);
                             }}
-                            disabled={actionLoading === `delete-${doc.filename}`}
+                            disabled={actionLoading === `delete-${doc.filename}` || isIngesting}
+                            aria-label={`Delete document ${doc.filename}`}
                             style={{
                               padding: '4px 8px',
                               backgroundColor: '#6c757d',
@@ -1061,8 +1160,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
                               border: 'none',
                               borderRadius: '3px',
                               fontSize: '11px',
-                              cursor: actionLoading === `delete-${doc.filename}` ? 'not-allowed' : 'pointer',
-                              opacity: actionLoading === `delete-${doc.filename}` ? 0.6 : 1
+                              cursor: (actionLoading === `delete-${doc.filename}` || isIngesting) ? 'not-allowed' : 'pointer',
+                              opacity: (actionLoading === `delete-${doc.filename}` || isIngesting) ? 0.6 : 1
                             }}
                           >
                             {actionLoading === `delete-${doc.filename}` ? '🔄 Deleting' : '🗑️ Delete'}
@@ -1079,7 +1178,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ onCorpusUpdate 
           {/* Last Updated */}
           <div style={{ 
             fontSize: '11px', 
-            color: '#666', 
+                            color: '#444', 
             textAlign: 'center', 
             padding: '8px',
             borderTop: '1px solid #e9ecef',

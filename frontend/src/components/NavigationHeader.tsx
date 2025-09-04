@@ -53,11 +53,12 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = React.memo(({ currentP
           🔍 RagCheck
         </div>
         
-        <nav style={{ display: 'flex', gap: '15px' }}>
+        <nav aria-label="Main navigation" style={{ display: 'flex', gap: '15px' }}>
           {navButtons.map(({ id, label, color }) => (
             <button
               key={id}
               onClick={() => handleNavigation(id)}
+              aria-label={`Navigate to ${label}`}
               style={{
                 padding: '8px 16px',
                 border: 'none',

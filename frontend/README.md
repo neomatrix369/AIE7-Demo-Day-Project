@@ -1,5 +1,14 @@
 # Frontend - RagCheck
 
+![Next.js](https://img.shields.io/badge/Next.js-14.2.12-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6.2-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![D3.js](https://img.shields.io/badge/D3.js-7.9.0-F9A03C?style=for-the-badge&logo=d3.js&logoColor=white)
+
+![Axios](https://img.shields.io/badge/Axios-1.7.7-5A29E4?style=flat&logo=axios&logoColor=white)
+![WebSockets](https://img.shields.io/badge/WebSockets-Real--time-FF6B35?style=flat&logo=socket.io&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-8.57.0-4B32C3?style=flat&logo=eslint&logoColor=white)
+
 Next.js frontend with comprehensive logging, real-time WebSocket communication, and user-friendly interface for corpus/data quality analysis.
 
 > **📖 Main Documentation**: See the [main README](../README.md) for complete setup instructions and project overview.

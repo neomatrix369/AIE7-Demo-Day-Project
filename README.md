@@ -1,4 +1,4 @@
-# RagCheck
+# RagCheck   |   ![RAG](https://img.shields.io/badge/RAG-Quality_Assessment-FF6B6B?style=for-the-badge&logo=openai&logoColor=white)
 
 <!-- Core Tech Stack -->
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -11,7 +11,6 @@
 ![LangChain](https://img.shields.io/badge/🦜_LangChain-0.2.x-1C3C3C?style=for-the-badge&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?style=for-the-badge&logo=openai&logoColor=white)
 ![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC382D?style=for-the-badge&logo=database&logoColor=white)
-![RAG](https://img.shields.io/badge/RAG-Quality_Assessment-FF6B6B?style=for-the-badge&logo=openai&logoColor=white)
 
 <!-- Data & Visualization -->
 ![NumPy](https://img.shields.io/badge/NumPy-1.26+-013243?style=flat&logo=numpy&logoColor=white)

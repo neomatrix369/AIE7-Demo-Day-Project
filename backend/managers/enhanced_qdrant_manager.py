@@ -386,7 +386,9 @@ class EnhancedQdrantManager:
             
             for point in sources_response[0]:
                 source = point.payload.get("document_source", "unknown")
-                is_selected = point.payload.get("is_selected", True)
+                # Read from metadata.is_selected (current state) instead of top-level is_selected (stale)
+                metadata = point.payload.get("metadata", {})
+                is_selected = metadata.get("is_selected", point.payload.get("is_selected", True))
                 
                 if source not in document_sources:
                     document_sources[source] = {"total": 0, "selected": 0}
@@ -513,10 +515,13 @@ class EnhancedQdrantManager:
                 ]
             )
             
-            # Update points with new selection status
+            # Update points with new selection status (both top-level and metadata)
             self._get_qdrant_client().set_payload(
                 collection_name=self.collection_name,
-                payload={"is_selected": is_selected},
+                payload={
+                    "is_selected": is_selected,
+                    "metadata.is_selected": is_selected
+                },
                 points_selector=filter_condition,
                 wait=True
             )

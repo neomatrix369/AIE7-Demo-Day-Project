@@ -212,7 +212,8 @@ const ExperimentConfiguration: React.FC = () => {
         // Local development or production with same-host backend
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.hostname;
-        const port = process.env.NODE_ENV === 'development' ? ':8000' : '';
+        // For local development, always use port 8000 when hostname is localhost
+        const port = (host === 'localhost' || host === '127.0.0.1') ? ':8000' : '';
         return `${protocol}//${host}${port}/ws/experiment/stream`;
       }
       return 'ws://localhost:8000/ws/experiment/stream';

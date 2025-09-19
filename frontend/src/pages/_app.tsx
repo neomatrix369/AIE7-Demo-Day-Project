@@ -7,7 +7,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <title>RagCheck - Validate your RAG before you build</title>
-        <meta name="description" content="RagCheck - Validate your RAG before you build (pre-retrieval) | Save on expensive evaluation time and costs) | As retrieved, so generated!" />
+        <meta name="description" content="RagCheck - Validate your RAG before you build (pre-retrieval) | Save on expensive evaluation time and costs) | As goes retrieval, so goes generation!" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -21,7 +21,7 @@ export default function App({ Component, pageProps }: AppProps) {
             margin: '8px 0 0 0',
             fontWeight: 'normal'
           }}>
-            <span className="tagline-validate">Validate your RAG before you build (pre-retrieval checks)</span> | <span className="tagline-save">Save on expensive evaluation time and costs</span> | <span className="tagline-generate">As retrieved, so generated!</span>
+            <span className="tagline-validate">Validate your RAG before you build (pre-retrieval checks)</span> | <span className="tagline-save">Save on expensive evaluation time and costs</span> | <span className="tagline-generate">As goes retrieval, so goes generation!</span>
           </p>
         </header>
         <main className="App-main" id="main-content">

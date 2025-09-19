@@ -5,7 +5,7 @@ export default function Document() {
     <Html lang="en">
       <Head>
         <meta charSet="utf-8" />
-        <meta name="description" content="RagCheck - Validate your RAG before you build (pre-retrieval) | Save on expensive evaluation time and costs | As retrieved, so generated!" />
+        <meta name="description" content="RagCheck - Validate your RAG before you build (pre-retrieval) | Save on expensive evaluation time and costs | As goes retrieval, so goes generation!" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>

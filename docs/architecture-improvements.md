@@ -223,6 +223,101 @@ Fields that add storage overhead with minimal benefit:
 
 ---
 
+## 3. Dashboard Architecture & Reliability Issues
+
+### **Critical Issues Identified (September 2025)**
+
+#### **🔥 Priority 1: Corpus Statistics Inconsistency**
+- **Problem**: Dashboard showing different chunk counts than actual Qdrant database
+- **Commits**: `9004722`, `78f3e00`, `8a99144`, `ab7d1b3`
+- **Root Cause**: Reading from stale top-level `is_selected` field instead of current `metadata.is_selected`
+- **Status**: ✅ Fixed in `enhanced_qdrant_manager.py`
+- **Impact**: HIGH - Misleading users about corpus size
+
+#### **🟠 Priority 2: Document Selection State Synchronization**
+- **Problem**: Dashboard not updating when documents selected/deselected
+- **Commits**: `ab7d1b3`, `7e237b9`, `1487dc0`
+- **Root Cause**: No real-time sync between document selection and corpus stats
+- **Status**: 🔄 Partially fixed with callbacks, needs event-driven architecture
+- **Impact**: MEDIUM - Poor UX, requires page refresh
+
+#### **🟡 Priority 3: Database Connectivity Display**
+- **Problem**: Database status indicator showing incorrect state
+- **Commits**: `9c24c46`, `78f3e00`
+- **Root Cause**: Health check logic inconsistencies
+- **Status**: ✅ Fixed with enhanced vector DB status indicator
+- **Impact**: MEDIUM - Confusing developer experience
+
+#### **🔥 Priority 4: Document Management Workflow Issues (CRITICAL)**
+- **Problems**:
+  1. **Manual JSON editing required**: Users must manually edit `document_selection.json` to remove unwanted files
+  2. **No subfolder filtering**: Questions subfolder (`/data/questions/`) appears in document list inappropriately
+  3. **Incomplete user flows**: Missing critical document management workflows
+  4. **Re-ingestion failures**: Re-ingesting documents (individual/bulk) not working reliably
+  5. **Vertical scroll bar malfunction**: Cannot access rows at bottom of document list
+  6. **Clear Cache button unreliability**: Button doesn't work consistently
+  7. **Progress bar flickering**: Progress bar appears and disappears after ingestion completion
+- **Location**: `backend/managers/document_selection_manager.py:268` (scanning), `frontend/src/components/DocumentManagement.tsx`
+- **Root Causes**:
+  1. **No file filtering logic**: `os.walk()` includes ALL subdirectories including questions folder
+  2. **Hardcoded exclusions insufficient**: Only excludes system files, not application subfolders
+  3. **Missing workflow patterns**: No "hide from document management" capability
+  4. **Re-ingest API issues**: `reingestChanged` exists but individual document re-ingest missing
+  5. **UI container constraints**: Fixed height (300px) causing scroll issues
+  6. **State management conflicts**: Progress polling vs cleanup timing issues
+- **Status**: 🔥 **URGENT - Major UX Problem**
+- **Impact**: HIGH - Users forced to manually edit JSON files, poor document organization
+
+### **Structural Problems**
+1. **Multiple Sources of Truth**: `document_selection.json`, Qdrant chunks, frontend state, backend statistics
+2. **Reactive Chain Fragility**: Document Selection → Chunk Flags → Statistics → API → Frontend
+3. **Data Duplication**: Chunk counts and selection status stored in multiple places
+
+### **Recommended Solutions**
+
+#### **Phase 1: Document Management & Data Consistency (URGENT)**
+- [ ] **Add folder exclusion logic**: Exclude `/questions/` and other app subfolders from document discovery
+- [ ] **Implement file filtering UI**: Allow users to hide/show files without JSON editing
+- [ ] **Fix individual re-ingest**: Add per-document re-ingest buttons and API endpoints
+- [ ] **Fix bulk re-ingest**: Ensure `reingestChanged` works reliably for all selected documents
+- [ ] Remove dual `is_selected` fields in Qdrant (keep only `metadata.is_selected`)
+- [ ] Create migration script for existing chunks
+- [ ] Implement single source of truth pattern with `CorpusStatisticsService`
+
+#### **Phase 2: Real-time Updates (Medium Priority)**
+- [ ] Implement event bus for document selection (`DocumentSelectionEventBus`)
+- [ ] Add WebSocket updates for corpus stats
+- [ ] Replace polling with push-based updates
+
+#### **Phase 3: Architecture Cleanup (Low Priority)**
+- [ ] Consolidate statistics into single service
+- [ ] Remove redundant API endpoints
+- [ ] Implement smart frontend caching with event invalidation
+
+### **Integration with Existing Architecture**
+This dashboard reliability initiative complements the experiment file optimization (Section 1) by ensuring consistent data flow from document management through to experiment results display.
+
+### **Immediate Action Items (September 2025)**
+
+#### **🔥 Critical (This Week)**
+1. **Add subfolder exclusion** - Exclude `/questions/` folder from document discovery (`document_selection_manager.py:268`)
+2. **Fix file filtering workflow** - Prevent users from manually editing JSON by adding UI controls
+3. **Fix re-ingestion completely** - Debug and repair both individual and bulk re-ingest functionality
+4. **Fix document list scrolling** - Replace `maxHeight: '300px'` with dynamic height or pagination
+5. **Add missing user flows** - Implement proper document lifecycle management (hide, archive, exclude)
+
+#### **🟡 Important (Next Sprint)**
+1. **Remove dual selection flags** - Keep only `metadata.is_selected` in Qdrant chunks
+2. **Add corpus stats WebSocket endpoint** - Real-time dashboard updates without page refresh
+3. **Implement error boundary** - Graceful handling of document management component failures
+
+#### **🟢 Nice to Have (Future)**
+1. **Document management virtualization** - Handle large document lists efficiently
+2. **Bulk operations UI** - Select multiple documents for batch operations
+3. **Document preview** - Quick preview of document content before ingestion
+
+---
+
 ## Notes for Future Development
 
-This analysis provides a roadmap for optimizing the experiment file architecture while maintaining backward compatibility and improving system performance. The current system can continue operating while these optimizations are implemented incrementally.
+This analysis provides a roadmap for optimizing both the experiment file architecture and dashboard reliability while maintaining backward compatibility and improving system performance. The current system can continue operating while these optimizations are implemented incrementally.

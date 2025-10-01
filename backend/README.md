@@ -1,10 +1,5 @@
 # Backend - RagCheck
 
-<!-- Backend-specific versions and tools -->
-![Uvicorn](https://img.shields.io/badge/Uvicorn-0.27+-009688?style=flat&logoColor=white)
-![Pydantic](https://img.shields.io/badge/Pydantic-2.8+-E92063?style=flat&logo=pydantic&logoColor=white)
-![PyMuPDF](https://img.shields.io/badge/PyMuPDF-PDF_Processing-red?style=flat&logoColor=white)
-
 FastAPI backend with real document processing, vector embeddings, and persistent storage using Qdrant.
 
 > **📖 Main Documentation**: See the [main README](../README.md) for complete setup instructions and project overview.
@@ -149,3 +144,10 @@ See [main README](../README.md) for environment setup. Key variables:
 
 - **Uvicorn**: ASGI server
 - **Python-dotenv**: Environment management
+
+---
+
+### Technology Badges
+![Uvicorn](https://img.shields.io/badge/Uvicorn-0.27+-009688?style=flat&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-2.8+-E92063?style=flat&logo=pydantic&logoColor=white)
+![PyMuPDF](https://img.shields.io/badge/PyMuPDF-PDF_Processing-red?style=flat&logoColor=white)

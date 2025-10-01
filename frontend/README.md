@@ -1,10 +1,5 @@
 # Frontend - RagCheck
 
-<!-- Frontend-specific versions and tools -->
-![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat&logo=react&logoColor=black)
-![Axios](https://img.shields.io/badge/Axios-1.7.7-5A29E4?style=flat&logo=axios&logoColor=white)
-![ESLint](https://img.shields.io/badge/ESLint-8.57.0-4B32C3?style=flat&logo=eslint&logoColor=white)
-
 Next.js frontend with comprehensive logging, real-time WebSocket communication, and user-friendly interface for corpus/data quality analysis.
 
 > **📖 Main Documentation**: See the [main README](../README.md) for complete setup instructions and project overview.
@@ -259,6 +254,13 @@ logNavigation('Dashboard', 'Questions');
 ## Performance Features
 
 - **API Caching**: 10-minute TTL with automatic cleanup
-- **D3.js Optimization**: Efficient data binding and rendering  
+- **D3.js Optimization**: Efficient data binding and rendering
 - **WebSocket Management**: Real-time updates with reconnection
 - **Smart UI**: Custom tooltips and responsive design
+
+---
+
+### Technology Badges
+![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat&logo=react&logoColor=black)
+![Axios](https://img.shields.io/badge/Axios-1.7.7-5A29E4?style=flat&logo=axios&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-8.57.0-4B32C3?style=flat&logo=eslint&logoColor=white)

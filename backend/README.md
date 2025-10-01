@@ -1,15 +1,9 @@
 # Backend - RagCheck
 
-![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![LangChain](https://img.shields.io/badge/🦜_LangChain-0.2.x-1C3C3C?style=for-the-badge&logoColor=white)
-![Qdrant](https://img.shields.io/badge/Qdrant-1.15.1-DC382D?style=for-the-badge&logo=database&logoColor=white)
-
-![OpenAI](https://img.shields.io/badge/OpenAI-Embeddings-412991?style=flat&logo=openai&logoColor=white)
+<!-- Backend-specific versions and tools -->
 ![Uvicorn](https://img.shields.io/badge/Uvicorn-0.27+-009688?style=flat&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-2.8+-E92063?style=flat&logo=pydantic&logoColor=white)
-![NumPy](https://img.shields.io/badge/NumPy-1.26+-013243?style=flat&logo=numpy&logoColor=white)
-![Pandas](https://img.shields.io/badge/Pandas-2.1+-150458?style=flat&logo=pandas&logoColor=white)
+![PyMuPDF](https://img.shields.io/badge/PyMuPDF-PDF_Processing-red?style=flat&logoColor=white)
 
 FastAPI backend with real document processing, vector embeddings, and persistent storage using Qdrant.
 

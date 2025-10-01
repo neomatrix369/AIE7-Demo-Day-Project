@@ -7,21 +7,6 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-<!-- AI/ML/LLM Stack -->
-![LangChain](https://img.shields.io/badge/🦜_LangChain-0.2.x-1C3C3C?style=for-the-badge&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?style=for-the-badge&logo=openai&logoColor=white)
-![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC382D?style=for-the-badge&logo=database&logoColor=white)
-
-<!-- Data & Visualization -->
-![NumPy](https://img.shields.io/badge/NumPy-1.26+-013243?style=flat&logo=numpy&logoColor=white)
-![Pandas](https://img.shields.io/badge/Pandas-2.1+-150458?style=flat&logo=pandas&logoColor=white)
-![D3.js](https://img.shields.io/badge/D3.js-7.9.0-F9A03C?style=flat&logo=d3.js&logoColor=white)
-![WebSockets](https://img.shields.io/badge/WebSockets-Real--time-FF6B35?style=flat&logo=socket.io&logoColor=white)
-
-<!-- License & Social -->
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![GitHub](https://img.shields.io/github/stars/neomatrix369/AIE7-Demo-Day-Project?style=social)
-
 A 6-screen wizard application for comprehensive RAG system quality assessment using client-provided/approved queries (with support for AI-generated and RAGAS-generated questions when necessary) with real document processing, vector similarity search, advanced gap analysis, and interactive data visualization.
 
 ## Visuals
@@ -185,6 +170,24 @@ grep OPENAI_API_KEY .env
 # Check Docker container environment
 docker-compose exec backend env | grep OPENAI
 ```
+
+## Built With
+
+### AI/ML Stack
+![LangChain](https://img.shields.io/badge/🦜_LangChain-0.2.x-1C3C3C?style=for-the-badge&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?style=for-the-badge&logo=openai&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC382D?style=for-the-badge&logo=database&logoColor=white)
+
+### Data & Visualization
+![NumPy](https://img.shields.io/badge/NumPy-1.26+-013243?style=flat&logo=numpy&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-2.1+-150458?style=flat&logo=pandas&logoColor=white)
+![D3.js](https://img.shields.io/badge/D3.js-7.9.0-F9A03C?style=flat&logo=d3.js&logoColor=white)
+![WebSockets](https://img.shields.io/badge/WebSockets-Real--time-FF6B35?style=flat&logo=socket.io&logoColor=white)
+
+---
+
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![GitHub](https://img.shields.io/github/stars/neomatrix369/AIE7-Demo-Day-Project?style=social)
 
 ## Contributing
 

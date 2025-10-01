@@ -1,12 +1,7 @@
 # Documentation Index
 
-![Documentation](https://img.shields.io/badge/Documentation-Complete-brightgreen?style=for-the-badge&logo=gitbook&logoColor=white)
-![Architecture](https://img.shields.io/badge/Architecture-Documented-blue?style=for-the-badge&logo=blueprint&logoColor=white)
-![API Reference](https://img.shields.io/badge/API-Reference-orange?style=for-the-badge&logo=swagger&logoColor=white)
-
-![Deployment](https://img.shields.io/badge/Deployment-Cloud_Ready-purple?style=flat&logo=vercel&logoColor=white)
-![Troubleshooting](https://img.shields.io/badge/Troubleshooting-Guide-red?style=flat&logo=debug&logoColor=white)
-![Features](https://img.shields.io/badge/Features-Complete-green?style=flat&logo=feature&logoColor=white)
+<!-- Project Documentation Hub -->
+![Docs](https://img.shields.io/badge/RagCheck-Documentation-blue?style=for-the-badge&logo=gitbook&logoColor=white)
 
 Welcome to the RagCheck documentation! This directory contains comprehensive guides for setup, architecture, deployment, and troubleshooting.
 

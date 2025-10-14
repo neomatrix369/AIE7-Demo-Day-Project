@@ -33,12 +33,16 @@ cp .env.example .env  # Add your OPENAI_API_KEY
 - Backend API: http://localhost:8000  
 - Qdrant Database: http://localhost:6333
 
-### Alternative Startup Options
+### Service Management
 
-**Service Management:**
+**Lifecycle Management:**
 ```bash
 ./start-services.sh               # Start all services (recommended)
-./stop-services.sh                # Stop all services interactively
+./stop-services.sh                # Interactive stop with 4 options:
+                                  #   1. Standard stop (cleans up, preserves data)
+                                  #   2. Quick pause (fastest restart)
+                                  #   3. Deep cleanup (reclaim disk space)
+                                  #   4. Nuclear reset (⚠️ deletes all data)
 ./scripts/health-check.sh         # Monitor service health
 ```
 
@@ -141,11 +145,17 @@ docker-compose up frontend        # Full stack (auto-starts all)
 # Check service health
 ./scripts/health-check.sh
 
-# Stop and restart services
+# Stop services (interactive menu with 4 options)
 ./stop-services.sh
+#   Option 1: Standard stop - Daily use, preserves data
+#   Option 2: Quick pause - Fastest restart, no cleanup
+#   Option 3: Deep cleanup - Reclaim disk space, keeps data
+#   Option 4: Nuclear reset - ⚠️ DELETES ALL DATA (troubleshooting only)
+
+# Restart services
 ./start-services.sh
 
-# View container logs  
+# View container logs
 docker-compose logs backend
 docker-compose logs frontend
 docker-compose logs qdrant

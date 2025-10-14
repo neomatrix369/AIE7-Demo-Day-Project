@@ -1,5 +1,52 @@
 # Troubleshooting
 
+## Local Development
+
+### Service Management Issues
+
+**Problem:** Containers won't start or stop properly
+
+**Solution:** Use the interactive stop script with the appropriate option:
+
+```bash
+./stop-services.sh
+```
+
+**When to use each option:**
+
+1. **Standard stop (Option 1)** - Recommended for daily use
+   - Stops containers and cleans up temporary resources
+   - Preserves all your data (volumes, ingested documents)
+   - Cleans up: exited containers, dangling images, unused networks
+   - Use this: End of work day, normal shutdown
+
+2. **Quick pause (Option 2)** - Fastest restart
+   - Just stops containers without cleanup
+   - No data removal, no image cleanup
+   - Use this: Quick break, testing restarts, temporary pause
+
+3. **Deep cleanup (Option 3)** - Reclaim disk space
+   - Removes ALL unused Docker images and anonymous volumes
+   - Preserves named volumes (your database data is safe)
+   - Requires confirmation before proceeding
+   - Use this: Running low on disk space, monthly maintenance
+
+4. **Nuclear reset (Option 4)** - ⚠️ COMPLETE DATA WIPE
+   - Deletes EVERYTHING including all volumes and data
+   - Requires typing "DELETE ALL DATA" to confirm
+   - Use this: Starting completely fresh, major corruption, troubleshooting
+
+**Starting services with port conflict resolution:**
+
+```bash
+./start-services.sh
+```
+
+The script automatically detects port conflicts and offers 3 options:
+1. Auto-kill conflicting processes (recommended)
+2. Show manual commands to stop them
+3. Exit and handle manually
+
 ## Environment Issues ✅ AUTO-MANAGED
 
 **Version not switching:** `exec zsh`

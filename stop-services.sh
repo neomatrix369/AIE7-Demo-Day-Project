@@ -47,10 +47,26 @@ echo ""
 
 # Ask user what type of stop they want
 echo -e "${YELLOW}Choose stop method:${NC}"
-echo "1. 🛑 Stop and remove containers (default - recommended)"
-echo "2. ⏸️  Stop containers but keep them (faster restart)"
-echo "3. 🧹 Force stop and clean up everything (nuclear option)"
-echo "4. 🔧 Stop + cleanup (removes containers, dangling images, and unused resources)"
+echo ""
+echo "1. 🛑 Standard stop (recommended for daily use)"
+echo "   • Stops and removes containers"
+echo "   • Cleans up: exited containers, dangling images, unused networks"
+echo "   • Preserves: volumes (your data), built images, project-specific resources"
+echo ""
+echo "2. ⏸️  Quick pause (fastest restart)"
+echo "   • Stops containers but keeps everything else"
+echo "   • No cleanup - ideal for temporary pause"
+echo "   • Next startup will be faster"
+echo ""
+echo "3. 🔧 Deep cleanup (reclaim disk space)"
+echo "   • Stops and removes containers"
+echo "   • Removes: ALL unused images (not just dangling), anonymous volumes, networks"
+echo "   • Preserves: named volumes (your data), currently used resources"
+echo ""
+echo "4. 💣 Nuclear reset (⚠️  DATA LOSS WARNING)"
+echo "   • Stops and removes containers, orphans, AND ALL VOLUMES"
+echo "   • ⚠️  DELETES: Database data, ingested documents, all persistent data"
+echo "   • Use only when starting completely fresh or troubleshooting"
 echo ""
 
 read -p "Enter choice (1-4) or press Enter for default [1]: " choice
@@ -58,31 +74,56 @@ choice=${choice:-1}
 
 case $choice in
     1)
-        echo -e "${BLUE}🛑 Stopping and removing containers...${NC}"
+        echo -e "${BLUE}🛑 Performing standard stop and cleanup...${NC}"
         ${DOCKER_COMPOSE_COMMAND} down
         # Run standard cleanup after stopping
         docker_cleanup "silent"
+        echo -e "${GREEN}✅ Containers stopped. Your data is preserved.${NC}"
         ;;
     2)
-        echo -e "${BLUE}⏸️  Stopping containers (keeping for quick restart)...${NC}"
+        echo -e "${BLUE}⏸️  Pausing containers (quick restart mode)...${NC}"
         ${DOCKER_COMPOSE_COMMAND} stop
+        echo -e "${GREEN}✅ Containers paused. No cleanup performed.${NC}"
         ;;
     3)
-        echo -e "${BLUE}🧹 Force stopping and cleaning up...${NC}"
-        ${DOCKER_COMPOSE_COMMAND} down --remove-orphans --volumes
-        echo -e "${YELLOW}⚠️  Note: This removed volumes too. Data might be lost.${NC}"
-        # Run aggressive cleanup after force stop
-        docker_cleanup "aggressive"
+        echo -e "${BLUE}🔧 Performing deep cleanup (removing unused resources)...${NC}"
+        echo -e "${YELLOW}This will remove ALL unused Docker images and anonymous volumes.${NC}"
+        read -p "Continue? (y/N): " confirm_cleanup
+        if [[ "$confirm_cleanup" =~ ^[Yy]$ ]]; then
+            ${DOCKER_COMPOSE_COMMAND} down
+            # Run aggressive cleanup after stopping
+            docker_cleanup "aggressive"
+            echo -e "${GREEN}✅ Deep cleanup completed. Named volumes preserved.${NC}"
+        else
+            echo -e "${YELLOW}Cancelled. Falling back to standard stop...${NC}"
+            ${DOCKER_COMPOSE_COMMAND} down
+            docker_cleanup "silent"
+        fi
         ;;
     4)
-        echo -e "${BLUE}🔧 Stopping containers with cleanup...${NC}"
-        ${DOCKER_COMPOSE_COMMAND} down
-        # Run aggressive cleanup after stopping
-        docker_cleanup "aggressive"
+        echo -e "${RED}💣 NUCLEAR RESET - THIS WILL DELETE ALL YOUR DATA${NC}"
+        echo -e "${RED}   • All ingested documents will be lost${NC}"
+        echo -e "${RED}   • All experiment results will be lost${NC}"
+        echo -e "${RED}   • Database will be wiped clean${NC}"
+        echo ""
+        read -p "Are you ABSOLUTELY SURE? Type 'DELETE ALL DATA' to confirm: " confirm_nuclear
+        if [[ "$confirm_nuclear" == "DELETE ALL DATA" ]]; then
+            echo -e "${RED}🧹 Performing nuclear reset...${NC}"
+            ${DOCKER_COMPOSE_COMMAND} down --remove-orphans --volumes
+            # Run aggressive cleanup after force stop
+            docker_cleanup "aggressive"
+            echo -e "${YELLOW}⚠️  All data has been deleted. You're starting from scratch.${NC}"
+        else
+            echo -e "${GREEN}✅ Nuclear reset cancelled. Your data is safe.${NC}"
+            echo -e "${YELLOW}Falling back to standard stop...${NC}"
+            ${DOCKER_COMPOSE_COMMAND} down
+            docker_cleanup "silent"
+        fi
         ;;
     *)
-        echo -e "${RED}❌ Invalid choice. Using default.${NC}"
+        echo -e "${RED}❌ Invalid choice. Using standard stop.${NC}"
         ${DOCKER_COMPOSE_COMMAND} down
+        docker_cleanup "silent"
         ;;
 esac
 

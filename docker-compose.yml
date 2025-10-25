@@ -1,82 +1,174 @@
-name: ${COMPOSE_PROJECT_NAME:-ragcheck}
+# ==============================================================================
+# DOCKER COMPOSE CONFIGURATION - RAG APPLICATION
+# ==============================================================================
+#
+# This orchestrates a three-tier RAG (Retrieval-Augmented Generation) application:
+#   - Qdrant: Vector database (foundation) - stores document embeddings
+#   - Backend: FastAPI service (business logic) - RAG operations and API
+#   - Frontend: Next.js app (presentation) - user interface
+#
+# Services start in dependency order with health checks:
+#   Qdrant (healthy) → Backend (healthy) → Frontend
+#
+# Key Concepts:
+#   - Internal network: Services use container names (http://qdrant:6333)
+#   - External access: Browser uses localhost (http://localhost:8000)
+#   - Volumes: Persist data across container restarts
+#   - Health checks: Ensure each layer is ready before next starts
+# ==============================================================================
+
+name: ${COMPOSE_PROJECT_NAME:-ragcheck}  # Project name - groups all containers together
 
 services:
-  # Vector Database - Foundation Layer
+  # ==============================================================================
+  # QDRANT - Vector Database (Foundation Layer)
+  # ==============================================================================
+  # What: Stores document embeddings for similarity search
+  # Ports: 6333 (REST API - main), 6334 (gRPC - high-performance, optional)
+  # Volume: qdrant_storage persists vector data (expensive to recreate!)
+  # Health: Checks port 6333 responds every 30s before backend starts
+  # ==============================================================================
   qdrant:
-    image: ${QDRANT_IMAGE:-qdrant/qdrant:latest}
-    container_name: ${QDRANT_CONTAINER_NAME:-ragcheck-qdrant}
-    ports:
-      - "6333:6333"  # REST API
-      - "6334:6334"  # gRPC API (optional)
-    volumes:
-      - qdrant_storage:/qdrant/storage
-    environment:
-      - QDRANT__SERVICE__HTTP_PORT=6333
-      - QDRANT__SERVICE__GRPC_PORT=6334
-      - QDRANT__LOG_LEVEL=INFO
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/localhost/6333' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    image: ${QDRANT_IMAGE:-qdrant/qdrant:latest}  # Docker image to use (default: latest Qdrant)
+    container_name: ${QDRANT_CONTAINER_NAME:-ragcheck-qdrant}  # Unique container name
 
-  # Backend API - Business Logic Layer
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: ${BACKEND_IMAGE_NAME:-ragcheck-backend}
-    container_name: ${BACKEND_CONTAINER_NAME:-ragcheck-backend}
+    # Port mapping: host:container (access via localhost:6333 from your machine)
     ports:
-      - "8000:8000"
+      - "6333:6333"  # REST API - main interface for queries
+      - "6334:6334"  # gRPC API - faster for high-volume operations
+
+    # Mount named volume to persist vector database across restarts
     volumes:
-      - ./backend/data:/app/data  # Mount data directory
-      - ./backend/cache:/app/cache  # Mount cache directory
-      - ./experiments:/app/experiments  # Mount experiments directory
+      - qdrant_storage:/qdrant/storage  # Maps Docker volume to container's storage path
+
+    # Environment variables passed into the container
     environment:
-      - QDRANT_URL=http://qdrant:6333  # Internal Docker network
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATA_FOLDER=data/
-      - EXPERIMENTS_FOLDER=experiments/
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - BACKEND_HOST=0.0.0.0
-      - BACKEND_PORT=8000
+      - QDRANT__SERVICE__HTTP_PORT=6333  # Configure REST API port
+      - QDRANT__SERVICE__GRPC_PORT=6334  # Configure gRPC port
+      - QDRANT__LOG_LEVEL=INFO  # Logging verbosity (INFO = standard, DEBUG = verbose)
+
+    restart: unless-stopped  # Auto-restart on crash, but not if manually stopped
+
+    # Health check ensures service is ready before dependent services start
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/localhost/6333' || exit 1"]  # Check if port 6333 accepts connections
+      interval: 30s  # Check every 30 seconds
+      timeout: 10s  # Fail if check takes longer than 10 seconds
+      retries: 3  # Try 3 times before marking unhealthy
+      start_period: 10s  # Grace period during startup (don't fail checks in first 10s)
+
+  # ==============================================================================
+  # BACKEND - FastAPI Service (Business Logic Layer)
+  # ==============================================================================
+  # What: API server handling RAG logic, document processing, experiments
+  # Build: Compiled from ./backend folder (not pulled from registry)
+  # Port: 8000 - REST API endpoint
+  # Depends on: Qdrant must be healthy before backend starts
+  #
+  # Volumes (data persistence):
+  #   - ./backend/data → Your source documents
+  #   - ./backend/cache → Processing cache for performance
+  #   - ./experiments → Experiment results storage
+  #
+  # Key Environment Variable:
+  #   QDRANT_URL=http://qdrant:6333 (Docker network name, NOT localhost!)
+  # ==============================================================================
+  backend:
+    # Build configuration - compile image from source code instead of pulling from registry
+    build:
+      context: ./backend  # Use ./backend folder as build context
+      dockerfile: Dockerfile  # Use Dockerfile in that folder
+
+    image: ${BACKEND_IMAGE_NAME:-ragcheck-backend}  # Tag the built image with this name
+    container_name: ${BACKEND_CONTAINER_NAME:-ragcheck-backend}  # Unique container name
+
+    # Port mapping: host:container (access API via localhost:8000)
+    ports:
+      - "8000:8000"  # FastAPI REST API endpoint
+
+    # Mount local folders into container (changes sync in real-time)
+    volumes:
+      - ./backend/data:/app/data  # Your source documents live here
+      - ./backend/cache:/app/cache  # Processing cache for faster reloads
+      - ./experiments:/app/experiments  # Experiment results saved here
+
+    # Environment variables for backend application
+    environment:
+      - QDRANT_URL=http://qdrant:6333  # Use Docker service name (NOT localhost!)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}  # Pass through from .env file
+      - DATA_FOLDER=data/  # Relative path inside container
+      - EXPERIMENTS_FOLDER=experiments/  # Relative path inside container
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}  # Logging verbosity (from .env or default INFO)
+      - BACKEND_HOST=0.0.0.0  # Listen on all interfaces (required for Docker)
+      - BACKEND_PORT=8000  # Port to listen on inside container
+
+    # Wait for Qdrant to be healthy before starting backend
     depends_on:
       qdrant:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+        condition: service_healthy  # Don't start until Qdrant passes health checks
 
-  # Frontend - Presentation Layer
+    restart: unless-stopped  # Auto-restart on crash, but not if manually stopped
+
+    # Health check to verify backend API is responding
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # Call health endpoint
+      interval: 30s  # Check every 30 seconds
+      timeout: 10s  # Fail if check takes longer than 10 seconds
+      retries: 3  # Try 3 times before marking unhealthy
+      start_period: 30s  # Grace period during startup (backend takes longer to start)
+
+  # ==============================================================================
+  # FRONTEND - Next.js Application (Presentation Layer)
+  # ==============================================================================
+  # What: Web UI for interacting with the RAG system
+  # Build: Compiled from ./frontend folder
+  # Port: 3000 - Access via http://localhost:3000
+  # Depends on: Backend must be healthy before frontend starts
+  #
+  # Key Environment Variable:
+  #   NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+  #   Why localhost? Browser runs on your machine, NOT inside Docker network
+  # ==============================================================================
   frontend:
+    # Build configuration - compile Next.js app from source
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: ${FRONTEND_IMAGE_NAME:-ragcheck-frontend}
-    container_name: ${FRONTEND_CONTAINER_NAME:-ragcheck-frontend}
+      context: ./frontend  # Use ./frontend folder as build context
+      dockerfile: Dockerfile  # Use Dockerfile in that folder
+
+    image: ${FRONTEND_IMAGE_NAME:-ragcheck-frontend}  # Tag the built image with this name
+    container_name: ${FRONTEND_CONTAINER_NAME:-ragcheck-frontend}  # Unique container name
+
+    # Port mapping: host:container (access web UI via localhost:3000)
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Next.js web application
+
+    # Environment variables for Next.js app (NEXT_PUBLIC_ vars are exposed to browser)
     environment:
-      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000  # External access for browser
-      - NEXT_PUBLIC_DEPLOYMENT_ENV=docker
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8000  # Browser uses localhost (NOT Docker service name!)
+      - NEXT_PUBLIC_DEPLOYMENT_ENV=docker  # Flag indicating Docker deployment
+
+    # Wait for backend to be healthy before starting frontend
     depends_on:
       backend:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 45s
+        condition: service_healthy  # Don't start until backend passes health checks
 
+    restart: unless-stopped  # Auto-restart on crash, but not if manually stopped
+
+    # Health check to verify Next.js app is responding
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]  # Call Next.js health API route
+      interval: 30s  # Check every 30 seconds
+      timeout: 10s  # Fail if check takes longer than 10 seconds
+      retries: 3  # Try 3 times before marking unhealthy
+      start_period: 45s  # Grace period during startup (Next.js takes longest to start)
+
+# ==============================================================================
+# VOLUMES - Data Persistence
+# ==============================================================================
+# Named volume for Qdrant's vector database
+# Survives container restarts (embeddings are expensive to recreate!)
+# Data stored in Docker's managed storage location
+# ==============================================================================
 volumes:
-  qdrant_storage:
-    driver: local
+  qdrant_storage:  # Named volume referenced by qdrant service above
+    driver: local  # Store on local disk (default driver, can be omitted)
